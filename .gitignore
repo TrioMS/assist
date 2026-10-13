@@ -1,0 +1,4 @@
+# Makineye ozel ayar ve kayitlar (veri zaten depo DISINDA: %USERPROFILE%\IsTakipVeri)
+Sunucu/istakip_ayar.*.json
+Sunucu/_baslangic_*.log
+Sunucu/_tepsi_*.log
