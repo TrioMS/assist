@@ -67,10 +67,30 @@ function Liste-Gizle {
 # MiCollab acildiktan sonraki ilk 5 dk 2 sn'de bir (acil penceresi), ilk 90 sn ve
 # acil penceresi kapandiktan sonraki 30 sn liste penceresi gizlenir. Diger zamanlar
 # dakikada bir bakilir. Kullanici MiCollab'i sonradan kendisi acarsa dokunulmaz.
+# Outlook'u saatin yanina indir: yalniz Assist'in baslattigi Outlook (uygulamalar.ps1 isaret birakir;
+# kullanici Outlook'u kendisi acarsa isaret olmaz, dokunulmaz). Isaret 3 dk gecerli.
+# Outlook'un "Kucultuldugunde gizle" ayari acik oldugu icin kucultulen pencere gorev cubugundan kalkar.
+Add-Type -Namespace IsTakip -Name OutlookPencere -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(System.IntPtr h, int k); [DllImport("user32.dll")] public static extern bool IsWindowVisible(System.IntPtr h); [DllImport("user32.dll")] public static extern bool IsIconic(System.IntPtr h);'
+$olIsaret = Join-Path $env:TEMP "assist_outlook_kucult.txt"
+function Outlook-Kucult {
+  if (-not (Test-Path -LiteralPath $olIsaret)) { return }
+  $yas = ((Get-Date) - (Get-Item -LiteralPath $olIsaret).LastWriteTime).TotalSeconds
+  if ($yas -gt 180) { Remove-Item -LiteralPath $olIsaret -Force -ErrorAction SilentlyContinue; return }
+  foreach ($p in @(Get-Process -Name OUTLOOK -ErrorAction SilentlyContinue)) {
+    $h = $p.MainWindowHandle
+    if ($h -eq [IntPtr]::Zero -or -not [IsTakip.OutlookPencere]::IsWindowVisible($h) -or [IsTakip.OutlookPencere]::IsIconic($h)) { continue }
+    Start-Sleep -Seconds 2   # Outlook acilisini bitirsin (erken kucultulunce kendini geri aciyor)
+    [void][IsTakip.OutlookPencere]::ShowWindowAsync($h, 6)   # 6 = SW_MINIMIZE
+    Remove-Item -LiteralPath $olIsaret -Force -ErrorAction SilentlyContinue
+    Kayit "Outlook saatin yanina indirildi"
+    return
+  }
+}
 $sayac = 0; $gizleBitis = [DateTime]::MinValue
 while ($true) {
   Start-Sleep -Seconds 2
   $sayac++
+  try { Outlook-Kucult } catch {}
   $yas = 1e9
   try { $yas = ((Get-Date) - (Get-Process -Name UCA -ErrorAction Stop | Select-Object -First 1).StartTime).TotalSeconds } catch {}
   if ($yas -lt 300 -or ($sayac % 30 -eq 0)) { if (Acil-Pencere-Kapat) { $gizleBitis = (Get-Date).AddSeconds(30) } }

@@ -27,7 +27,19 @@ if (Istendi "outlook") {
     $ol = @(Get-Process -Name OUTLOOK -ErrorAction SilentlyContinue)
     if (-not $ol.Count -or -not ($ol | Where-Object { $_.MainWindowHandle -ne 0 })) {
       $exe = (Get-ItemProperty -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\OUTLOOK.EXE" -ErrorAction Stop).'(default)'
-      if ($exe -and (Test-Path -LiteralPath $exe)) { Start-Process -FilePath $exe -ArgumentList "/recycle" -WindowStyle Minimized }
+      if ($exe -and (Test-Path -LiteralPath $exe)) {
+        # Outlook "simge durumunda" baslatma istegini yok sayip pencereyi acik birakiyor. Kullanici
+        # saatin yanina insin istedi (14.10.2026): Outlook'un kendi "Kucultuldugunde gizle" ayari
+        # (MinToTray) acilir ve izleyiciye (micollab_izle.ps1) "Outlook'u kucult" isareti birakilir.
+        try {
+          $sur = ((Get-Item -LiteralPath $exe).VersionInfo.FileMajorPart).ToString() + ".0"
+          $pk = "HKCU:\Software\Microsoft\Office\$sur\Outlook\Preferences"
+          if (-not (Test-Path -LiteralPath $pk)) { New-Item -Path $pk -Force | Out-Null }
+          Set-ItemProperty -LiteralPath $pk -Name MinToTray -Value 1 -Type DWord
+        } catch {}
+        Set-Content -LiteralPath (Join-Path $env:TEMP "assist_outlook_kucult.txt") -Value (Get-Date).ToString("o") -Encoding ASCII
+        Start-Process -FilePath $exe -ArgumentList "/recycle" -WindowStyle Minimized
+      }
     }
   } catch {}
 }

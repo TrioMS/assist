@@ -234,6 +234,57 @@ function Klasor([string]$yol) {
   }
   return $f
 }
+# --- Assist'ten Assist'e talep (Exchange uzerinden, 13.10.2026) -------------
+# Gonderen Assist, alicinin adresine ozel siniftaki (IPM.Note.Assist) bir ileti yollar:
+# govdede okunabilir metin + "ASSIST-VERI:<base64 JSON>:SON". Alicinin Assist'i dakikada
+# bir Gelen Kutusu'nda bu siniftaki iletileri bulur, Gelen Kutusu > Assist klasorune
+# tasir ve talebi sifreli kuyruga (gelen.dat) yazar; sayfa kuyrugu alip "Gelen talep"
+# kaydi olusturur. Alicida Assist yoksa ileti normal posta gibi okunur.
+# Sinif sirket disina giden postada IPM.Note'a doner: disaridan sahte talep dusmez.
+$GELEN_SINIF = "IPM.Note.Assist"
+$VERI_ISARET = "ASSIST-VERI:"
+$gelenDos = Join-Path $veriKok "gelen.dat"
+# Ogeleri tek tek dondurur (virgul ile SARMA: borudan tek nesne gibi gecip $_.id dizi olur);
+# cagiran her zaman @(Gelen-Oku) ile toplar.
+function Gelen-Oku {
+  if (Test-Path -LiteralPath $gelenDos) {
+    try { $j = Sifreli-Oku $gelenDos; if ($j -and $j.Trim()) { $a = $j | ConvertFrom-Json; foreach ($x in $a) { $x } } } catch {}
+  }
+}
+function Gelen-Yaz($L) { $d = @($L); Sifreli-Yaz $gelenDos $(if ($d.Count) { ConvertTo-Json -InputObject $d -Depth 8 -Compress } else { '[]' }) }
+function Assist-Klasoru {
+  $gk = (Ns).GetDefaultFolder(6)
+  try { return $gk.Folders.Item("Assist") } catch { return $gk.Folders.Add("Assist") }
+}
+function Gelen-Talep-Kontrol {
+  $gk = (Ns).GetDefaultFolder(6)
+  $bulunan = @(); foreach ($it in $gk.Items.Restrict("[MessageClass] = '$GELEN_SINIF'")) { $bulunan += $it }   # tasirken koleksiyon degismesin
+  if (-not $bulunan.Count) { return }
+  $L = New-Object System.Collections.ArrayList
+  foreach ($x in @(Gelen-Oku)) { [void]$L.Add($x) }
+  $hedef = Assist-Klasoru; $yeni = 0
+  foreach ($it in $bulunan) {
+    try {
+      $govde = [string]$it.Body
+      $i = $govde.IndexOf($VERI_ISARET); if ($i -lt 0) { continue }
+      $j = $govde.IndexOf(":SON", $i); if ($j -lt 0) { continue }
+      $b64 = ($govde.Substring($i + $VERI_ISARET.Length, $j - $i - $VERI_ISARET.Length)) -replace '\s', ''
+      $t = $UTF8.GetString([Convert]::FromBase64String($b64)) | ConvertFrom-Json
+      $gonderen = [string]$it.SenderName; $ep = Gonderen-Eposta $it; $alinma = Tarih-Iso $it.ReceivedTime
+      $msgId = ""; try { $msgId = [string]$it.PropertyAccessor.GetProperty($PR_MSGID) } catch {}
+      $tasinan = $it.Move($hedef)
+      [void]$L.Add([ordered]@{ id = [guid]::NewGuid().ToString("N"); gonderen = $gonderen; gonderenEposta = $ep; alinma = $alinma; talep = $t;
+        posta = @{ id = [string]$tasinan.EntryID; store = [string]$hedef.StoreID; msgId = $msgId; konu = [string]$tasinan.Subject; kimden = $gonderen; tarih = $alinma } })
+      $yeni++
+    } catch { Write-Host ("  Gelen talep okunamadi: " + $_.Exception.Message) -ForegroundColor Yellow }
+  }
+  if ($yeni) {
+    Gelen-Yaz $L
+    Write-Host ("  " + $yeni + " gelen talep alindi")
+    try { Bildirim-Goster $BLD_AD ($(if ($yeni -eq 1) { "1 yeni talep geldi" } else { "$yeni yeni talep geldi" })) "talep" } catch {}
+  }
+}
+
 # Toplanti odalari: Exchange "All Rooms" adres listesi (sirkette 15. kat Pera / Galata).
 function Oda-Listesi {
   $L = @()
@@ -444,6 +495,38 @@ function MiCollab-Klasor {
   }
   return "C:\Program Files (x86)\Mitel\Unified Communicator Advanced 7.3\"
 }
+# MiCollab arama penceresindeki "gorusmeyi bitir" dugmesine basar; basilan dugmenin adini dondurur.
+# Oncelik sirasi: acik "bitir/kapat" adlari once, genel "iptal" en son. Ana liste penceresinin
+# kapat (X) dugmesine dokunulmaz (o pencere gorusme degil, MiCollab'i gizler).
+function MiCollab-Gorusme-Bitir {
+  Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+  $AE = [System.Windows.Automation.AutomationElement]
+  $dugme = New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button)
+  # DIKKAT: dizide virgul "+"dan once islenir; birlestirilen her oge PARANTEZ icinde olmali
+  # (13.10.2026: son desen ikiye bolunup "Not enough )'s" hatasi verdi).
+  $oncelik = @(
+    '(?i)^\s*(end\s*call|hang\s*up|hangup|disconnect|drop|end)\s*$',
+    '(?i)(end\s*call|hang\s*up|hangup|disconnect)',
+    ('(?i)(bitir|sonland|' + (U "g{00F6}r{00FC}{015F}meyi kapat") + '|aramay' + (U "{0131}") + ' kapat)'),
+    ('(?i)^\s*(cancel|' + (U "iptal") + ')\s*$')
+  )
+  $adaylar = @(); $adlar = @()
+  foreach ($p in $AE::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)) {
+    $sur = ""; try { $sur = (Get-Process -Id $p.Current.ProcessId -ErrorAction Stop).ProcessName } catch {}
+    if (@("UCA", "UCASoftphoneManager", "53xxPCApp") -notcontains $sur) { continue }
+    foreach ($d in $p.FindAll([System.Windows.Automation.TreeScope]::Descendants, $dugme)) {
+      $ad = [string]$d.Current.Name; $aid = [string]$d.Current.AutomationId
+      $adlar += ("[" + [string]$p.Current.Name + "] " + $ad + $(if ($aid) { " #" + $aid } else { "" }))
+      for ($i = 0; $i -lt $oncelik.Count; $i++) { if ($ad -match $oncelik[$i] -or $aid -match $oncelik[$i]) { $adaylar += ,@($i, $d, $ad); break } }
+    }
+  }
+  if ($adaylar.Count) {
+    $sec = $adaylar | Sort-Object { $_[0] } | Select-Object -First 1
+    try { $sec[1].GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); Write-Host ("  Gorusme kapatildi: " + $sec[2]); return [string]$sec[2] } catch {}
+  }
+  Write-Host ("  Gorusme kapatma dugmesi bulunamadi. MiCollab dugmeleri: " + (($adlar | Select-Object -First 60) -join " | "))
+  return ""
+}
 # Turkce harfleri sadelestir (rehber aramasi icin): c g i I o s u
 function Harf-Sadele([string]$s) {
   $harita = @{ 0x00E7 = 'c'; 0x00C7 = 'C'; 0x011F = 'g'; 0x011E = 'G'; 0x0131 = 'i'; 0x0130 = 'I'; 0x00F6 = 'o'; 0x00D6 = 'O'; 0x015F = 's'; 0x015E = 'S'; 0x00FC = 'u'; 0x00DC = 'U' }
@@ -530,7 +613,7 @@ try {
   $eskiLnk = Join-Path ([Environment]::GetFolderPath("Startup")) "Is Takip.lnk"
   if (Test-Path -LiteralPath $eskiLnk) {
     $k = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path ([Environment]::GetFolderPath("Startup")) "Assist.lnk"))
-    $k.TargetPath = Join-Path $portalKok "Assist.bat"; $k.WorkingDirectory = $portalKok; $k.WindowStyle = 7; $k.Description = "Assist"; $k.Save()
+    $k.TargetPath = Join-Path $portalKok "Assist.bat"; $k.WorkingDirectory = $portalKok; $k.WindowStyle = 7; $k.Description = "Assist"; $k.IconLocation = (Join-Path $portalKok "AssistLogo.ico") + ",0"; $k.Save()
     Remove-Item -LiteralPath $eskiLnk -Force
   }
 } catch {}
@@ -564,6 +647,7 @@ while ($listener.IsListening) {
     if (((Get-Date) - $script:bldSon).TotalSeconds -ge 60) {
       $script:bldSon = Get-Date
       try { Bildirim-Kontrol } catch { Write-Host ("  Bildirim hatasi: " + $_.Exception.Message) -ForegroundColor Yellow }
+      if (-not $env:ISTAKIP_PORT) { try { Gelen-Talep-Kontrol } catch { Write-Host ("  Gelen talep hatasi: " + $_.Exception.Message) -ForegroundColor Yellow } }
       try { Gecici-Temizle } catch {}
     }
     try { $z = (Get-Item -LiteralPath $PSCommandPath).LastWriteTimeUtc.Ticks } catch { $z = $BETIK_ZAMAN }
@@ -687,6 +771,14 @@ while ($listener.IsListening) {
           if (Test-Path -LiteralPath $dialer) { Start-Process -FilePath $dialer -ArgumentList $no } else { Start-Process ("tel:" + $no) }
           Write-Host ("  Tel: MiCollab'a " + $no.Length + " haneli numara gonderildi")
           Yaz-Json $ctx @{ ok = $true }
+        } elseif ($tur -eq "tel-kapat") {
+          # Gorusmeyi kapat. MiCollab'in komut kanali (mailslot) yalniz "dial"i isler, "hangup"u
+          # yok sayar (13.10.2026 denendi). Bu yuzden MiCollab'in arama penceresindeki bitir
+          # dugmesine UI Automation ile basilir. Dugme bulunamazsa penceredeki dugme adlari kayda
+          # yazilir (adlar MiCollab surumune/diline gore degisebilir; buradaki listeye eklenir).
+          $sonuc = MiCollab-Gorusme-Bitir
+          if ($sonuc) { Yaz-Json $ctx @{ ok = $true; dugme = $sonuc } }
+          else { Yaz-Hata $ctx "MiCollab'da kapatma dugmesi bulunamadi; gorusmeyi MiCollab'dan kapatin." 404 }
         } else { Yaz-Hata $ctx "Gecersiz istek." 400 }
       }
 
@@ -739,27 +831,70 @@ while ($listener.IsListening) {
             $k.WorkingDirectory = $portalKok
             $k.WindowStyle = 7   # simge durumunda
             $k.Description = "Assist"
+            $k.IconLocation = (Join-Path $portalKok "AssistLogo.ico") + ",0"   # Assist logosu (ad degisirse Windows simge onbellegi yenilenir; ayni adla resim degisince eski gorunur)
             $k.Save()
           } elseif (Test-Path -LiteralPath $lnk) { Remove-Item -LiteralPath $lnk -Force }
         }
         Yaz-Json $ctx @{ ok = $true; acik = (Test-Path -LiteralPath $lnk) }
       }
 
+      # ---------- Outlook takvimi: Assist Takvim'inde toplantilar gorunsun ----------
+      # ?bas=yyyy-MM-dd&gunSayi=N (<=62). Tekrarlayan toplantilarin o araliga dusen her olusu
+      # gelir (IncludeRecurrences). Yalniz okunur; tiklaninca /api/takvim/ac Outlook'ta acar.
+      elseif ($yol -eq "/api/takvim" -and $metod -eq "GET") {
+        $bas = [datetime]::Today
+        try { $bas = [datetime]::ParseExact((Sorgu $ctx "bas"), "yyyy-MM-dd", $null) } catch {}
+        $n = 42; try { $n = [math]::Min(62, [math]::Max(1, [int](Sorgu $ctx "gunSayi"))) } catch {}
+        $bit = $bas.AddDays($n)
+        $items = (Ns).GetDefaultFolder(9).Items     # olFolderCalendar
+        $items.IncludeRecurrences = $true
+        $items.Sort("[Start]")
+        # Restrict tarihleri Windows bolge bicimini ister ("g"); sinirda kalanlar asagida yeniden suzulur
+        $suz = $items.Restrict("[Start] < '" + $bit.ToString("g") + "' AND [End] > '" + $bas.ToString("g") + "'")
+        $L = New-Object System.Collections.ArrayList
+        $it = $suz.GetFirst()
+        while ($it -and $L.Count -lt 600) {
+          try {
+            $s = [datetime]$it.Start; $e = [datetime]$it.End
+            if ($s -lt $bit -and $e -gt $bas) {
+              [void]$L.Add(@{ id = [string]$it.EntryID; baslik = [string]$it.Subject; bas = $s.ToString("yyyy-MM-ddTHH:mm"); bit = $e.ToString("yyyy-MM-ddTHH:mm");
+                tumGun = [bool]$it.AllDayEvent; yer = [string]$it.Location; durum = [int]$it.BusyStatus; toplanti = ([int]$it.MeetingStatus -ne 0) })
+            }
+          } catch {}
+          $it = $suz.GetNext()
+        }
+        Yaz-Cevap $ctx ('{"ok":true,"olaylar":' + $(if ($L.Count) { ConvertTo-Json -InputObject @($L) -Depth 4 -Compress } else { '[]' }) + '}') "application/json; charset=utf-8" 200
+      }
+      elseif ($yol -eq "/api/takvim/ac" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json
+        $it = $null; try { $it = (Ns).GetItemFromID([string]$g.id) } catch {}
+        if ($it) { $it.Display($false); try { $it.GetInspector.Activate() } catch {}; Yaz-Json $ctx @{ ok = $true } } else { Yaz-Hata $ctx "Takvim ogesi bulunamadi." 404 }
+      }
+
       # ---------- toplanti odalari: Outlook "All Rooms" listesi + doluluk (30 dk dilim) ----------
       # Doluluk her odanin Outlook serbest/mesgul bilgisinden okunur: 0 bos, 1 belirsiz, 2 dolu, 3 disarida.
+      # ?bas=yyyy-MM-dd&gunSayi=N (1-62): gunde 48 dilim, N gun art arda (hafta 7, ay gorunumu 42).
+      # Outlook tek cagrida ~28 gun verir; daha uzun aralik 28'er gunluk parcalarla alinir.
       elseif ($yol -eq "/api/oda" -and $metod -eq "GET") {
         $gun = [datetime]::Today
-        try { $gun = [datetime]::ParseExact((Sorgu $ctx "gun"), "yyyy-MM-dd", $null) } catch {}
+        try { $gun = [datetime]::ParseExact((Sorgu $ctx "bas"), "yyyy-MM-dd", $null) } catch {}
+        $n = 7; try { $n = [math]::Min(62, [math]::Max(1, [int](Sorgu $ctx "gunSayi"))) } catch {}
         $L = New-Object System.Collections.ArrayList
         foreach ($ae in (Oda-Listesi)) {
-          $dilim = ""; try { $dilim = ([string]$ae.GetFreeBusy($gun, 30, $true)).Substring(0, 48) } catch {}
+          $sb = New-Object System.Text.StringBuilder
+          for ($p = 0; $p -lt $n; $p += 28) {
+            $parca = [math]::Min(28, $n - $p)
+            $fb = ""; try { $fb = [string]$ae.GetFreeBusy($gun.AddDays($p), 30, $true) } catch {}
+            [void]$sb.Append($fb.PadRight($parca * 48, '0').Substring(0, $parca * 48))
+          }
           $ep = ""; try { $ep = [string]$ae.GetExchangeUser().PrimarySmtpAddress } catch {}
-          [void]$L.Add(@{ ad = [string]$ae.Name; eposta = $ep; dilim = $dilim })
+          [void]$L.Add(@{ ad = [string]$ae.Name; eposta = $ep; dilim = $sb.ToString() })
         }
-        Yaz-Json $ctx @{ ok = $true; gun = $gun.ToString("yyyy-MM-dd"); odalar = @($L) }
+        Yaz-Json $ctx @{ ok = $true; bas = $gun.ToString("yyyy-MM-dd"); gunSayi = $n; odalar = @($L) }
       }
-      # Rezervasyon: odanin KAYNAK olarak eklendigi toplanti daveti Outlook'ta HAZIR acilir.
-      # Gonder'e kullanici basar; Assist daveti asla kendisi gondermez (talep iletme ile ayni kural).
+      # Rezervasyon: oda KAYNAK, katilimcilar ZORUNLU alici olarak eklenir ve davet GONDERILIR
+      # (kullanici "Rezerve et" ile istedi, 13.10.2026: ilgililere posta gitsin). Oda posta kutusu
+      # daveti kabul edince rezervasyon kesinlesir. gonder=false gelirse yalniz taslak acilir.
       elseif ($yol -eq "/api/oda/rezerve" -and $metod -eq "POST") {
         $g = (Govde-Oku $ctx) | ConvertFrom-Json
         $oda = $null
@@ -774,9 +909,14 @@ while ($listener.IsListening) {
           $t.Start = $bas; $t.End = $bit
           $t.Location = [string]$oda.Name
           $alici = $t.Recipients.Add([string]$g.eposta); $alici.Type = 3   # olResource
+          $katilan = 0
+          foreach ($ep in @($g.katilimcilar)) {
+            $ep = [string]$ep
+            if ($ep -match '^[^@\s;,]+@[^@\s;,]+\.[A-Za-z]{2,}$') { $r = $t.Recipients.Add($ep); $r.Type = 1; $katilan++ }   # olRequired
+          }
           [void]$t.Recipients.ResolveAll()
-          $t.Display()
-          Yaz-Json $ctx @{ ok = $true }
+          if ($g.gonder -eq $false) { $t.Display(); Yaz-Json $ctx @{ ok = $true; gonderildi = $false } }
+          else { $t.Send(); Write-Host ("  Oda rezervasyonu gonderildi (" + $katilan + " katilimci)"); Yaz-Json $ctx @{ ok = $true; gonderildi = $true; katilimci = $katilan } }
         }
       }
 
@@ -931,6 +1071,41 @@ while ($listener.IsListening) {
         $m.Display($false)
         try { $m.GetInspector.Activate() } catch {}
         Yaz-Json $ctx @{ ok = $true; iletildi = [bool]$kaynak }
+      }
+
+      # ---------- talebi baska bir Assist kullanicisina gonder (Exchange) ----------
+      # Kullanici "Gonder"e basinca ileti GERCEKTEN gonderilir (talep iletme 13.10.2026'dan
+      # beri boyle; once yalniz taslak aciliyordu). Bagli posta varsa ek olarak eklenir.
+      elseif ($yol -eq "/api/talep/gonder" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json
+        $kime = [string]$g.kime
+        if ($kime -notmatch '^[^@\s;,]+@[^@\s;,]+\.[A-Za-z]{2,}$') { Yaz-Hata $ctx "Gecersiz e-posta adresi." 400 }
+        else {
+          $b64 = [Convert]::ToBase64String($UTF8.GetBytes(($g.talep | ConvertTo-Json -Depth 6 -Compress)))
+          $m = (Outlook).CreateItem(0)
+          $m.MessageClass = $GELEN_SINIF
+          $m.To = $kime
+          $m.Subject = "[Assist] " + [string]$g.konu
+          $m.Body = [string]$g.govde + "`r`n`r`n-----`r`n" + (U "Bu talep Assist ile g{00F6}nderildi; Assist kullan{0131}yorsan{0131}z portal{0131}n{0131}za kendili{011F}inden d{00FC}{015F}er.") + "`r`n" + $VERI_ISARET + $b64 + ":SON"
+          if ($g.posta -and $g.posta.id) {
+            try { $kaynak = Posta-Bul ([string]$g.posta.id) ([string]$g.posta.store) ([string]$g.posta.msgId); if ($kaynak) { [void]$m.Attachments.Add($kaynak, 5) } } catch {}
+          }
+          [void]$m.Recipients.ResolveAll()
+          $m.Send()
+          Write-Host "  Talep gonderildi (Assist iletisi)"
+          Yaz-Json $ctx @{ ok = $true }
+        }
+      }
+      # Gelen talep kuyrugu: sayfa alir, kayda donusturur, sonra "al" ile kuyruktan siler
+      elseif ($yol -eq "/api/gelen" -and $metod -eq "GET") {
+        $kuyruk = @(Gelen-Oku)
+        Yaz-Cevap $ctx ('{"ok":true,"gelen":' + $(if ($kuyruk.Count) { ConvertTo-Json -InputObject $kuyruk -Depth 8 -Compress } else { '[]' }) + '}') "application/json; charset=utf-8" 200
+      }
+      elseif ($yol -eq "/api/gelen/al" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json
+        $alinan = @($g.ids | ForEach-Object { [string]$_ })
+        Gelen-Yaz @(Gelen-Oku | Where-Object { $alinan -notcontains [string]$_.id })
+        Yaz-Json $ctx @{ ok = $true }
       }
 
       # ---------- postayi Outlook'ta ac ----------

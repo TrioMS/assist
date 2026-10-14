@@ -4,7 +4,7 @@
 #  Sunucu gizli calisir (pencere yok); bu betik saatin yanina kucuk bir
 #  simge koyar:
 #    cift tik      -> uygulamayi tarayicida ac
-#    sag tik menu  -> Ac / Sunucu kaydini goster / (Baslat) / Kapat
+#    sag tik menu  -> Ac / (Baslat) / Kapat
 #  Sunucu durursa simge yazisi "durdu" olur, menude "Baslat" cikar.
 #  Tek kopya calisir (bat her calistiginda yenisi acilmaz).
 #  Dosya ASCII'dir; Turkce harfler {XXXX} kodu ile yazilir.
@@ -82,7 +82,6 @@ $menu.ShowImageMargin = $false
 $mAc = $menu.Items.Add((U "Assist'i A{00C7}"))
 $mAc.Font = New-Object System.Drawing.Font($menu.Font, [System.Drawing.FontStyle]::Bold)
 $mBaslat = $menu.Items.Add((U "Sunucuyu ba{015F}lat"))
-$mLog = $menu.Items.Add((U "Sunucu kayd{0131}n{0131} g{00F6}ster"))
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 $mKapat = $menu.Items.Add("Kapat")
 $mBaslat.Visible = $false
@@ -93,7 +92,6 @@ $mAc.add_Click({ Tarayici-Ac })
 $ni.add_DoubleClick({ Kayit "cift tik"; Tarayici-Ac })
 $ni.add_MouseUp({ param($s, $e) if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Right) { Kayit "sag tik" } })
 $menu.add_Opening({ Kayit "menu aciliyor" })
-$mLog.add_Click({ if (Test-Path -LiteralPath $log) { Start-Process notepad.exe -ArgumentList ('"' + $log + '"') } })
 $mBaslat.add_Click({ Start-Process -FilePath $bat -WindowStyle Minimized })
 $mKapat.add_Click({
   $c = [System.Windows.Forms.MessageBox]::Show(
