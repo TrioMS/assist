@@ -218,9 +218,13 @@ html[data-tema="koyu"] img:not(.tabs img):not(.topbar img){filter:invert(1) hue-
 /* Ana ekran hava durumu (Open-Meteo; şehir Ayarlar > Genel) */
 .hava{margin-left:auto;display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--s-line);border-radius:var(--radius);padding:6px 14px}
 .ana-ust{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:16px;margin-bottom:14px}
-.ana-ust .vhead{grid-column:1;grid-row:1} .ana-ust .kpis{grid-column:1;grid-row:2;margin-bottom:0}
+/* selam satırı eski yüksekliğinde (hava kutusu kadar) kalır: sayı kartlarıyla arasında önceki boşluk */
+.ana-ust .vhead{grid-column:1;grid-row:1;min-height:86px;margin-bottom:16px} .ana-ust .kpis{grid-column:1;grid-row:2;margin-bottom:0}
 .ana-ust .hava{grid-column:2;grid-row:1 / 3;align-self:end;margin-left:0}
 .ana-ust .hava[hidden]{display:none}
+/* Kartlar hava kutusunun yanına sığmazsa alt satıra düşmez, biraz daralır (hava kutusu aşağı kaymasın) */
+.ana-ust .kpis{flex-wrap:nowrap} .ana-ust .kpis .kpi{flex:0 1 180px;min-width:118px;width:auto}
+@media (max-width:1100px){ .ana-ust .kpis{flex-wrap:wrap} }
 .hava-simdi{display:flex;align-items:center;gap:8px}
 .hava-simdi svg{width:30px;height:30px}
 .hava-derece{font-size:22px;font-weight:800;font-family:var(--font-display);line-height:1}
@@ -332,7 +336,7 @@ table.tbl td.not-metin{white-space:pre-line;max-width:520px}
 /* Konu sütunu esnek: max-width:0 tablonun kalan genişliği almasını sağlar, dar ekranda
    önizleme "…" ile kısalır; yoksa önizleme tabloyu genişletip simgeleri kart dışına itiyordu */
 table.tbl td.konu{max-width:0;width:100%}
-table.tbl td.konu b{display:block;overflow:hidden;text-overflow:ellipsis}
+table.tbl td.konu b{display:block;overflow:hidden;text-overflow:ellipsis;font-weight:400;color:#111}   /* okunmuş: ince siyah; okunmamış kalın (yukarıda) */
 
 /* ── FİLTRE PANELİ + LİSTE (diğer portallardaki düzen) ── */
 .ara-duzen{display:flex;gap:18px;align-items:flex-start}
@@ -613,9 +617,13 @@ table.aks tr.vurgu td{background:var(--s-amber-bg)}
 .ap-kapat svg.i{transform:rotate(135deg)}
 /* Balon yığını (alttan yukarı): Portal, Rezervasyon, Kişiler; ad üzerine gelince solda görünür */
 /* Balonlar: sayfalarda sağ altta; anasayfada adın sağında yan yana (balonYerlestir) */
-body[data-gorunum="ana"] .kisi-balon.hava-alti{position:absolute;bottom:auto;right:auto;width:46px;height:46px}
+.balon-say{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--s-red);color:#fff;
+  font-size:10.5px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px #fff;pointer-events:none}
+.balon-say:empty{display:none}
+body[data-gorunum="ana"] .kisi-balon.hava-alti{position:absolute;bottom:auto;right:auto;width:38px;height:38px}
+body[data-gorunum="ana"] .kisi-balon.hava-alti svg.i{width:19px;height:19px}
 body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top:auto;bottom:-30px;transform:translateX(-50%)}
-.balon-portal{bottom:22px;text-decoration:none} .balon-oda{bottom:88px} #kisiBalon{bottom:154px}
+.balon-portal{bottom:22px;text-decoration:none} .balon-oda{bottom:88px} #kisiBalon{bottom:154px} .balon-posta{bottom:220px}
 .balon-ad{position:absolute;right:64px;top:50%;transform:translateY(-50%);background:var(--s-ink);color:#fff;font-size:12px;font-weight:700;
   padding:5px 10px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s}
 .kisi-balon:hover .balon-ad{opacity:1}
@@ -637,28 +645,34 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
 .kp-ara{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--s-line)}
 .kp-ara input{flex:1;padding:8px 11px;border:1px solid var(--s-line);border-radius:var(--radius-sm)}
 .kp-liste{flex:1;overflow:auto;padding:10px 12px 80px}
-.kisi-liste{display:flex;flex-direction:column;gap:6px}
+/* Kişiler panelinin üstünde son 24 saatin cevapsız aramaları (Temizle ile gizlenir) */
+.kp-cevapsiz{border-bottom:1px solid var(--s-line);background:#FFF6F6;padding:8px 12px 10px;max-height:40vh;overflow:auto}
+.kp-cevapsiz[hidden]{display:none}
+.kp-cevapsiz .kc-h{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--s-red-deep);text-transform:uppercase;letter-spacing:.4px;padding:2px 4px 6px}
+.kp-cevapsiz .kc-h .sp{flex:1}
+.kp-cevapsiz .kc{display:flex;align-items:center;gap:10px;padding:6px 4px;border-top:1px solid #F3DADB}
+.kp-cevapsiz .kc.yeni b::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--s-red);margin-left:6px;vertical-align:middle}
+.kp-cevapsiz .kc-ad{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.kp-cevapsiz .kc-ad span{font-size:11.5px;color:var(--s-graphite2)}
+.kisi-liste{display:flex;flex-direction:column;gap:0}
 .kisi.dogrudan{margin-bottom:10px;border-color:#CDE9DA;background:var(--s-green-bg)}
 .kisi.dogrudan .kisi-bas{background:var(--s-green)} .kisi.dogrudan .kisi-bas svg.i{width:16px;height:16px}
-.kisi.sabit{border-color:#F3D27A;background:#FFFCF2}
+.kisi.sabit{background:none}   /* sabitlenen: yalnız sarı yıldız */
 .kisi-yildiz{border:none;background:none;cursor:pointer;font-size:16px;color:#C9A227;padding:0 2px;line-height:1}
-.kisi:not(.sabit) .kisi-yildiz{color:var(--s-graphite2);opacity:.5}
+.kisi:not(.sabit) .kisi-yildiz{color:var(--s-graphite2);opacity:0}
 .kisi:hover .kisi-yildiz{opacity:1}
-.kisi{display:flex;align-items:center;gap:8px;border:1px solid var(--s-line);border-radius:10px;padding:8px 10px}
-.kisi-bas{width:34px;height:34px;border-radius:50%;background:var(--s-red-deep);color:#fff;font-weight:800;font-size:12.5px;display:grid;place-items:center;flex:none}
+.kisi{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--s-line);padding:8px 6px}
+.kisi:hover{background:#F7F8FA}
+.kisi-bas{width:32px;height:32px;border-radius:50%;background:var(--s-red-deep);color:#fff;font-weight:800;font-size:12.5px;display:grid;place-items:center;flex:none}
 .kisi-ad{flex:1;min-width:0}
 .kisi-ad b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kisi-ad span{display:block;font-size:11.5px;color:var(--s-graphite2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* İletişim düğmeleri: Teams (mavi) / telefon-MiCollab (yeşil) */
-.iletisim{display:inline-flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none;vertical-align:middle}
-.il-grup{display:inline-flex;align-items:center;gap:4px;padding:2px 3px 2px 8px;border-radius:8px}
-.il-grup.teams{background:#F4F5FC} .il-grup.tel{background:#F1F9F4}
-.il-etiket{font-size:10.5px;font-weight:700;letter-spacing:.02em;margin-right:2px}
-.il-grup.teams .il-etiket{color:#4B53BC} .il-grup.tel .il-etiket{color:#1B6A46}
-.il-btn{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 8px;border-radius:6px;border:1px solid var(--s-line);background:#fff;font-size:11.5px;font-weight:700;cursor:pointer}
-.il-btn svg.i{width:13px;height:13px}
-.il-btn.teams{color:#4B53BC;border-color:#D7D9F2} .il-btn.teams:hover{background:#EEEFFA}
-.il-btn.tel{color:#1B6A46;border-color:#CDE9DA} .il-btn.tel:hover{background:var(--s-green-bg)}
+.iletisim{display:inline-flex;align-items:center;gap:4px;flex:none;vertical-align:middle}
+.il-btn{display:inline-grid;place-items:center;width:30px;height:30px;padding:0;border-radius:50%;border:none;cursor:pointer}
+.il-btn svg.i{width:15px;height:15px}
+.il-btn.teams{color:#4B53BC;background:#F1F2FB} .il-btn.teams:hover{background:#DFE1F6}
+.il-btn.tel{color:#1B6A46;background:#EAF6EF;margin-left:6px} .il-btn.tel:hover{background:#D3EDDD}   /* MiCollab, Teams'ten biraz ayrık */
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--s-ink);color:#fff;padding:10px 18px;border-radius:9px;
        font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:300;max-width:90vw}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -784,6 +798,7 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
         <div class="card-h">
           <select id="postaKaynak" class="btn sm" style="font-weight:600"></select>
           <button class="btn sm" id="postaYenile"><svg class="i"><use href="#ic-yenile"/></svg>Yenile</button>
+          <button class="btn sm" id="postaOkundu" title="Outlook Gelen Kutusu'ndaki tüm okunmamış postaları okundu yap">Tümünü okundu yap</button>
           <span class="sp"></span>
           <span class="say" id="postaSay"></span>
         </div>
@@ -815,6 +830,7 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
   <div class="modal-h"><h3 id="mlBaslik"></h3><span class="say" id="mlSay"></span><button class="kapat-x" data-kapat title="Kapat"><svg class="i"><use href="#ic-x"/></svg></button></div>
   <div class="modal-b tight liste-kutu" id="mlGovde"></div>
 </div></div>
+<div class="modal-bg" id="mTeams"><div class="modal" role="dialog" aria-modal="true">  <div class="modal-h"><h3>Teams toplantısı</h3><button class="kapat-x" data-kapat title="Kapat"><svg class="i"><use href="#ic-x"/></svg></button></div>  <div class="modal-b" id="tmGovde"></div>  <div class="modal-f"><button class="btn" data-kapat>Vazgeç</button><button class="btn primary" id="tmGonder">Toplantıyı oluştur ve davet gönder</button></div></div></div>
 <div class="modal-bg" id="mKayit"><div class="modal" role="dialog" aria-modal="true">
   <div class="modal-h"><h3 id="mkBaslik"></h3><span id="mkDurum"></span><button class="kapat-x" data-kapat title="Kapat"><svg class="i"><use href="#ic-x"/></svg></button></div>
   <div class="modal-b" id="mkGovde"></div>
@@ -863,19 +879,21 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
      Ad, e-posta ya da numarayla aranır; Teams'te yaz / ara, MiCollab ile telefonla ara. -->
 <div class="tk-ekle-menu" id="tkEkleMenu" hidden></div>
 <!-- Sağ alttaki balonlar (alttan yukarı): Kişiler, Rezervasyon (toplantı odaları), STFA Portal -->
-<a class="kisi-balon balon-portal" href="https://portal.stfa.com/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html#Shell-home" target="_blank" rel="noopener" title="STFA Portal (yeni sekmede)">
+<a class="kisi-balon balon-portal" href="https://portal.stfa.com/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html#Shell-home" target="_blank" rel="noopener" aria-label="STFA Portal (yeni sekmede)">
   <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span class="balon-ad">Portal</span></a>
-<button class="kisi-balon balon-oda" id="odaBalon" title="Rezervasyon (toplantı odaları)"><svg class="i"><use href="#ic-oda"/></svg><span class="balon-ad">Rezervasyon</span></button>
+<button class="kisi-balon balon-oda" id="odaBalon" aria-label="Rezervasyon (toplantı odaları)"><svg class="i"><use href="#ic-oda"/></svg><span class="balon-ad">Rezervasyon</span></button>
 <aside class="kisi-panel oda-panel" id="odaPanel" aria-label="Rezervasyon">
   <div class="kp-h"><h3>Rezervasyon</h3><span class="sp"></span><button class="ikon-btn" id="odaKapat" title="Kapat"><svg class="i"><use href="#ic-x"/></svg></button></div>
   <div class="op-govde" id="odaPanelGovde"></div>
 </aside>
-<button class="kisi-balon" id="kisiBalon" title="Kişiler"><svg class="i"><use href="#ic-kisiler"/></svg><span class="balon-ad">Kişiler</span></button>
+<button class="kisi-balon" id="kisiBalon" aria-label="Kişiler"><svg class="i"><use href="#ic-kisiler"/></svg><span class="balon-ad">Kişiler</span><b class="balon-say" id="cevapsizSay"></b></button>
+<button class="kisi-balon balon-posta" id="postaBalon" aria-label="Posta Kutusu"><svg class="i"><use href="#ic-posta"/></svg><span class="balon-ad">Posta Kutusu</span><b class="balon-say" id="postaBalonSay"></b></button>
 <aside class="kisi-panel" id="kisiPanel" aria-label="Kişiler">
   <div class="kp-h"><h3>Kişiler</h3><span class="say" id="anaKisiSay"></span><span class="sp"></span>
     <button class="ikon-btn" id="kisiYenile" title="MiCollab, Outlook ve şirket rehberinden yeniden çek"><svg class="i"><use href="#ic-yenile"/></svg></button>
     <button class="kapat-x" id="kisiKapat" title="Kapat"><svg class="i"><use href="#ic-x"/></svg></button></div>
   <div class="kp-ara"><input type="search" id="kisiAra" placeholder="Ad, e-posta ya da numara yazın" autocomplete="off"></div>
+  <div class="kp-cevapsiz" id="cevapsizKutu" hidden></div>
   <div class="kp-liste" id="anaKisiler"></div>
 </aside>
 <datalist id="dlSorumlu"></datalist>
@@ -1160,14 +1178,14 @@ function rehberdenTamamla(L) {
     .catch(() => {}))).then(() => { kaydet(); if (aktif === 'ana') kisilerCiz(); });
 }
 function kisiTam(k) { const r = V.rehber[k.ad]; return r && !r.yok ? { ad: k.ad, eposta: k.eposta || r.eposta, tel: k.tel || r.tel } : k; }
-// Düğmeler uygulamaya göre gruplu: [Teams: Yaz Ara] ve [MiCollab: Ara] — iki "Ara" karışmasın
+// Sade simge düğmeleri: mor = Teams (yaz, ara), yeşil = MiCollab (telefonla ara); ne yaptığı üzerine gelince yazar
 function micollabGrup(tel, ad) {
-  return `<span class="il-grup tel"><span class="il-etiket">MiCollab</span><button class="il-btn tel" data-tel="${esc(tel)}" data-ad="${esc(ad || '')}" title="MiCollab ile telefonla ara · ${esc(tel)}">${svg('telefon')}Ara</button></span>`;
+  return `<button class="il-btn tel" data-tel="${esc(tel)}" data-ad="${esc(ad || '')}" data-ipucu="MiCollab ile ara: ${esc(tel)}" aria-label="MiCollab ile ara">${svg('telefon')}</button>`;
 }
 function iletisimDugmeleri(k) {
-  return '<span class="iletisim">' + (k.eposta ? `<span class="il-grup teams"><span class="il-etiket">Teams</span>` +
-    `<button class="il-btn teams" data-teams-yaz="${esc(k.eposta)}" title="Teams'te yaz">${svg('sohbet')}Yaz</button>` +
-    `<button class="il-btn teams" data-teams-ara="${esc(k.eposta)}" title="Teams'te sesli ara">${svg('telefon')}Ara</button></span>` : '') +
+  return '<span class="iletisim">' + (k.eposta ?
+    `<button class="il-btn teams" data-teams-yaz="${esc(k.eposta)}" data-ipucu="Teams'te yaz" aria-label="Teams'te yaz">${svg('sohbet')}</button>` +
+    `<button class="il-btn teams" data-teams-ara="${esc(k.eposta)}" data-ipucu="Teams'te ara" aria-label="Teams'te ara">${svg('telefon')}</button>` : '') +
     (k.tel ? micollabGrup(k.tel, k.ad) : '') + '</span>';
 }
 /* ── Kişiler kartı: sabitlenenler (yıldız) üstte + tam rehber (MiCollab + Outlook +
@@ -1211,8 +1229,8 @@ function kisilerCiz() {
     ? `<div class="kisi dogrudan"><span class="kisi-bas">${svg('telefon')}</span><div class="kisi-ad"><b>${esc(KISI_Q)}</b><span>Bu numarayı MiCollab ile ara</span></div>` +
       `<span class="iletisim">${micollabGrup(KISI_Q)}</span></div>` : '';
   $('#anaKisiler').innerHTML = dogrudan + (G.length ? `<div class="kisi-liste">${G.map((k, i) =>
-    `<div class="kisi${k.sabit ? ' sabit' : ''}"><button class="kisi-yildiz" data-kisi-sabit="${i}" title="${k.sabit ? 'Sabitlemeyi kaldır' : 'Üste sabitle'}">${k.sabit ? '★' : '☆'}</button>` +
-    `<span class="kisi-bas">${esc(basHarf(k.ad))}</span><div class="kisi-ad"><b>${esc(k.ad)}</b><span>${esc([k.eposta, k.tel].filter(Boolean).join(' · '))}</span></div>${iletisimDugmeleri(k)}</div>`).join('')}</div>`
+    `<div class="kisi${k.sabit ? ' sabit' : ''}"><button class="kisi-yildiz" data-kisi-sabit="${i}" data-ipucu="${k.sabit ? 'Sabitlemeyi kaldır' : 'Üste sabitle'}">${k.sabit ? '★' : '☆'}</button>` +
+    `<span class="kisi-bas">${esc(basHarf(k.ad))}</span><div class="kisi-ad"><b>${esc(k.ad)}</b><span>${esc(k.tel || k.eposta || '')}</span></div>${iletisimDugmeleri(k)}</div>`).join('')}</div>`
     : `<div class="bos" style="padding:10px">${KISI_Q ? 'Aramaya uyan kişi yok.' : 'Kişi bulunamadı.'}</div>`);
   KISI_GORUNEN = G;
 }
@@ -1233,14 +1251,62 @@ function odaPanel(ac) {
 document.addEventListener('click', e => {
   if (e.target.closest('#odaBalon')) return odaPanel();
   if (e.target.closest('#odaKapat')) return odaPanel(false);
+  // Posta Kutusu balonu: kenar çubuğundaki Posta Kutusu ile aynı (Assist'in posta sayfası)
+  if (e.target.closest('#postaBalon')) return git('posta');
 });
 function kisiPanel(ac) {
   const p = $('#kisiPanel');
   ac = ac ?? !p.classList.contains('acik');
   if (ac && $('#odaPanel').classList.contains('acik')) odaPanel(false);
   p.classList.toggle('acik', ac); $('#kisiBalon').classList.toggle('acik', ac);
-  if (ac) { kisilerCiz(); setTimeout(() => $('#kisiAra').focus(), 50); }
+  if (ac) { kisilerCiz(); cevapsizCiz(); setTimeout(() => $('#kisiAra').focus(), 50); cevapsizGoruldu(); }
 }
+/* Balon sayaçları (dakikada bir): Posta Kutusu = Outlook'ta okunmamış posta, Kişiler = görülmemiş
+   cevapsız arama (MiCollab). Kişiler panelinin üstünde son 24 saatin cevapsızları listelenir (kim, ne zaman,
+   geri ara); panel açılınca rozet sıfırlanır ama liste "Temizle"ye basılana kadar kalır. */
+let SAYAC_ZAMAN = null, CEVAPSIZ = [];
+const rakamlar = s => String(s || '').replace(/\D/g, '');
+function cevapsizKisi(x) {   // canlı kayıttan gelenlerde yalnız numara var: kişi rehberden numarayla bulunur
+  const r = (REHBER || []).find(k => k.tel && rakamlar(k.tel) === rakamlar(x.no));
+  return { ad: x.ad || (r && r.ad) || x.no, eposta: (r && r.eposta) || '', tel: x.no || (r && r.tel) || '' };
+}
+async function sayacYukle() {
+  clearTimeout(SAYAC_ZAMAN); SAYAC_ZAMAN = setTimeout(sayacYukle, 60 * 1000);
+  if (!V.cevapsizSon) { V.cevapsizSon = new Date().toISOString(); kaydet(); }   // ilk kullanım: eski geçmiş "yeni" sayılmaz
+  // Liste penceresi: son 24 saat, "Temizle"den sonrakiler
+  const gun = new Date(Date.now() - 864e5).toISOString(), taban = V.cevapsizTemiz && V.cevapsizTemiz > gun ? V.cevapsizTemiz : gun;
+  try {
+    const j = await apiJson('/api/sayaclar?son=' + encodeURIComponent(taban));
+    const n = j.okunmamis > 0 ? j.okunmamis : 0, ny = n > 99 ? '99+' : (n || '');
+    $('#postaBalonSay').textContent = ny;
+    if (V.ayar.posta.kaynak === 'gelen') $('#snPostaSay').textContent = ny;   // kenar çubuğunda da aynı sayı
+    CEVAPSIZ = [].concat(j.cevapsiz || []).sort((a, b) => b.t.localeCompare(a.t));   // en yeni üstte
+    const yeni = CEVAPSIZ.filter(x => new Date(x.t) > new Date(V.cevapsizSon));
+    $('#cevapsizSay').textContent = yeni.length || '';
+    if ($('#kisiPanel').classList.contains('acik')) cevapsizCiz();
+  } catch (e) {}
+}
+function cevapsizCiz() {
+  const kutu = $('#cevapsizKutu'); kutu.hidden = !CEVAPSIZ.length;
+  if (!CEVAPSIZ.length) { kutu.innerHTML = ''; return; }
+  const bugunMu = d => d.toDateString() === new Date().toDateString();
+  kutu.innerHTML = `<div class="kc-h">${svg('telefon')}Cevapsız aramalar<b>${CEVAPSIZ.length}</b><span class="sp"></span>` +
+    `<button class="btn sm" id="cevapsizTemizle" title="Bu listeyi temizle">Temizle</button></div>` +
+    CEVAPSIZ.map(x => { const k = cevapsizKisi(x), d = new Date(x.t);
+      const zaman = (bugunMu(d) ? 'Bugün ' : 'Dün ') + d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      return `<div class="kc${V.cevapsizGorulenOnce && d > new Date(V.cevapsizGorulenOnce) ? ' yeni' : ''}"><div class="kc-ad"><b>${esc(k.ad)}</b><span>${esc(zaman)}${k.ad !== k.tel ? ' · ' + esc(k.tel) : ''}</span></div>${iletisimDugmeleri(k)}</div>`; }).join('');
+}
+function cevapsizGoruldu() {
+  if (!$('#cevapsizSay').textContent) return;
+  V.cevapsizGorulenOnce = V.cevapsizSon;   // panelde bu açılışta yeni olanlar noktayla işaretli kalsın
+  V.cevapsizSon = new Date().toISOString(); kaydet();
+  $('#cevapsizSay').textContent = '';
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#cevapsizTemizle')) return;
+  V.cevapsizTemiz = new Date().toISOString(); kaydet();
+  CEVAPSIZ = []; cevapsizCiz();
+});
 let KISI_GORUNEN = [];
 function kisiler() { return V.ayar.sorumlular.map(kisiAyir).filter(k => k.ad); }
 function sorumluListesi() {
@@ -1333,11 +1399,11 @@ let aktif = 'ana';
 // Anasayfada balonlar "Hoş Geldin <ad>" yazısının sağında, biraz boşlukla yan yana (sayfayla birlikte kayar).
 // Diğer sayfalarda sağ altta sabit yerlerinde. Dar ekranda hava kutusuna çarpacaksa da sağ altta kalır.
 function balonYerlestir() {
-  const L = ['#kisiBalon', '.balon-oda', '.balon-portal'].map(s => $(s)).filter(Boolean), ad = $('#anaHosgeldin'), h = $('#anaHava');
+  const L = ['#postaBalon', '#kisiBalon', '.balon-oda', '.balon-portal'].map(s => $(s)).filter(Boolean), ad = $('#anaHosgeldin'), h = $('#anaHava');
   const geri = () => L.forEach(b => { b.classList.remove('hava-alti'); b.style.left = b.style.top = ''; });
   if (aktif !== 'ana' || !ad || !ad.offsetWidth) return geri();
   const rg = document.createRange(); rg.selectNodeContents(ad);
-  const t = rg.getBoundingClientRect(), w = 46, ara = 10, bosluk = 28;
+  const t = rg.getBoundingClientRect(), w = 38, ara = 8, bosluk = 24;
   const sol = t.right + bosluk, sag = sol + L.length * w + (L.length - 1) * ara, ust = t.top + (t.height - w) / 2;
   if (h && !h.hidden && h.offsetWidth && sag > h.getBoundingClientRect().left - 12) return geri();
   L.forEach((b, i) => {
@@ -1349,7 +1415,9 @@ function balonYerlestir() {
 addEventListener('resize', () => requestAnimationFrame(balonYerlestir));
 const BALON_GOZ = new ResizeObserver(() => requestAnimationFrame(balonYerlestir));
 BALON_GOZ.observe(document.documentElement);
-if ($('#anaHosgeldin')) BALON_GOZ.observe($('#anaHosgeldin'));   // ad yazılınca genişlik değişir
+// Ad yazılınca / dil değişince / yazı tipi yüklenince yazının genişliği değişir (kutu değişmeyebilir)
+if ($('#anaHosgeldin')) new MutationObserver(() => requestAnimationFrame(balonYerlestir)).observe($('#anaHosgeldin'), { childList: true, characterData: true, subtree: true });
+if (document.fonts) document.fonts.ready.then(() => balonYerlestir());
 function git(v) {
   if (!GORUNUMLER.includes(v)) v = 'ana';
   aktif = v; document.body.dataset.gorunum = v;   // görünüme özel yerleşim (anasayfada balonlar hava kutusunun altında)
@@ -1812,7 +1880,9 @@ const DIL_EN = {
   'Talebi ilet': 'Forward request', 'Kişi': 'Person', 'E-posta': 'Email', 'Başka bir adres…': 'Another address…', 'Eklemek istediğin not': 'Note to add',
   'Sorumlu olarak ata': 'Assign as owner', 'Alınacak aksiyon': 'Action to take', 'Alınan aksiyon': 'Action taken', 'Aksiyonu kapat': 'Close action',
   'Notu kapat': 'Close note', 'Notu sil': 'Delete note', 'Öncelik': 'Priority', 'Önem': 'Importance', 'Normal': 'Normal', 'Yüksek': 'High',
-  'Yüksek öncelik': 'High priority', 'Kayıt': 'Record', 'Tür': 'Type', 'Tüm listeyi aç': 'Open full list', 'Talep': 'Request', 'Tahmini süre (saat)': 'Estimated time (hours)', 'Harcanan süre (saat)': 'Time spent (hours)',
+  'Yüksek öncelik': 'High priority', 'Kayıt': 'Record', 'Tür': 'Type', 'Teams toplantısı': 'Teams meeting', 'Toplantıyı oluştur ve davet gönder': 'Create meeting and send invites',
+  'Başlangıç': 'Start', 'Bitiş': 'End', 'Katılımcılar': 'Attendees', 'Açıklama (isteğe bağlı)': 'Description (optional)', 'Konu yazın.': 'Enter a subject.',
+  'En az bir katılımcı ekleyin.': 'Add at least one attendee.', 'Oluşturuluyor…': 'Creating…', 'Ad ya da e-posta yazın, listeden seçin': 'Type a name or email, pick from the list', 'Teams\'te ara': 'Call in Teams', 'MiCollab ile ara': 'Call with MiCollab', 'Üste sabitle': 'Pin to top', 'Sabitlemeyi kaldır': 'Unpin', 'Okunmamış posta yoktu.': 'There were no unread emails.', 'Cevapsız aramalar': 'Missed calls', 'Bu listeyi temizle': 'Clear this list', 'Tüm listeyi aç': 'Open full list', 'Talep': 'Request', 'Tahmini süre (saat)': 'Estimated time (hours)', 'Harcanan süre (saat)': 'Time spent (hours)',
   'Sekteye uğradıysa neden': 'Reason if delayed', 'Açıklama': 'Description', 'Bağlı talep (isteğe bağlı)': 'Linked request (optional)',
   'Termin (isteğe bağlı)': 'Due date (optional)', 'Bitiş (isteğe bağlı)': 'End (optional)', 'Tekrar': 'Repeat', 'Saat': 'Time', 'Günler': 'Days',
   'Yazarak doldur': 'Fill by typing', 'E-postadan doldur': 'Fill from email', 'Listeden seç': 'Pick from list', 'Posta Seç': 'Select Email',
@@ -1941,7 +2011,12 @@ async function havaYukle() {
       '<div class="hava-gunler">' + [1, 2, 3].map(i => { const g = havaTur(d.weather_code[i], 1);
         return `<span class="hava-gun" title="${esc(g.ad)}">${GUN[new Date(d.time[i] + 'T12:00').getDay()]}${havaSvg(g.s)}<b>${Math.round(d.temperature_2m_max[i])}°</b>${Math.round(d.temperature_2m_min[i])}°</span>`; }).join('') + '</div>';
     kutu.hidden = false; balonYerlestir();
-  } catch (e) { kutu.hidden = true; balonYerlestir(); }
+  } catch (e) {
+    // Bağlantı anlık koptuysa: önceki hava bilgisi varsa kalsın, yoksa gizlensin; 2 dk sonra yeniden denenir
+    if (!kutu.innerHTML.trim()) kutu.hidden = true;
+    clearTimeout(HAVA_ZAMAN); HAVA_ZAMAN = setTimeout(havaYukle, 2 * 60 * 1000);
+    balonYerlestir();
+  }
 }
 // Ayarlar'daki şehir adını koordinata çevirir (Open-Meteo geocoding)
 async function havaSehirBul(ad) {
@@ -2909,7 +2984,7 @@ function postaBekleyenHesapla() {
 }
 async function postaArkaPlanKontrol() {
   const kaynak = V.ayar.posta.kaynak;
-  if (kaynak === 'gelen') { POSTA_BEKLEYEN = 0; $('#snPostaSay').textContent = ''; return; }
+  if (kaynak === 'gelen') { POSTA_BEKLEYEN = 0; return; }   // Gelen Kutusu'nda kenar sayısı = okunmamış (sayacYukle)
   try {
     const j = await apiJson(postaSorgu(kaynak));
     if (aktif !== 'posta' || POSTA_KAYNAK === kaynak) { POSTALAR = j.postalar || []; POSTA_KAYNAK = kaynak; POSTA_HATA = ''; }
@@ -3404,7 +3479,7 @@ function planCiz() {
     hucre.push(`<div class="tk-gun${calisma ? '' : ' tatil'}${t === bg ? ' bugun' : ''}${ayDisi ? ' disi' : ''}">
       <div class="tk-gun-h"><span class="tk-no">${gunNo}</span>
         ${TK_KIP === 'hafta' && g && g.kap ? `<span class="tk-dolu" title="${saatYaz(g.dolu)} / ${saatYaz(g.kap)}"><i style="width:${dol}%"></i></span>` : ''}
-        <button class="tk-arti" data-tk-ekle="${t}" title="Bu güne hatırlatıcı ya da not ekle">${svg('arti')}</button></div>
+        <button class="tk-arti" data-tk-ekle="${t}" title="Bu güne hatırlatıcı, not ya da Teams toplantısı ekle">${svg('arti')}</button></div>
       ${ol.slice(0, sinir).join('')}${fazla > 0 ? `<button class="tk-daha" data-tk-hafta="${t}">+${fazla} daha</button>` : ''}</div>`);
   }
   kok.innerHTML = `
@@ -3425,16 +3500,79 @@ function planCiz() {
 }
 // Günün "+" düğmesi: Hatırlatıcı mı Not mu? (küçük menü; not o günün terminiyle açılır)
 document.addEventListener('click', e => {
-  const m = $('#tkEkleMenu'), t = e.target.closest('[data-tk-ekle],[data-tk-not],[data-ol]');
+  const m = $('#tkEkleMenu'), t = e.target.closest('[data-tk-ekle],[data-tk-not],[data-tk-teams],[data-ol]');
   if (t && t.dataset.tkEkle) {
     e.stopPropagation();
     const r = t.getBoundingClientRect();
-    m.innerHTML = `<button data-yeni-hat="${t.dataset.tkEkle}">${svg('hat')}Hatırlatıcı</button><button data-tk-not="${t.dataset.tkEkle}">${svg('not')}Not</button>`;
+    m.innerHTML = `<button data-yeni-hat="${t.dataset.tkEkle}">${svg('hat')}Hatırlatıcı</button><button data-tk-not="${t.dataset.tkEkle}">${svg('not')}Not</button><button data-tk-teams="${t.dataset.tkEkle}">${svg('kisiler')}Teams toplantısı</button>`;
     m.style.left = Math.min(window.innerWidth - 170, r.left) + 'px'; m.style.top = (r.bottom + 4) + 'px'; m.hidden = false; return;
   }
   if (m) m.hidden = true;
   if (t && t.dataset.tkNot) return kayitYeni('not', { termin: t.dataset.tkNot });
+  if (t && t.dataset.tkTeams) return teamsToplantiAc(t.dataset.tkTeams);
   if (t && t.dataset.ol) apiJson('/api/takvim/ac', { method: 'POST', body: JSON.stringify({ id: t.dataset.ol }) }).catch(er => toast(er.message, true));
+});
+/* Teams toplantısı (takvimde günün "+" menüsü): konu, saat, katılımcılar (rehberden). "Oluştur"a basınca
+   sunucu Outlook'ta Teams bağlantılı toplantıyı kurar ve davetleri katılımcılara GÖNDERİR. */
+let TM = null;
+function katilimciCoz(deger) {   // "Ad <eposta>", yalnız e-posta ya da rehberde tek eşleşen ad
+  deger = String(deger || '').trim(); if (!deger) return null;
+  const m = deger.match(/^(.*?)\s*<\s*([^<>\s]+@[^<>\s]+)\s*>$/);
+  if (m) return { ad: m[1].trim(), eposta: m[2] };
+  if (/^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/.test(deger)) return { ad: '', eposta: deger };
+  const b = (REHBER || []).filter(r => r.eposta && trK(r.ad).includes(trK(deger)));
+  return b.length === 1 ? { ad: b[0].ad, eposta: b[0].eposta } : null;
+}
+function teamsToplantiAc(tarih) {
+  const s = new Date(), saat = `${String(Math.min(s.getHours() + 1, 18)).padStart(2, '0')}:00`;
+  TM = { tarih, bas: saat, bit: saat.replace(':00', ':30'), konu: '', aciklama: '', katilim: [] };
+  teamsCiz(); $('#mTeams').classList.add('show'); setTimeout(() => $('#tmKonu').focus(), 50);
+  if (REHBER === null && !REHBER_YUKLENIYOR) rehberYukle().then(() => { if ($('#tmKisiDl')) $('#tmKisiDl').innerHTML = odaKisiSecenek(); });
+}
+function teamsOku() {
+  if (!TM || !$('#tmKonu')) return;
+  TM.konu = $('#tmKonu').value; TM.tarih = $('#tmTarih').value; TM.bas = $('#tmBas').value; TM.bit = $('#tmBit').value; TM.aciklama = $('#tmAciklama').value;
+}
+function teamsCiz() {
+  $('#tmGovde').innerHTML = `
+    <div class="field"><label>Konu</label><input id="tmKonu" value="${esc(TM.konu)}" placeholder="Toplantı konusu"></div>
+    <div class="grid2" style="grid-template-columns:1.4fr 1fr 1fr">
+      <div class="field"><label>Tarih</label><input type="date" id="tmTarih" value="${esc(TM.tarih)}"></div>
+      <div class="field"><label>Başlangıç</label><input type="time" id="tmBas" step="900" value="${esc(TM.bas)}"></div>
+      <div class="field"><label>Bitiş</label><input type="time" id="tmBit" step="900" value="${esc(TM.bit)}"></div></div>
+    <div class="field"><label>Katılımcılar</label><div class="oda-katilim">
+      ${TM.katilim.map((k, i) => `<span class="oda-cip" data-ipucu="${esc(k.eposta)}">${esc(k.ad || k.eposta)}<button data-tm-cikar="${i}" aria-label="Çıkar">×</button></span>`).join('')}
+      <input id="tmKisi" list="tmKisiDl" placeholder="Ad ya da e-posta yazın, listeden seçin" autocomplete="off">
+      <datalist id="tmKisiDl">${odaKisiSecenek()}</datalist></div></div>
+    <div class="field"><label>Açıklama (isteğe bağlı)</label><textarea id="tmAciklama" rows="3">${esc(TM.aciklama)}</textarea></div>
+    <div class="oda-not">Toplantı Outlook'ta Teams bağlantısıyla oluşturulur ve davet ${TM.katilim.length ? TM.katilim.length + ' katılımcıya' : 'katılımcılara'} gönderilir. Birkaç saniye sürer; bu sırada Outlook penceresi kısa süre açılıp kapanır.</div>`;
+}
+function teamsKatilimEkle(deger) {
+  const k = katilimciCoz(deger);
+  if (!k) { toast('Kişi bulunamadı; listeden seçin ya da e-posta yazın.', true); return; }
+  teamsOku();
+  if (!TM.katilim.some(x => trK(x.eposta) === trK(k.eposta))) TM.katilim.push(k);
+  teamsCiz(); setTimeout(() => $('#tmKisi').focus(), 20);
+}
+document.addEventListener('keydown', e => { if (e.target.id === 'tmKisi' && e.key === 'Enter') { e.preventDefault(); teamsKatilimEkle(e.target.value); } });
+document.addEventListener('input', e => { if (e.target.id === 'tmKisi' && /<[^<>\s]+@[^<>\s]+>\s*$/.test(e.target.value)) teamsKatilimEkle(e.target.value); });
+document.addEventListener('click', async e => {
+  const x = e.target.closest('[data-tm-cikar]');
+  if (x) { teamsOku(); TM.katilim.splice(+x.dataset.tmCikar, 1); return teamsCiz(); }
+  if (!e.target.closest('#tmGonder')) return;
+  teamsOku();
+  if ($('#tmKisi').value.trim()) teamsKatilimEkle($('#tmKisi').value);   // yazılıp eklenmemiş kişi kaybolmasın
+  if (!TM.konu.trim()) { toast('Konu yazın.', true); return $('#tmKonu').focus(); }
+  if (!TM.tarih || !TM.bas || !TM.bit || TM.bit <= TM.bas) { toast('Başlangıç ve bitiş saatini kontrol edin.', true); return; }
+  if (!TM.katilim.length) { toast('En az bir katılımcı ekleyin.', true); return $('#tmKisi').focus(); }
+  const b = $('#tmGonder'); b.disabled = true; b.textContent = 'Oluşturuluyor…';
+  try {
+    const j = await apiJson('/api/toplanti/teams', { method: 'POST', body: JSON.stringify({ konu: TM.konu, aciklama: TM.aciklama,
+      bas: `${TM.tarih}T${TM.bas}`, bit: `${TM.tarih}T${TM.bit}`, katilimcilar: TM.katilim.map(k => k.eposta) }) });
+    toast(`Teams toplantısı gönderildi (${j.katilimci} katılımcı).`);
+    $('#mTeams').classList.remove('show'); TK_OL.anahtar = ''; if (aktif === 'plan') planCiz();   // takvimde Outlook toplantıları tazelensin
+  } catch (er) { toast(er.message, true); }
+  finally { b.disabled = false; b.textContent = 'Toplantıyı oluştur ve davet gönder'; }
 });
 function tkGit(n) {
   if (n === 0) TK_REF = new Date();
@@ -3838,6 +3976,8 @@ async function bildirimDene() {
 function hashIsle() {
   const h = decodeURIComponent(location.hash.slice(1));
   if (h.startsWith('hat=')) { git('hat'); hatAc(h.slice(4)); return; }
+  if (h === 'kisiler') { git('ana'); kisiPanel(true); return; }   // tepsi bildiriminden: cevapsız aramalar Kişiler panelinde
+  if (h === 'zil') { git('ana'); setTimeout(() => { const z = $('.tb-bld button, #zilBtn'); if (z) z.click(); }, 300); return; }   // tepsi: bildirim listesi
   if (h.startsWith('ac=')) {
     const [kid, aid] = h.slice(3).split('|');
     git('ana');
@@ -4039,6 +4179,7 @@ document.addEventListener('click', e => {
   if ((x = c('[data-yeni]'))) return kayitYeni(x.dataset.yeni);
   if ((x = c('.kpi[data-f]'))) return anaListePencere(x.dataset.f);
   if (c('#mListe [data-kapat]') || t.id === 'mListe') return $('#mListe').classList.remove('show');
+  if (c('#mTeams [data-kapat]') || t.id === 'mTeams') return $('#mTeams').classList.remove('show');
   if ((x = c('[data-posta-ac]'))) { e.stopPropagation(); const k = kayitBul(x.dataset.postaAc); return postaAc(k.postalar[k.postalar.length - 1]); }
   if ((x = c('[data-aks-tamam]'))) {
     const [kid, aid] = x.dataset.aksTamam.split('|'), k = kayitBul(kid), a = k && k.aksiyonlar.find(y => y.id === aid);
@@ -4083,6 +4224,18 @@ document.addEventListener('click', e => {
   if (c('#pAra')) { postaPanelOku(); return postaListeCiz(); }
   if (c('#pTemizle')) { PF = { q: '', kimden: '', konu: '', durum: '', tarih: '', okunmamis: false, bayrak: false }; postaPanelYaz(); return postaListeCiz(); }
   if (c('#postaYenile')) return postaYukle();
+  if (c('#postaOkundu')) {
+    const n = +($('#postaBalonSay').textContent.replace(/\D/g, '')) || 0;
+    if (!confirm(`Outlook Gelen Kutusu'ndaki ${n ? n + ' ' : 'tüm '}okunmamış posta okundu yapılsın mı?`)) return;
+    const b = $('#postaOkundu'); b.disabled = true;
+    return apiJson('/api/posta/okundu', { method: 'POST', body: '{}' })
+      .then(j => {
+        (POSTALAR || []).forEach(p => p.okunmadi = false); (ANA_POSTA || []).forEach(p => p.okunmadi = false);
+        if (aktif === 'posta') postaListeCiz(); bayrakliCiz(); sayacYukle();
+        toast(j.sayi ? `${j.sayi} posta okundu yapıldı.` : 'Okunmamış posta yoktu.');
+      })
+      .catch(er => toast(er.message, true)).finally(() => { b.disabled = false; });
+  }
   if (c('#hedefIptal')) { BAGLA_HEDEF = null; return postaGorunum(); }
   if ((x = c('[data-k-git]'))) { e.stopPropagation(); return kayitAc(x.dataset.kGit); }
   if ((x = c('[data-yoksay-geri]'))) { e.stopPropagation(); const p = POSTALAR[+x.dataset.yoksayGeri]; V.yoksay = V.yoksay.filter(y => y !== p.id); kaydet(); postaBekleyenHesapla(); return postaListeCiz(); }
@@ -4234,6 +4387,7 @@ function postaZamanlayici() {
   temaUygula();
   dilUygula();
   havaYukle();
+  sayacYukle();   // balon sayaçları: okunmamış posta, cevapsız arama
   gelenTalepAl();
   apiJson('/api/kullanici').then(j => { KULLANICI_AD = j.ad || ''; hosgeldinYaz(); }).catch(() => {});
   hashIsle();

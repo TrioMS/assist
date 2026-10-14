@@ -217,6 +217,73 @@ function Icerik-Turu([string]$uz) {
 # --- Outlook ---------------------------------------------------------
 $PR_MSGID = "http://schemas.microsoft.com/mapi/proptag/0x1035001F"
 $script:ol = $null
+$script:cevAnahtar = ""; $script:cevListe = @()   # MiCollab cevapsiz arama onbellegi (/api/sayaclar)
+$script:logAnahtar = ""; $script:logListe = @()
+# MiCollab canli kaydindan (uca.log) cevapsiz aramalar: arama "CallReceived" ile gelir; cagri
+# "CallCleared" olurken durumu hala "Ringing" ise (hic acilmadan bitti) cevapsizdir.
+# Kayit MiCollab'da acik oldugu icin paylasimli okunur; dosya degismedikce yeniden okunmaz.
+function Log-Cevapsiz {
+  $l = Join-Path $env:APPDATA "Mitel\UC\uca.log"
+  if (-not (Test-Path -LiteralPath $l)) { return }
+  $fi = Get-Item -LiteralPath $l
+  $z = [string]$fi.Length + "|" + $fi.LastWriteTimeUtc.Ticks
+  if ($script:logAnahtar -ne $z) {
+    $metin = ""
+    try {
+      $fs = [System.IO.File]::Open($l, 'Open', 'Read', 'ReadWrite')
+      $sr = New-Object System.IO.StreamReader($fs); $metin = $sr.ReadToEnd(); $sr.Close(); $fs.Close()
+    } catch { return $script:logListe }
+    $gelen = @{}; $sonSid = ""; $sonTur = ""; $L = @()
+    foreach ($s in $metin.Split("`n")) {
+      if ($s -notmatch 'CallListener') { continue }
+      if ($s -match 'Call Event: EventCallID \(\d+\) ID \(\S+\) SessionID \((\S+)\)') { $sonSid = $Matches[1]; continue }
+      if ($s -match '^(\d{4}/\d\d/\d\d \d\d:\d\d:\d\d)\.\d+ .*Call Event: EventType \((\w+)\) .*Number \(([^)]*)\)') {
+        $sonTur = $Matches[2]
+        if ($sonTur -eq 'CallReceived' -and $sonSid) { $gelen[$sonSid] = [string]$Matches[3] }
+        continue
+      }
+      if ($sonTur -eq 'CallCleared' -and $s -match '^(\d{4}/\d\d/\d\d \d\d:\d\d:\d\d)\.\d+ .*FindExistingCall: ExistingCall: .*SessionID=(\S+) .*Status=Ringing') {
+        $sid = $Matches[2]
+        if ($gelen.ContainsKey($sid)) {
+          $t = [DateTime]::ParseExact($Matches[1], 'yyyy/MM/dd HH:mm:ss', $null).ToUniversalTime()
+          $L += @{ ad = ""; no = $gelen[$sid]; t = $t }
+          $gelen.Remove($sid)
+        }
+        $sonTur = ""
+      }
+    }
+    $script:logListe = $L; $script:logAnahtar = $z
+  }
+  return $script:logListe
+}
+# $sinir (UTC) sonrasindaki cevapsiz aramalar, eskiden yeniye; iki kaynak (gecmis dosyasi + canli kayit)
+# birlestirilir, ayni numaradan 2 dk icindeki kayit tek sayilir. Oge: @{ ad; no; t (UTC DateTime) }
+function Cevapsiz-Listesi([datetime]$sinir) {
+  try {
+    $f = Get-ChildItem -Path (Join-Path $env:APPDATA "Mitel\UC\*\callhistory.dat") -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($f) {
+      $z = $f.FullName + "|" + $f.LastWriteTimeUtc.Ticks
+      if ($script:cevAnahtar -ne $z) {
+        # PS 5.1: ConvertFrom-Json diziyi TEK nesne olarak verir; once degiskene alinir, sonra acilir
+        $ham = Get-Content -Raw -LiteralPath $f.FullName -Encoding UTF8 | ConvertFrom-Json
+        $script:cevListe = @($ham | ForEach-Object { $_ } | Where-Object { [int]$_.Type -eq 2 } |
+          ForEach-Object { @{ ad = [string]$_.Name; no = [string]$_.Number; t = [DateTime]::Parse([string]$_.Date).ToUniversalTime() } })
+        $script:cevAnahtar = $z
+      }
+    }
+  } catch {}
+  # MiCollab gecmis dosyasini gecikmeli/eksik yaziyor (14.10.2026: arama kayitta yoktu);
+  # canli kayit (uca.log) cagri biter bitmez yazilir -> ikisi birlestirilir.
+  $hepsi = @($script:cevListe) + @(Log-Cevapsiz)
+  $L = @()
+  foreach ($c in ($hepsi | Where-Object { $_ } | Sort-Object { $_.t })) {
+    if ($c.t -le $sinir) { continue }
+    $ayni = $false
+    foreach ($v in $L) { if ($v.no -eq $c.no -and [Math]::Abs(($v.t - $c.t).TotalSeconds) -lt 120) { if (-not $v.ad) { $v.ad = $c.ad }; $ayni = $true; break } }
+    if (-not $ayni) { $L += @{ ad = $c.ad; no = $c.no; t = $c.t } }
+  }
+  return $L
+}
 function Outlook {
   if ($script:ol) { try { $null = $script:ol.Version; return $script:ol } catch { $script:ol = $null } }
   $script:ol = New-Object -ComObject Outlook.Application
@@ -371,7 +438,23 @@ try {
 } catch { Write-Host ("  Windows bildirimi kullanilamiyor: " + $_.Exception.Message) -ForegroundColor Yellow }
 
 function Xml-Kacis([string]$s) { return [System.Security.SecurityElement]::Escape($s) }
+# Gosterilen her bildirim bir gecmise de yazilir (Windows bildirimi kaybolunca tepsi simgesinden
+# "Bildirimler" ile yeniden gorulur). Metinlerde is adi yok (yalniz sayi/saat), dosya sifresiz;
+# son 7 gun, en cok 60 kayit.
+$bldGecmisDos = Join-Path $veriKok "bildirim_gecmis.json"
+$tepsiDos = Join-Path $veriKok "tepsi.json"   # tepside bildirimlerin son gorulme zamani
+function Bildirim-Gecmisi {
+  if (-not (Test-Path -LiteralPath $bldGecmisDos)) { return @() }
+  try { $ham = [System.IO.File]::ReadAllText($bldGecmisDos, $UTF8) | ConvertFrom-Json; return @($ham | ForEach-Object { $_ }) } catch { return @() }
+}
+function Bildirim-Kaydet([string]$metin, [string]$hedef) {
+  $sinir = (Get-Date).AddDays(-7).ToString("o")
+  $L = @(Bildirim-Gecmisi | Where-Object { [string]$_.t -gt $sinir }) + @([pscustomobject]@{ t = (Get-Date).ToString("o"); metin = $metin; hedef = $hedef })
+  if ($L.Count -gt 60) { $L = $L[($L.Count - 60)..($L.Count - 1)] }
+  try { [System.IO.File]::WriteAllText($bldGecmisDos, (ConvertTo-Json -InputObject @($L) -Depth 3), $UTF8) } catch {}
+}
 function Bildirim-Goster([string]$baslik, [string]$metin, [string]$hedef) {
+  Bildirim-Kaydet $metin $hedef
   if (-not $script:bildirimHazir) { return }
   $url = "http://localhost:$port/?b=" + [DateTime]::Now.Ticks + "#" + $hedef
   $xml = '<toast activationType="protocol" launch="' + (Xml-Kacis $url) + '"><visual><binding template="ToastGeneric">' +
@@ -495,6 +578,33 @@ function MiCollab-Klasor {
   }
   return "C:\Program Files (x86)\Mitel\Unified Communicator Advanced 7.3\"
 }
+# Outlook toplanti penceresinde Teams eklentisinin dugmesine basar; govdeye Teams baglantisi
+# gelince $true. Pencere, toplantinin Inspector basligiyla bulunur (ayni adli baska pencereye basilmasin).
+function Teams-Toplanti-Ekle($t) {
+  Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+  $AE = [System.Windows.Automation.AutomationElement]
+  $baslik = ""; try { $baslik = [string]$t.GetInspector.Caption } catch {}
+  $pen = $null
+  for ($i = 0; $i -lt 20 -and -not $pen; $i++) {
+    foreach ($w in $AE::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)) {
+      if ($w.Current.ClassName -eq 'rctrl_renwnd32' -and $baslik -and $w.Current.Name -eq $baslik) { $pen = $w; break }
+    }
+    if (-not $pen) { Start-Sleep -Milliseconds 500 }
+  }
+  if (-not $pen) { Write-Host "  Teams: toplanti penceresi bulunamadi"; return $false }
+  $dug = New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button)
+  $hedef = $null
+  for ($i = 0; $i -lt 10 -and -not $hedef; $i++) {
+    foreach ($d in $pen.FindAll([System.Windows.Automation.TreeScope]::Descendants, $dug)) { if ($d.Current.Name -match '^\s*(Teams Meeting|Teams Toplant)') { $hedef = $d; break } }
+    if (-not $hedef) { Start-Sleep -Milliseconds 500 }
+  }
+  if (-not $hedef) { Write-Host "  Teams: 'Teams Meeting' dugmesi bulunamadi (eklenti kapali olabilir)"; return $false }
+  try { $hedef.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke() } catch { return $false }
+  for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 1; if (([string]$t.Body) -match 'teams\.microsoft\.com/l/meetup-join') { return $true } }
+  Write-Host "  Teams: baglanti 30 sn icinde gelmedi"
+  return $false
+}
+
 # MiCollab arama penceresindeki "gorusmeyi bitir" dugmesine basar; basilan dugmenin adini dondurur.
 # Oncelik sirasi: acik "bitir/kapat" adlari once, genel "iptal" en son. Ana liste penceresinin
 # kapat (X) dugmesine dokunulmaz (o pencere gorusme degil, MiCollab'i gizler).
@@ -543,6 +653,19 @@ $rehberDos = Join-Path $veriKok "rehber.dat"
 # Rehber kurali degisince yukselt: eski surumlu onbellek 24 saati beklemeden yeniden kurulur
 # (13.10.2026: MiCollab'in 107 kisisi eski onbellekte TEK kayitta birlesik kalmisti).
 $REHBER_SURUM = 2
+# Numaradan rehberdeki ad (rehber onbellegi; dosya degismedikce yeniden cozulmez). Bulunamazsa "".
+$script:rehAdAnahtar = ""; $script:rehAd = @{}
+function Rehber-Ad([string]$no) {
+  $r = ($no -replace '\D', ''); if (-not $r -or -not (Test-Path -LiteralPath $rehberDos)) { return "" }
+  $z = [string](Get-Item -LiteralPath $rehberDos).LastWriteTimeUtc.Ticks
+  if ($script:rehAdAnahtar -ne $z) {
+    $script:rehAd = @{}
+    try { foreach ($k in @(((Sifreli-Oku $rehberDos) | ConvertFrom-Json).kisiler | ForEach-Object { $_ })) { $t = ([string]$k.tel -replace '\D', ''); if ($t -and -not $script:rehAd.ContainsKey($t)) { $script:rehAd[$t] = [string]$k.ad } } } catch {}
+    $script:rehAdAnahtar = $z
+  }
+  if ($script:rehAd.ContainsKey($r)) { return $script:rehAd[$r] } else { return "" }
+}
+
 function Rehber-Kur {
   $epostaya = @{}; $ada = @{}; $liste = New-Object System.Collections.ArrayList
   $ekle = {
@@ -782,6 +905,69 @@ while ($listener.IsListening) {
         } else { Yaz-Hata $ctx "Gecersiz istek." 400 }
       }
 
+      # ---------- balon sayaclari: okunmamis posta + cevapsiz arama ----------
+      # okunmamis: Outlook Gelen Kutusu'nun okunmamis sayisi (-1 = Outlook'a ulasilamadi).
+      # cevapsiz: MiCollab arama gecmisinde (callhistory.dat, JSON; Type 2 = cevapsiz) ?son= zamanindan
+      # sonraki cevapsiz aramalar. Dosya degismedikce yeniden okunmaz.
+      elseif ($yol -eq "/api/sayaclar") {
+        $okunmamis = -1
+        try { $okunmamis = [int](Ns).GetDefaultFolder(6).UnReadItemCount } catch {}
+        $son = Sorgu $ctx "son"; $cev = @()
+        if ($son) {
+          try { $cev = @(Cevapsiz-Listesi ([DateTime]::Parse($son).ToUniversalTime()) | ForEach-Object { @{ ad = $_.ad; no = $_.no; t = $_.t.ToString("o") } }) } catch {}
+        }
+        Yaz-Json $ctx @{ ok = $true; okunmamis = $okunmamis; cevapsiz = $cev }
+      }
+
+      # ---------- tepsi simgesi: bildirim ozeti ----------
+      # Son 48 saatin bildirimleri (gecmisten) + cevapsiz aramalar, yeniden eskiye en cok 15 oge.
+      # yeni: tepside son "goruldu"dan (ve cevapsizlarda Assist'te gorulmeden) sonra gelenler.
+      elseif ($yol -eq "/api/tepsi/ozet") {
+        $gor = [datetime]::MinValue
+        try { $gor = [datetime]::Parse([string]([System.IO.File]::ReadAllText($tepsiDos, $UTF8) | ConvertFrom-Json).gorulme) } catch {}
+        $cevSon = [datetime]::MinValue
+        try { $vv = (Veri-Oku) | ConvertFrom-Json; if ($vv.cevapsizSon) { $cevSon = [datetime]::Parse([string]$vv.cevapsizSon) } } catch {}
+        $sinir = (Get-Date).AddHours(-48); $og = @()
+        foreach ($b in (Bildirim-Gecmisi)) {
+          try { $t = [datetime]::Parse([string]$b.t) } catch { continue }
+          if ($t -lt $sinir) { continue }
+          $og += @{ t = $t; metin = [string]$b.metin; hedef = [string]$b.hedef; yeni = ($t -gt $gor) }
+        }
+        try {
+          foreach ($c in (Cevapsiz-Listesi $sinir.ToUniversalTime())) {
+            $t = $c.t.ToLocalTime(); $ad = $c.ad; if (-not $ad) { $ad = Rehber-Ad $c.no }; if (-not $ad) { $ad = $c.no }
+            $og += @{ t = $t; metin = (U "Cevaps{0131}z arama {00B7} ") + $ad; hedef = "kisiler"; yeni = ($t -gt $gor -and $t -gt $cevSon) }
+          }
+        } catch {}
+        $og = @($og | Sort-Object { $_.t } -Descending | Select-Object -First 15)
+        $saatYaz = { param($t) if ($t.Date -eq (Get-Date).Date) { $t.ToString("HH:mm") } else { $t.ToString("dd.MM HH:mm") } }
+        $cikti = @($og | ForEach-Object { @{ saat = (& $saatYaz $_.t); metin = $_.metin; hedef = $_.hedef; yeni = [bool]$_.yeni } })
+        # Gorevler: geciken / bugun / yaklasan (Ayarlar'daki gun) acik isler ve aksiyonlar, termine gore; ilk 5.
+        # Tepsi menusu yalniz kullanici acinca gorunur (kilit ekranindaki Windows bildirimi degil): baslik yazilir.
+        $gor2 = @()
+        try {
+          $yg = [int]$vv.ayar.yaklasanGun; if ($yg -le 0) { $yg = 7 }
+          $ekleG = { param($kid, $aid, $no, $baslik, $termin)
+            $gf = Gun-Fark $termin; if ($null -eq $gf -or $gf -gt $yg) { return }
+            $kalan = if ($gf -lt 0) { [string](-$gf) + (U " g{00FC}n gecikti") } elseif ($gf -eq 0) { U "Bug{00FC}n" } elseif ($gf -eq 1) { U "Yar{0131}n" } else { [string]$gf + (U " g{00FC}n kald{0131}") }
+            $script:gorTmp += @{ termin = [string]$termin; no = [string]$no; baslik = [string]$baslik; kalan = $kalan; hedef = "ac=" + $kid + "|" + $aid; gecikti = ($gf -lt 0) } }
+          $script:gorTmp = @()
+          foreach ($k in @($vv.kayitlar | ForEach-Object { $_ })) {
+            $acik = ($k.durum -eq "acik" -or $k.durum -eq "beklemede")
+            if ($acik -and $k.tur -ne "posta" -and $k.termin) { & $ekleG $k.id "" $k.no $k.baslik $k.termin }
+            if ($k.durum -eq "iptal") { continue }
+            foreach ($ak in @($k.aksiyonlar | ForEach-Object { $_ })) { if ($ak.durum -ne "tamam" -and $ak.termin) { & $ekleG $k.id $ak.id $ak.no $ak.metin $ak.termin } }
+          }
+          $gor2 = @($script:gorTmp | Sort-Object { $_.termin })
+        } catch {}
+        Yaz-Json $ctx @{ ok = $true; yeni = @($og | Where-Object { $_.yeni }).Count; ogeler = $cikti;
+          cevapsiz = @($cikti | Where-Object { $_.hedef -eq "kisiler" }); gorevSay = $gor2.Count; gorevler = @($gor2 | Select-Object -First 5) }
+      }
+      elseif ($yol -eq "/api/tepsi/goruldu" -and $metod -eq "POST") {
+        try { [System.IO.File]::WriteAllText($tepsiDos, (@{ gorulme = (Get-Date).ToString("o") } | ConvertTo-Json), $UTF8) } catch {}
+        Yaz-Json $ctx @{ ok = $true }
+      }
+
       # ---------- kisi rehberi (MiCollab + Outlook + sirket rehberi) ----------
       # Onbellek 24 saatten yeniyse ondan verilir; ?yenile=1 ile yeniden kurulur.
       elseif ($yol -eq "/api/rehber") {
@@ -920,6 +1106,36 @@ while ($listener.IsListening) {
         }
       }
 
+      # ---------- Teams toplantisi (takvimdeki "+" menusu) ----------
+      # Outlook'ta toplanti olusturulur, katilimcilar eklenir, pencere acilip Teams eklentisinin
+      # "Teams Meeting" dugmesine UI Automation ile basilir (COM'da Teams baglantisi ekleme yolu yok;
+      # 14.10.2026 denendi). Baglanti govdeye gelince davet GONDERILIR. Gelmezse gonderilmez,
+      # pencere kullaniciya acik birakilir.
+      elseif ($yol -eq "/api/toplanti/teams" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json
+        try { $bas = [datetime]::ParseExact([string]$g.bas, "yyyy-MM-ddTHH:mm", $null); $bit = [datetime]::ParseExact([string]$g.bit, "yyyy-MM-ddTHH:mm", $null) } catch { $bas = $null }
+        $epler = @(@($g.katilimcilar) | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^[^@\s;,]+@[^@\s;,]+\.[A-Za-z]{2,}$' })
+        if (-not $bas -or $bit -le $bas) { Yaz-Hata $ctx "Saat araligi gecersiz." 400 }
+        elseif (-not ([string]$g.konu).Trim()) { Yaz-Hata $ctx "Konu bos olamaz." 400 }
+        elseif (-not $epler.Count) { Yaz-Hata $ctx "En az bir katilimci ekleyin." 400 }
+        else {
+          $t = (Outlook).CreateItem(1); $t.MeetingStatus = 1
+          $t.Subject = ([string]$g.konu).Trim(); $t.Start = $bas; $t.End = $bit
+          if ($g.aciklama) { $t.Body = [string]$g.aciklama }
+          foreach ($ep in $epler) { $r = $t.Recipients.Add($ep); $r.Type = 1 }
+          [void]$t.Recipients.ResolveAll()
+          $t.Display($false)
+          $link = Teams-Toplanti-Ekle $t
+          if ($link) {
+            $t.Send()
+            Write-Host ("  Teams toplantisi gonderildi (" + $epler.Count + " katilimci)")
+            Yaz-Json $ctx @{ ok = $true; gonderildi = $true; katilimci = $epler.Count }
+          } else {
+            Yaz-Hata $ctx "Teams baglantisi eklenemedi. Toplanti Outlook'ta acik birakildi: 'Teams Meeting' dugmesine basip Gonder'e basin." 409
+          }
+        }
+      }
+
       # ---------- acilista birlikte baslayan uygulamalar (Outlook / MiCollab / Teams) ----------
       # Secim makineye ozel ayar dosyasinda (baslat) durur: bat okuyabilsin diye sifreli veride degil.
       # Bir uygulama acilinca kapaliysa hemen de baslatilir. Kurallar Sunucu\uygulamalar.ps1'de.
@@ -1037,6 +1253,15 @@ while ($listener.IsListening) {
       }
 
       # ---------- bayrak ekle / kaldir (Outlook'taki postaya islenir) ----------
+      # ---------- Gelen Kutusu: tumunu okundu yap (Posta Kutusu sayfasindaki dugme) ----------
+      # Yalniz Gelen Kutusu'nun okunmamislari; posta silinmez/tasinmaz, yalniz "okundu" isaretlenir.
+      elseif ($yol -eq "/api/posta/okundu" -and $metod -eq "POST") {
+        $gk = (Ns).GetDefaultFolder(6); $n = 0
+        $liste = @(); foreach ($it in $gk.Items.Restrict("[UnRead] = True")) { $liste += $it }
+        foreach ($it in $liste) { try { $it.UnRead = $false; $n++ } catch {} }
+        Write-Host ("  Posta: " + $n + " okunmamis posta okundu yapildi")
+        Yaz-Json $ctx @{ ok = $true; sayi = $n; kalan = [int]$gk.UnReadItemCount }
+      }
       elseif ($yol -eq "/api/posta/bayrak" -and $metod -eq "POST") {
         $g = (Govde-Oku $ctx) | ConvertFrom-Json
         $it = Posta-Bul ([string]$g.id) ([string]$g.store) ([string]$g.msgId)
