@@ -84,18 +84,16 @@ html:has(#acilis:not(.bitti)){overflow:hidden;scrollbar-gutter:auto}   /* açıl
 @keyframes acilisDon{to{transform:rotate(360deg)}}
 @keyframes acilisNabiz{50%{transform:scale(.96)}}
 @media (prefers-reduced-motion:reduce){.acilis-halka{animation-duration:2.5s}.acilis-daire{animation:none}}
+/* TALEP YAZIŞMASI */
+table.tbl tr.yeni td{font-weight:700;color:var(--s-inktext)}   /* görülmemiş talep (yeni, cevap, kapatma) */
+.ty-bilgi{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px 18px;margin-bottom:12px}
+.ty-s{display:flex;flex-direction:column;font-size:13px} .ty-s span{font-size:11.5px;color:var(--s-graphite);text-transform:uppercase;letter-spacing:.3px;font-weight:600} .ty-s b{font-weight:500}
+.ty-metin{white-space:pre-wrap;font-size:13.5px;background:var(--s-concrete);border-radius:8px;padding:9px 12px}
+.ty-defter{padding:2px 0;max-height:280px;min-height:0}
+.ty-dugmeler{display:flex;gap:8px;align-items:center;margin-top:8px}
 /* ORTAK İŞLER */
-.ortak-duzen{display:grid;grid-template-columns:330px 1fr;gap:14px;align-items:start}
-.ortak-liste{max-height:calc(100vh - 160px);overflow:auto}
-.ortak-oge{display:block;width:100%;text-align:left;border:none;border-bottom:1px solid var(--s-line);background:none;padding:10px 14px;cursor:pointer;color:inherit;font:inherit}
-.ortak-oge:hover{background:var(--s-concrete)} .ortak-oge.sec{background:#FBEFF0;box-shadow:inset 3px 0 0 var(--s-red-deep)}
-.oo-ust{display:flex;gap:8px;align-items:center} .oo-ust b{flex:1;font-weight:600;font-size:13.5px}
-.ortak-oge.kapali .oo-ust b{color:var(--s-graphite);font-weight:500}
+.od-pencere{max-height:360px} .od-pencere li.yeni{margin:0;padding:9px 10px}
 .oo-say{background:var(--s-red);color:#fff;border-radius:99px;font-size:11px;font-weight:500;min-width:18px;height:18px;padding:0 6px;display:inline-grid;place-items:center}
-.oo-alt{font-size:12px;color:var(--s-graphite);margin-top:2px}
-.od-bas{padding:14px 18px;border-bottom:1px solid var(--s-line)}
-.od-bas-ust{display:flex;gap:10px;align-items:flex-start} .od-bas h2{font-size:18px;margin:0 0 6px;flex:1}
-.od-bilgi{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--s-graphite)}
 .od-kisiler{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
 .od-kisi{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--s-line);border-radius:99px;padding:3px 10px;font-size:12px;background:#fff}
 .od-kisi i{font-style:normal;color:var(--s-graphite);font-size:11px}
@@ -108,11 +106,8 @@ html:has(#acilis:not(.bitti)){overflow:hidden;scrollbar-gutter:auto}   /* açıl
 .od-defter .metin{white-space:pre-wrap;font-size:13.5px;margin-top:2px;overflow-wrap:anywhere}
 .od-defter li.sistem .metin{font-style:italic;color:var(--s-graphite)}
 .od-defter li.yeni{background:#FFF8E6;margin:0 -18px;padding:9px 18px}
-.od-yaz{display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--s-line);align-items:flex-end}
-.od-yaz textarea{flex:1;min-height:46px;resize:vertical}
 .od-not{padding:10px 18px;font-size:12.5px;color:var(--s-graphite)}
 .mo-kisiler{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-@media (max-width:900px){.ortak-duzen{grid-template-columns:1fr}}
 /* Uygulama penceresi düğmeleri (geri/ileri solda, tam ekran/çıkış sağda) */
 .tb-gez{display:flex;gap:6px}
 .tb-gez[hidden]{display:none}
@@ -814,7 +809,7 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
   <div class="sn-nav">
     <button class="sn-item" data-v="ana"><svg class="i"><use href="#ic-ana"/></svg><span>Anasayfa</span></button>
     <button class="sn-item" data-v="posta"><svg class="i"><use href="#ic-posta"/></svg><span>Posta Kutusu</span><b class="sn-say" id="snPostaSay"></b></button>
-    <button class="sn-item" data-v="talep"><svg class="i"><use href="#ic-talep"/></svg><span>Talepler</span></button>
+    <button class="sn-item" data-v="talep"><svg class="i"><use href="#ic-talep"/></svg><span>Talepler</span><b class="sn-say" id="snTalepSay"></b></button>
     <button class="sn-item" data-v="ortak"><svg class="i"><use href="#ic-sohbet"/></svg><span>Ortak İşler</span><b class="sn-say" id="snOrtakSay"></b></button>
     <button class="sn-item" data-v="not"><svg class="i"><use href="#ic-not"/></svg><span>Notlar</span></button>
     <button class="sn-item" data-v="aksiyon"><svg class="i"><use href="#ic-aksiyon"/></svg><span>Aksiyonlar</span></button>
@@ -942,11 +937,12 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
 </div></div>
 <div class="modal-bg" id="mTeams"><div class="modal" role="dialog" aria-modal="true">  <div class="modal-h"><h3>Teams toplantısı</h3><button class="kapat-x" data-kapat title="Kapat"><svg class="i"><use href="#ic-x"/></svg></button></div>  <div class="modal-b" id="tmGovde"></div>  <div class="modal-f"><button class="btn" data-kapat>Vazgeç</button><button class="btn primary" id="tmGonder">Toplantıyı oluştur ve davet gönder</button></div></div></div>
 <div class="modal-bg" id="mOrtak"><div class="modal" role="dialog" aria-modal="true">  <div class="modal-h"><h3>Yeni Ortak İş</h3><button class="kapat-x" data-kapat title="Kapat"><svg class="i"><use href="#ic-x"/></svg></button></div>  <div class="modal-b" id="moGovde"></div>  <div class="modal-f"><span class="ayar-sonuc" id="moSonuc"></span><span class="sp"></span><button class="btn" data-kapat>Vazgeç</button><button class="btn primary" id="moKaydet">Oluştur ve gönder</button></div></div></div>
+<div class="modal-bg" id="mOrtakDetay"><div class="modal" role="dialog" aria-modal="true">  <div class="modal-h"><h3 id="odBaslik"></h3><span id="odDurum"></span><button class="kapat-x" data-kapat title="Kapat"><svg class="i"><use href="#ic-x"/></svg></button></div>  <div class="modal-b" id="odGovde"></div>  <div class="modal-f"><button class="btn" id="odDurumBtn"></button><span class="sp"></span><button class="btn" data-kapat>Kapat</button></div></div></div>
 <div class="modal-bg" id="mKayit"><div class="modal" role="dialog" aria-modal="true">
   <div class="modal-h"><h3 id="mkBaslik"></h3><span id="mkDurum"></span><button class="kapat-x" data-kapat title="Kapat"><svg class="i"><use href="#ic-x"/></svg></button></div>
   <div class="modal-b" id="mkGovde"></div>
   <div class="modal-f"><button class="btn hayalet-kirmizi" id="mkSil"><svg class="i"><use href="#ic-cop"/></svg>Sil</button><button class="btn" id="mkIlet"><svg class="i"><use href="#ic-posta"/></svg>İlet</button><button class="btn" id="mkNotKapat"><svg class="i"><use href="#ic-aksiyon"/></svg>Notu kapat</button><span class="sp"></span>
-    <button class="btn" data-kapat>Vazgeç</button><button class="btn primary" id="mkKaydet">Kaydet</button></div>
+    <button class="btn" data-kapat id="mkVazgec">Vazgeç</button><button class="btn primary" id="mkKaydet">Kaydet</button></div>
 </div></div>
 
 <!-- POSTADAN KAYIT -->
@@ -954,7 +950,7 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
   <div class="modal-h"><h3>Posta</h3><button class="kapat-x" data-kapat title="Kapat"><svg class="i"><use href="#ic-x"/></svg></button></div>
   <div class="modal-b" id="mpGovde"></div>
   <div class="modal-f"><button class="btn" id="mpYoksay">Yok say</button><span class="sp"></span>
-    <button class="btn" data-kapat>Vazgeç</button><button class="btn primary" id="mpKaydet">Kaydet</button></div>
+    <button class="btn" data-kapat>Kapat</button><button class="btn primary" id="mpKaydet">Kaydet</button></div>
 </div></div>
 
 <!-- AKSİYON -->
@@ -1401,7 +1397,7 @@ async function postaRevBak() {
   try {
     const j = await apiJson('/api/posta/rev');
     if (POSTA_REV >= 0 && j.rev !== POSTA_REV) {
-      sayacYukle();
+      sayacYukle(); gelenTalepAl();
       if (aktif === 'posta') postaYukle();
       if (aktif === 'ana') bayrakliYukle();
       const fark = POSTA_OKUNMAMIS >= 0 ? j.okunmamis - POSTA_OKUNMAMIS : 0;
@@ -2067,7 +2063,7 @@ const DIL_EN = {
   'Hoş Geldin': 'Welcome', 'Termini Geçen': 'Overdue', 'Bugün': 'Today', 'Yarın': 'Tomorrow', 'Açık İşler': 'Open Items', 'Bu Ay Kapanan': 'Closed This Month',
   'Notlarım': 'My Notes', 'Aksiyonlarım': 'My Actions', 'Takipteki Postalar': 'Followed Emails', 'Takipte posta yok.': 'No followed emails.',
   'Açık not yok.': 'No open notes.', 'Geciken ya da yaklaşan not yok.': 'No overdue or upcoming notes.', 'Geciken ya da yaklaşan aksiyon yok.': 'No overdue or upcoming actions.', 'Açık aksiyon yok.': 'No open actions.', 'Not': 'Note', 'Aksiyon': 'Action', 'Yenile': 'Refresh',
-  'Filtre': 'Filter', 'Ara': 'Search', 'Temizle': 'Clear', 'Durum': 'Status', 'Sorumlu': 'Owner', 'Termin': 'Due date', 'Kimden': 'From', 'Kime': 'To',
+  'Filtre': 'Filter', 'Ara': 'Search', 'Temizle': 'Clear', 'Durum': 'Status', 'Sorumlu': 'Owner', 'Termin': 'Due date', 'Kimden': 'From', 'Kime': 'To', 'İletilen': 'Forwarded to', 'Kimden / İletilen': 'From / Forwarded to',
   'Kimden / Kime': 'From / To', 'Kategori': 'Category', 'Tümü': 'All', 'Açık işler': 'Open items', 'Açık': 'Open', 'Beklemede': 'On hold',
   'Tamamlandı': 'Completed', 'İptal': 'Cancelled', 'Kapandı': 'Closed', 'Kapalı': 'Closed', 'Termini geçen': 'Overdue', 'Yaklaşan': 'Upcoming',
   'Termini yok': 'No due date', 'No': 'No', 'Başlık': 'Title', 'Kalan': 'Remaining', 'Gelen': 'Incoming', 'Giden': 'Outgoing',
@@ -2123,7 +2119,7 @@ const DIL_EN = {
   'Veri klasörü': 'Data folder', 'Kapanan işler ve notlar silinsin': 'Delete closed items and notes', 'Yedek indir (şifresiz)': 'Download backup (unencrypted)',
   'Yedekten yükle': 'Restore from backup', 'Silinmesin': 'Never', 'Windows açılınca Assist\'i başlat': 'Start Assist when Windows starts',
   'Ekranın köşesinde bildirim göster': 'Show notification in the screen corner', 'Termini geçen işleri her gün hatırlat': 'Remind overdue items every day',
-  'Yeni posta geldi.': 'New mail arrived.', 'Talep henüz kaydedilmedi. Kaydedip iletme panelini açayım mı?': 'The request is not saved yet. Save it and open the forward panel?', 'Kaydedilmemiş değişiklikler var. Kaydedip iletme panelini açayım mı?': 'There are unsaved changes. Save and open the forward panel?', 'Ortak İşler': 'Shared Work', 'Yeni Ortak İş': 'New Shared Work', 'Oluştur ve gönder': 'Create and send', 'Konuyu kapat': 'Close topic', 'Yeniden aç': 'Reopen', 'Geçmişi paylaş': 'Share history', '+ Katılımcı ekle': '+ Add participant', 'Katılımcılar': 'Participants', 'Soldan bir konu seçin.': 'Select a topic on the left.', 'Henüz giriş yok.': 'No entries yet.', 'Konu kapalı; yeni giriş eklenemez.': 'Topic is closed; no new entries.', 'Geri': 'Back', 'İleri': 'Forward', 'Tam ekran': 'Full screen', 'Tam ekrandan çık': 'Exit full screen', 'Çıkış (Assist arka planda çalışmaya devam eder)': 'Exit (Assist keeps running in the background)',
+  'Yeni posta geldi.': 'New mail arrived.', 'Talep başlığı': 'Request title', 'İptal': 'Cancel', 'Talep henüz kaydedilmedi. Kaydedip iletme panelini açayım mı?': 'The request is not saved yet. Save it and open the forward panel?', 'Kaydedilmemiş değişiklikler var. Kaydedip iletme panelini açayım mı?': 'There are unsaved changes. Save and open the forward panel?', 'Ortak İşler': 'Shared Work', 'Yeni Ortak İş': 'New Shared Work', 'Oluştur ve gönder': 'Create and send', 'Konuyu kapat': 'Close topic', 'Yeniden aç': 'Reopen', 'Geçmişi paylaş': 'Share history', '+ Katılımcı ekle': '+ Add participant', 'Katılımcılar': 'Participants', 'Soldan bir konu seçin.': 'Select a topic on the left.', 'Henüz giriş yok.': 'No entries yet.', 'Konu kapalı; yeni giriş eklenemez.': 'Topic is closed; no new entries.', 'Geri': 'Back', 'İleri': 'Forward', 'Tam ekran': 'Full screen', 'Tam ekrandan çık': 'Exit full screen', 'Çıkış (Assist arka planda çalışmaya devam eder)': 'Exit (Assist keeps running in the background)',
   'Termin günü': 'Due date', 'Gece modu': 'Dark mode', 'Gündüz modu': 'Light mode', 'Dil / Language': 'Language / Dil', 'Gelen Kutusu · ': 'Inbox · ',
   'Pazar': 'Sunday', 'Pazartesi': 'Monday', 'Salı': 'Tuesday', 'Çarşamba': 'Wednesday', 'Perşembe': 'Thursday', 'Cuma': 'Friday', 'Cumartesi': 'Saturday',
   'Pzt': 'Mon', 'Sal': 'Tue', 'Çar': 'Wed', 'Per': 'Thu', 'Cum': 'Fri', 'Cmt': 'Sat', 'Paz': 'Sun',
@@ -2248,7 +2244,9 @@ async function havaSehirBul(ad) {
   if (!s) throw new Error(`"${ad}" bulunamadı.`);
   return { ad: s.name, lat: s.latitude, lon: s.longitude };
 }
-function hepsiniCiz() { ciz(); bildirimKontrol(); dlSorumluDoldur(); ogrenArkada(); }
+function hepsiniCiz() { ciz(); bildirimKontrol(); dlSorumluDoldur(); ogrenArkada(); talepSayac(); }
+// Kenar menü › Talepler: görülmemiş (henüz açılmamış) gelen talep sayısı
+function talepSayac() { const n = V.kayitlar.filter(k => k.gorulmedi).length, e = $('#snTalepSay'); if (e) e.textContent = n ? (n > 99 ? '99+' : n) : ''; }
 function dlSorumluDoldur() { $('#dlSorumlu').innerHTML = sorumluListesi().map(s => `<option value="${esc(s)}">`).join(''); }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2496,7 +2494,7 @@ function panelKur(v) {
         <div class="ara-baslik">Filtre</div>
         <div class="field"><label>Ara</label><input type="search" data-f="q"></div>
         <div class="field"><label>Durum</label><select data-f="durum">${notMu ? '<option value="hepsi">Tümü</option><option value="acik">Açık</option><option value="tamam">Kapandı</option>' : durumSec}</select></div>
-        ${notMu ? '' : '<div class="field"><label>Sorumlu</label><select data-f="sorumlu"></select></div>'}
+        ${notMu ? '' : `<div class="field"><label>${v === 'talep' ? 'Kime' : 'Sorumlu'}</label><select data-f="sorumlu"></select></div>`}
         <div class="field"><label>Termin</label><select data-f="termin"><option value="">Tümü</option><option value="gecmis">Termini geçen</option><option value="bugun">Bugün</option><option value="yaklasan">Yaklaşan</option><option value="yok">Termini yok</option></select></div>
         <div class="field"><label>Kimden</label><input type="search" data-f="kimden"></div>
         ${v === 'talep' ? '<div class="field" data-kategori-alan><label>Kategori</label><select data-f="kategori"></select></div>' : ''}
@@ -2549,14 +2547,14 @@ function listeCiz2(v) {
   L.sort((a, b) => acikMi(a) !== acikMi(b) ? (acikMi(a) ? -1 : 1) : acikMi(a) ? terminSira(a, b) : (b.kapanis || '').localeCompare(a.kapanis || ''));
   $('[data-say]', kok).textContent = L.length;
   const talep = v === 'talep';
-  $('[data-liste]', kok).innerHTML = L.length ? `<table class="tbl"><thead><tr><th>No</th><th>Başlık</th>${talep ? `<th>${TALEP_YON === 'giden' ? 'Kime' : TALEP_YON === 'gelen' ? 'Kimden' : 'Kimden / Kime'}</th>` : ''}<th>Sorumlu</th><th>Termin</th><th>Kalan</th><th>Aksiyon</th><th>Durum</th></tr></thead><tbody>${
+  $('[data-liste]', kok).innerHTML = L.length ? `<table class="tbl"><thead><tr><th>No</th>${talep ? '<th>Tarih</th>' : ''}<th>Başlık</th>${talep ? '<th>Kimden</th>' : ''}<th>${talep ? 'Kime' : 'Sorumlu'}</th><th>Termin</th>${talep ? '' : '<th>Kalan</th><th>Aksiyon</th>'}<th>Durum</th></tr></thead><tbody>${
     L.map(k => {
       const ak = k.aksiyonlar.length ? `${k.aksiyonlar.filter(a => a.durum === 'tamam').length}/${k.aksiyonlar.length}` : '';
-      return `<tr class="clickable" data-k="${k.id}"><td class="no">${esc(k.no)}</td><td>${esc(k.baslik)}${oncelikHtml(k)}${postaDugme(k)}${ozetHtml(k)}</td>` +
-        (talep ? (k.yon === 'giden' ? `<td><span class="yon giden" title="Giden talep">→</span>${esc(k.kime || '')}</td>`
+      return `<tr class="clickable${k.gorulmedi ? ' yeni' : ''}" data-k="${k.id}"><td class="no">${esc(k.no)}</td>${talep ? `<td class="tarih">${esc(trTarihSaat(k.iletim || k.olusturma))}</td>` : ''}<td>${esc(k.baslik)}${oncelikHtml(k)}${postaDugme(k)}${ozetHtml(k)}</td>` +
+        (talep ? (k.yon === 'giden' ? `<td>${TALEP_YON ? '' : '<span class="yon giden" title="Giden talep">→</span>'}${esc(k.kimden || V.ayar.adSoyad || KULLANICI_AD || '')}</td>`
                                     : `<td>${TALEP_YON ? '' : '<span class="yon gelen" title="Gelen talep">←</span>'}${esc(k.kimden || '')}</td>`) : '') +
-        `<td class="dar">${esc(k.sorumlu || '')}</td><td class="tarih">${trTarih(k.termin)}</td><td class="dar">${acikMi(k) ? kalanHtml(k.termin) : ''}</td>` +
-        `<td class="dar">${ak}</td><td class="dar">${durumHtml(k.durum)}</td></tr>`;
+        `<td class="dar">${esc(k.sorumlu || (k.yon === 'giden' ? k.kime : '') || '')}</td><td class="tarih">${trTarih(k.termin)}</td>${talep ? '' : `<td class="dar">${acikMi(k) ? kalanHtml(k.termin) : ''}</td><td class="dar">${ak}</td>`}` +
+        `<td class="dar">${durumHtml(k.durum)}</td></tr>`;
     }).join('')}</tbody></table>` : '<div class="bos">Kayıt bulunamadı.</div>';
 }
 function aksiyonListeCiz() { if (!$('#v-aksiyon').innerHTML) panelKur('aksiyon'); panelSecenekleri('aksiyon'); aksiyonCiz2(); }
@@ -2760,6 +2758,8 @@ function aksiyonFormOku() {
 }
 // Satır/bildirim tıklaması: aksiyonsa aksiyon penceresi, değilse kayıt penceresi
 function kaydiAc(kid, aid) { if (aid) aksiyonAc(kid, aid); else kayitAc(kid); }
+// Gelen talep penceresi kapatılınca "görüldü" (kenar menü sayısı, kalın satır ve zildeki kayıt kalkar)
+function talepGoruldu(id) { const k = kayitBul(id); if (k && k.gorulmedi) { delete k.gorulmedi; kaydet(); hepsiniCiz(); } }
 function aksiyonPencereKapat() { $('#mAks').classList.remove('show'); AK = null; }
 async function aksiyonKaydet() {
   if (!aksiyonFormOku()) return;
@@ -2845,23 +2845,40 @@ function kayitAc(id, aksiyonId) {
 }
 function kayitPencere(vurgu) {
   const k = K, talep = k.tur === 'talep', not = k.tur === 'not';
+  // Yeni talep = birine iş göndermek (15.10.2026): sade form, durum otomatik, aksiyon/ilet/sil yok, Gönder + onay
+  const yeniTalep = K_YENI && talep;
+  if (!K_YENI && talep && (k.yon === 'gelen' || k.yon === 'giden')) return talepYazismaPencere();
+  ['#mkKaydet'].forEach(s => { $(s).style.display = ''; });
   $('#mkBaslik').innerHTML = K_YENI ? `Yeni ${TUR_AD[k.tur]}` : `<span class="no">${esc(k.no)}</span>${esc(k.baslik)}`;
   $('#mkDurum').innerHTML = K_YENI || not ? '' : durumHtml(k.durum);
   $('#mkSil').style.display = K_YENI ? 'none' : '';
-  $('#mkIlet').style.display = k.tur !== 'talep' ? 'none' : '';   // yeni talepte de: iletirken numara alınıp kaydedilir
+  $('#mkIlet').style.display = k.tur !== 'talep' || yeniTalep ? 'none' : '';
+  $('#mkVazgec').textContent = yeniTalep ? 'İptal' : 'Vazgeç';
+  $('#mkKaydet').innerHTML = yeniTalep ? svg('posta') + 'Gönder' : 'Kaydet';
   $('#mkNotKapat').style.display = K_YENI || !not ? 'none' : '';
   $('#mkNotKapat').lastChild.textContent = acikMi(k) ? 'Notu kapat' : 'Yeniden aç';
   const kat = V.ayar.kategoriler;
+  if (yeniTalep) $('#mkGovde').innerHTML = `<div class="doldur"><span>E-postadan doldur</span>
+      <button class="btn sm" id="kSecili">${svg('posta')}Outlook'ta seçili posta</button>
+      <button class="btn sm" id="kListe">Listeden seç</button></div>
+    <div class="grid2">
+      <div class="field tam"><label>Talep başlığı</label><input id="kBaslik" value="${esc(k.baslik)}"></div>
+      <div class="field"><label>Kime</label><input id="kSorumlu" data-kisi-sec autocomplete="off" placeholder="Ad yazın, listeden seçin" value="${esc(k.sorumlu || '')}"></div>
+      <div class="field"><label>Termin</label><input type="date" id="kTermin" value="${esc(k.termin)}">${TERMIN_IPUCU ? `<div class="ipucu">${TERMIN_IPUCU}</div>` : ''}</div>
+      <div class="field"><label>Öncelik</label><select id="kOncelik"><option value="normal">Normal</option><option value="yuksek">Yüksek</option></select></div>
+      <div class="field tam"><label>Açıklama</label><textarea id="kOzet" rows="5">${esc(k.ozet)}</textarea></div>
+    </div>
+    ${k.postalar.length ? '<div class="bolum"><div class="bolum-h"><h4>Postalar</h4></div><div id="kPostalar"></div></div>' : ''}`;
   // Not sade: başlık, kimden (postadan geldiyse), not metni, posta. Termin/sorumlu/durum yok.
-  $('#mkGovde').innerHTML = `<div id="kIletPanel"></div>
+  else $('#mkGovde').innerHTML = `<div id="kIletPanel"></div>
     ${K_YENI ? `<div class="doldur"><span>E-postadan doldur</span>
       <button class="btn sm" id="kSecili">${svg('posta')}Outlook'ta seçili posta</button>
       <button class="btn sm" id="kListe">Listeden seç</button></div>` : ''}
     <div class="grid2">
       <div class="field tam"><label>${not ? 'Konu' : 'Başlık'}</label><input id="kBaslik" value="${esc(k.baslik)}"></div>
-      ${talep || (not && k.kimden) ? `<div class="field"><label>Kimden</label><input id="kKimden" value="${esc(k.kimden)}"></div>` : ''}
+      ${not && k.kimden ? `<div class="field"><label>Kimden</label><input id="kKimden" value="${esc(k.kimden)}"></div>` : ''}
       ${not ? `<div class="field"><label>Termin (isteğe bağlı)</label><input type="date" id="kTermin" value="${esc(k.termin)}"></div>
-      <div class="field"><label>Öncelik</label><select id="kOncelik"><option value="normal">Normal</option><option value="yuksek">Yüksek</option></select></div>` : `<div class="field"><label>Sorumlu</label><input id="kSorumlu" data-kisi-sec autocomplete="off" value="${esc(k.sorumlu)}"></div>
+      <div class="field"><label>Öncelik</label><select id="kOncelik"><option value="normal">Normal</option><option value="yuksek">Yüksek</option></select></div>` : `<div class="field"><label>${talep ? 'Kime' : 'Sorumlu'}</label><input id="kSorumlu" data-kisi-sec autocomplete="off" value="${esc(k.sorumlu)}"></div>
       <div class="field"><label>Termin</label><input type="date" id="kTermin" value="${esc(k.termin)}">${TERMIN_IPUCU ? `<div class="ipucu">${TERMIN_IPUCU}</div>` : ''}</div>
       <div class="field"><label>Öncelik</label><select id="kOncelik"><option value="normal">Normal</option><option value="yuksek">Yüksek</option></select></div>
       <div class="field"><label>Durum</label><select id="kDurum">${Object.entries(DURUM).map(([d, a]) => `<option value="${d}">${a}</option>`).join('')}</select></div>
@@ -2978,7 +2995,10 @@ function formOku() {
 }
 function kayitKapat(sor) {
   if (sor) { formOku(); if (JSON.stringify(K) !== K_ORJ && !confirm('Kaydedilmemiş değişiklikler var. Kapatılsın mı?')) return; }
+  // Görülmemiş talep (yeni / cevap / kapatma) pencere KAPATILINCA okundu sayılır: liste ince yazıya döner, bildirim silinir
+  const goruldu = K && K.gorulmedi ? K.id : null;
   $('#mKayit').classList.remove('show'); K = null;
+  if (goruldu) talepGoruldu(goruldu);
 }
 async function kayitKaydet() {
   formOku();
@@ -3034,6 +3054,128 @@ async function kayitKaydet() {
   kaydet(); hepsiniCiz();
   if (yeniPosta.length) postaBekleyenHesapla();
   toast(`${no} kaydedildi.` + (uyari ? ' ' + uyari : ''), !!uyari);
+}
+/* ── TALEP YAZIŞMASI (15.10.2026) ──
+   Assist'ten gönderilen talep iki tarafta da aynı kimlikle (açanın kayıt kimliği; eski taleplerde numara)
+   eşleşir. Alan taraf "Cevap" yazar; açan taraf cevap yazar, talebi KAPATIR ya da SİLER (yalnız açan).
+   Mesajlar: tur cevap | kapat | sil; gönderenin e-postası karşı tarafla eşleşmezse yok sayılır. */
+const benAd = () => V.ayar.adSoyad || KULLANICI_AD || '';
+function talepEslesen(g, t) {
+  const ep = (g.gonderenEposta || '').toLowerCase();
+  return V.kayitlar.find(x => x.tur === 'talep' && (
+    (x.yon === 'giden' && (t.kimlik ? x.id === t.kimlik : x.no === t.kaynakNo) && (x.kimeEposta || '').toLowerCase() === ep) ||
+    (x.yon === 'gelen' && (t.kimlik ? x.kaynakKimlik === t.kimlik : x.kaynakNo === t.kaynakNo) && (x.kimdenEposta || '').toLowerCase() === ep)));
+}
+// Gelen cevap / kapatma / silme. Döner: işlendiyse true
+function talepYanitIsle(g, t) {
+  const k = talepEslesen(g, t), kim = g.gonderen || t.gonderen || 'Karşı taraf', z = g.alinma || simdi();
+  if (!k) return false;
+  k.yazisma = k.yazisma || [];
+  if (k.yazisma.some(y => y.id === g.id)) return false;
+  if (t.tur === 'sil') {   // yalnız açan siler: karşı taraftaki kayıt (yon gelen) kaldırılır
+    if (k.yon !== 'gelen') return false;
+    V.kayitlar.splice(V.kayitlar.indexOf(k), 1);
+    toast(`"${k.baslik}" talebi ${kim} tarafından silindi.`);
+    return true;
+  }
+  if (t.tur === 'kapat') {   // yalnız açan kapatır
+    if (k.yon !== 'gelen') return false;
+    k.durum = 'tamam'; k.kapanis = z;
+    k.yazisma.push({ id: g.id, msgId: (g.posta || {}).msgId || '', t: z, kimden: kim, metin: 'Talebi kapattı.' + (t.metin ? '\n' + t.metin : ''), sistem: true });
+    k.gecmis.push({ t: z, m: `${kim} talebi kapattı` }); k.gorulmedi = 'kapat';
+  } else {
+    k.yazisma.push({ id: g.id, msgId: (g.posta || {}).msgId || '', t: z, kimden: kim, metin: t.metin || '' });
+    k.gorulmedi = 'cevap';
+  }
+  k.guncelleme = z;
+  return true;
+}
+function talepYazismaPencere() {
+  const k = K, giden = k.yon === 'giden', acik = acikMi(k);
+  $('#mkBaslik').innerHTML = `<span class="no">${esc(k.no)}</span>${esc(k.baslik)}`;
+  $('#mkDurum').innerHTML = acik ? durumHtml(k.durum) : '<span class="badge gray">Kapandı</span>';
+  ['#mkSil', '#mkIlet', '#mkNotKapat', '#mkKaydet'].forEach(s => { $(s).style.display = 'none'; });
+  $('#mkVazgec').textContent = 'Kapat';
+  const satir = (a, d) => d ? `<div class="ty-s"><span>${a}</span><b>${d}</b></div>` : '';
+  const yaz = (k.yazisma || []).map(y => `<li class="${y.sistem ? 'sistem' : ''}"><div class="ust"><b>${esc(y.kimden || '')}</b><span>${esc(trTarihSaat(y.t))}</span></div><div class="metin">${esc(y.metin || '')}</div></li>`).join('');
+  $('#mkGovde').innerHTML = `<div class="ty-bilgi">
+      ${satir('Kimden', esc(giden ? (k.kimden || benAd()) : (k.kimden || '')))}${satir('Kime', esc(giden ? (k.kime || k.sorumlu || '') : benAd()))}
+      ${satir('Termin', k.termin ? esc(trTarih(k.termin)) + ' ' + (acik ? kalanHtml(k.termin) : '') : '')}${satir('Öncelik', k.oncelik === 'yuksek' ? 'Yüksek' : '')}
+      ${satir('Gönderildi', esc(trTarihSaat(giden ? (k.iletim || k.olusturma) : k.olusturma)))}</div>
+    ${k.ozet ? `<div class="field"><label>Açıklama</label><div class="ty-metin">${esc(k.ozet)}</div></div>` : ''}
+    ${k.postalar.length ? '<div class="bolum"><div class="bolum-h"><h4>Postalar</h4></div><div id="kPostalar"></div></div>' : ''}
+    <div class="bolum"><div class="bolum-h"><h4>Yazışma</h4></div>
+      <ul class="od-defter ty-defter">${yaz || '<li class="sistem"><div class="metin">Henüz cevap yok.</div></li>'}</ul></div>
+    ${acik ? `<div class="field"><label>Cevap</label><textarea id="tyCevap" rows="3" placeholder="Açıklama yazın"></textarea></div>
+      <div class="ty-dugmeler">${giden ? `<button class="btn hayalet-kirmizi" id="tySil">${svg('cop')}Talebi sil</button><button class="btn" id="tyKapat">Talebi kapat</button>` : ''}<span class="sp"></span>
+        <button class="btn primary" id="tyGonder">${svg('posta')}Cevabı gönder</button></div>`
+      : `<div class="note" style="margin-top:10px">${giden ? 'Talebi kapattınız.' : 'Talep, açan kişi tarafından kapatıldı.'}</div>
+        ${giden ? `<div class="ty-dugmeler"><button class="btn hayalet-kirmizi" id="tySil">${svg('cop')}Talebi sil</button></div>` : ''}`}`;
+  kPostaCiz();
+  K_ORJ = JSON.stringify(K);
+  $('#mKayit').classList.add('show');
+  const d = $('#mkGovde .ty-defter'); if (d) d.scrollTop = d.scrollHeight;
+}
+// Karşı tarafa talep mesajı (cevap/kapat/sil) — konu satırı talebin başlığıyla aynı
+async function talepMesaj(tur, metin) {
+  const k = K, giden = k.yon === 'giden';
+  const kime = giden ? k.kimeEposta : k.kimdenEposta, kimeAd = giden ? (k.kime || '') : (k.kimden || '');
+  if (!kime) throw new Error('Karşı tarafın e-posta adresi bu kayıtta yok.');
+  const no = giden ? k.no : (k.kaynakNo || k.no);
+  const yazi = { cevap: 'Cevap: ' + metin, kapat: 'Talep kapatıldı.' + (metin ? '\n' + metin : ''), sil: 'Talep silindi.' }[tur];
+  await apiJson('/api/talep/gonder', { method: 'POST', body: JSON.stringify({ kime, konu: `Talep: ${no} · ${k.baslik}`,
+    govde: `Merhaba ${kimeAd.split(' ')[0]},\n\nTalep: ${no} · ${k.baslik}\n${yazi}`,
+    talep: { surum: 2, tur, kimlik: giden ? k.id : (k.kaynakKimlik || ''), kaynakNo: no, metin: metin || '', gonderen: benAd() } }) });
+  return kimeAd;
+}
+function talepYazismaKaydet() {
+  K.guncelleme = simdi();
+  const i = V.kayitlar.findIndex(x => x.id === K.id); if (i >= 0) V.kayitlar[i] = K;
+  kaydet(); hepsiniCiz();
+}
+async function talepCevapGonder() {
+  const metin = $('#tyCevap').value.trim();
+  if (!metin) { toast('Cevap yazın.', true); return $('#tyCevap').focus(); }
+  if (!confirm('Cevap gönderilsin mi?')) return;
+  $('#tyGonder').disabled = true;
+  try { const kim = await talepMesaj('cevap', metin); K.yazisma = K.yazisma || []; K.yazisma.push({ id: uid(), t: simdi(), kimden: benAd(), metin }); K.gecmis.push({ t: simdi(), m: `${kim} kişisine cevap gönderildi` }); talepYazismaKaydet(); talepYazismaPencere(); toast('Cevap gönderildi.'); }
+  catch (e) { toast('Gönderilemedi: ' + e.message, true); $('#tyGonder').disabled = false; }
+}
+async function talepKapatGonder() {
+  const metin = $('#tyCevap') ? $('#tyCevap').value.trim() : '';
+  if (!confirm('Talep kapatılsın mı? Karşı tarafta "Kapandı" olarak görünür ve artık cevap yazılamaz.' + (metin ? ' Yazdığınız not da gönderilir.' : ''))) return;
+  try { const kim = await talepMesaj('kapat', metin); K.durum = 'tamam'; K.kapanis = simdi(); K.yazisma = K.yazisma || []; K.yazisma.push({ id: uid(), t: simdi(), kimden: benAd(), metin: 'Talebi kapattı.' + (metin ? '\n' + metin : ''), sistem: true }); K.gecmis.push({ t: simdi(), m: `Talep kapatıldı (${kim} kişisine bildirildi)` }); talepYazismaKaydet(); talepYazismaPencere(); toast('Talep kapatıldı.'); }
+  catch (e) { toast('Gönderilemedi: ' + e.message, true); }
+}
+async function talepSilGonder() {
+  if (!confirm('Talep silinsin mi? Karşı taraftan da kaldırılır; geri alınamaz.')) return;
+  try { const kim = await talepMesaj('sil', ''); const i = V.kayitlar.findIndex(x => x.id === K.id); if (i >= 0) V.kayitlar.splice(i, 1); $('#mKayit').classList.remove('show'); K = null; kaydet(); hepsiniCiz(); toast(`Talep silindi; ${kim} tarafından da kaldırıldı.`); }
+  catch (e) { toast('Gönderilemedi: ' + e.message, true); }
+}
+// Yeni talep "Gönder": Kime (rehberden) zorunlu; onay sorulur; Assist'ten Assist'e iletilir, sonra listeye
+// "Giden" talep olarak kaydedilir. Gönderilemezse kaydedilmez, pencere açık kalır.
+async function talepYeniGonder() {
+  formOku();
+  if (!K.baslik) { toast('Talep başlığını yazın.', true); return $('#kBaslik').focus(); }
+  if (REHBER === null) await rehberYukle();
+  const kisi = K.sorumlu ? ortakKisiBul(K.sorumlu) : null;
+  if (!kisi) { toast(K.sorumlu ? 'Bu kişinin e-posta adresi rehberde yok; Kime alanında listeden seçin.' : 'Kime alanını doldurun.', true); return $('#kSorumlu').focus(); }
+  if (!confirm(`"${K.baslik}" talebi ${kisi.ad} kişisine gönderilsin mi?`)) return;
+  K.no = K.no || numaraVer('talep'); K.durum = 'acik'; K.sorumlu = kisi.ad;
+  const ben = V.ayar.adSoyad || KULLANICI_AD || '', ad = kisi.ad.split(' ')[0];
+  const metin = [`Merhaba ${ad},`, '', 'Aşağıdaki talep sana iletilmiştir.', '', `Talep: ${K.no} · ${K.baslik}`,
+    ben ? `Kimden: ${ben}` : '', K.termin ? `Termin: ${trTarih(K.termin)}` : '', K.ozet ? `Açıklama: ${K.ozet}` : ''].filter((x, i, a) => x !== '' || (i > 0 && a[i - 1] !== '')).join('\n');
+  const veri = { surum: 1, no: K.no, baslik: K.baslik, ozet: K.ozet || '', termin: K.termin || '', oncelik: K.oncelik || 'normal',
+    kimden: ben, not: '', gonderen: ben, aksiyonlar: [], kimlik: K.id };
+  const btn = $('#mkKaydet'); btn.disabled = true;
+  try {
+    await apiJson('/api/talep/gonder', { method: 'POST', body: JSON.stringify({ kime: kisi.eposta, konu: `Talep: ${K.no} · ${K.baslik}`, govde: metin, talep: veri, posta: null }) });   // bağlı Outlook postası eklenmez; talep doğrudan gider (kullanıcı istedi)
+  } catch (e) { btn.disabled = false; return toast('Gönderilemedi: ' + e.message, true); }
+  K.yon = 'giden'; K.kime = kisi.ad; K.kimeEposta = kisi.eposta; K.iletim = simdi();
+  K.gecmis.push({ t: simdi(), m: `${kisi.ad} kişisine gönderildi (Assist)` });
+  btn.disabled = false;
+  await kayitKaydet();
+  toast(`Talep ${kisi.ad} kişisine gönderildi ve listeye kaydedildi.`);
 }
 // İlet: talep yeni ya da kaydedilmemiş değişiklik varsa önce kaydedilir, sonra iletme paneli açılır
 async function talepIletOnce() {
@@ -3091,7 +3233,7 @@ async function talepIlet() {
     kimden: K.kimden || '', not, gonderen: V.ayar.adSoyad || KULLANICI_AD || '',
     aksiyonlar: K.aksiyonlar.filter(a => a.durum !== 'tamam').map(a => ({ metin: a.metin, termin: a.termin || '', onem: a.onem || 'normal' })) };
   try {
-    await apiJson('/api/talep/gonder', { method: 'POST', body: JSON.stringify({ kime: kisi.eposta, konu: `Talep: ${K.no} · ${K.baslik}`, govde: metin, talep: veri, posta: K.postalar[K.postalar.length - 1] || null }) });
+    await apiJson('/api/talep/gonder', { method: 'POST', body: JSON.stringify({ kime: kisi.eposta, konu: `Talep: ${K.no} · ${K.baslik}`, govde: metin, talep: veri, posta: null }) });   // bağlı Outlook postası eklenmez; talep doğrudan gider (kullanıcı istedi)
     const kim = kisi.ad || kisi.eposta;
     if ($('#kIletAta').checked && kisi.ad) { K.sorumlu = kisi.ad; if ($('#kSorumlu')) $('#kSorumlu').value = kisi.ad; }
     K.yon = 'giden'; K.kime = kim; K.kimeEposta = kisi.eposta; K.iletim = simdi();
@@ -3112,19 +3254,25 @@ async function gelenTalepAl() {
     const j = await apiJson('/api/gelen');
     const yeni = (j.gelen || []).filter(g => g && g.id && !V.kayitlar.some(k => k.gelenId === g.id));
     const z = simdi();
+    let yanit = 0;
     for (const g of yeni) {
       const t = g.talep || {};
+      // Aynı taşıyıcı ileti (Internet ileti kimliği) ikinci kez talep/cevap oluşturmaz
+      const mid = g.posta && g.posta.msgId;
+      if (mid && V.kayitlar.some(k => (k.postalar || []).some(p => p.msgId === mid) || (k.yazisma || []).some(y => y.msgId === mid))) continue;
+      if (t.tur === 'cevap' || t.tur === 'kapat' || t.tur === 'sil') { if (talepYanitIsle(g, t)) yanit++; continue; }
       V.kayitlar.push({ id: uid(), tur: 'talep', yon: 'gelen', gelenId: g.id, no: numaraVer('talep'), kaynakNo: t.no || '',
         baslik: t.baslik || '(başlıksız talep)', ozet: [t.ozet, t.not ? 'Not: ' + t.not : ''].filter(Boolean).join('\n\n'),
-        kimden: g.gonderen || t.gonderen || '', kimdenEposta: g.gonderenEposta || '', sorumlu: '',
+        kimden: g.gonderen || t.gonderen || '', kimdenEposta: g.gonderenEposta || '', sorumlu: '', kaynakKimlik: t.kimlik || '',
         termin: t.termin || '', oncelik: t.oncelik === 'yuksek' ? 'yuksek' : 'normal', kategori: '', durum: 'acik',
         postalar: g.posta && g.posta.id ? [Object.assign({ msg: '' }, g.posta)] : [],
         aksiyonlar: (t.aksiyonlar || []).map(a => ({ id: uid(), no: numaraVer('aksiyon'), metin: a.metin || '', sorumlu: '',
           termin: a.termin || '', onem: a.onem === 'yuksek' ? 'yuksek' : 'normal', tahminiSaat: '', durum: 'acik', olusturma: z })),
         gecmis: [{ t: z, m: `${g.gonderen || 'Bir kişi'} tarafından Assist ile gönderildi${t.no ? ' (onun kaydı ' + t.no + ')' : ''}` }],
-        olusturma: z, guncelleme: z, kapanis: '' });
+        olusturma: z, guncelleme: z, kapanis: '', gorulmedi: true });   // açılınca silinir (kenar menü sayısı + zil)
     }
-    if (yeni.length) { await kaydet(); hepsiniCiz(); toast(yeni.length === 1 ? `Yeni talep geldi: ${yeni[0].talep?.baslik || ''}` : `${yeni.length} yeni talep geldi.`); }
+    const talepSay = yeni.filter(g => !['cevap', 'kapat', 'sil'].includes((g.talep || {}).tur)).length;
+    if (yeni.length) { await kaydet(); hepsiniCiz(); if (talepSay) toast(talepSay === 1 ? 'Yeni talep geldi.' : talepSay + ' yeni talep geldi.'); if (yanit) toast('Taleplerinizde yeni hareket var.'); }
     if ((j.gelen || []).length) await apiJson('/api/gelen/al', { method: 'POST', body: JSON.stringify({ ids: j.gelen.map(g => g.id) }) });
   } catch (e) { /* sunucu meşgul / eski sürüm: sonraki turda tekrar */ }
   GELEN_ALINIYOR = false;
@@ -3539,8 +3687,20 @@ function konuTemizle(s) { s = String(s || ''); const m = trK(s).match(/^\s*((re|
    ile aynı sayfada yeni bölüm eklenir. Not: altta not kutusu açılır.
    Kaydet: aksiyonlar postaya bağlı olarak Aksiyonlar listesine, not Notlar
    listesine düşer. Konu ve kimden postadan gelir. */
-let P = null, P_TB = null;   // açık posta + termin önerisi
+let P = null, P_TB = null, P_OZET = null;   // açık posta + termin önerisi + listedeki satırı
+// Posta penceresi kapanınca (Kapat, X, Esc, Kaydet, Yok say) posta okunmamışsa Outlook'ta okundu yapılır:
+// listede ince yazıya döner, okunmamış sayıları ve tepsi bildirimi güncellenir.
+function postaKapat() {
+  const oz = P_OZET; $('#mPosta').classList.remove('show'); P = null; P_OZET = null;
+  if (!oz || !oz.okunmadi) return;
+  apiJson('/api/posta/okundu-tek', { method: 'POST', body: JSON.stringify({ id: oz.id, store: oz.store, msgId: oz.msgId || '' }) }).then(() => {
+    [...(POSTALAR || []), ...(ANA_POSTA || [])].forEach(x => { if (x.id === oz.id) x.okunmadi = false; });
+    oz.okunmadi = false;
+    if (aktif === 'posta') postaListeCiz(); bayrakliCiz(); sayacYukle();
+  }).catch(() => {});
+}
 async function postaAktar(ozet, ac) {   // ozet: Gelen Posta ya da ana ekran bayraklı listesindeki satır
+  P_OZET = ozet;
   $('#mpGovde').innerHTML = '<div class="yukleniyor">Posta okunuyor…</div>';
   $('#mPosta').classList.add('show');
   try {
@@ -3655,7 +3815,7 @@ async function postaAktarKaydet() {
   }
   V.yoksay = V.yoksay.filter(x => x !== P.id);
   btn.disabled = false;
-  $('#mPosta').classList.remove('show'); P = null;
+  postaKapat();
   await kaydet();
   postaBekleyenHesapla(); hepsiniCiz();
   toast(`${nolar.join(', ')} kaydedildi.` + (uyari ? ' ' + uyari : ''), !!uyari);
@@ -4384,6 +4544,11 @@ function bildirimHesapla() {
     if (o && simdiD - o < 864e5) B.unshift({ seviye: 'uyari', baslik: h.baslik, metin: ` · ${p2(o.getHours())}:${p2(o.getMinutes())}`, hat: h.id,
       anahtar: `H|${h.id}|${yerelTarih(o)}T${p2(o.getHours())}:${p2(o.getMinutes())}` });
   });
+  // Ortak işler: karşıdan gelen okunmamış giriş olan konular (konu açılınca okundu sayılır)
+  (ORTAK || []).forEach(k => { const n = ortakOkunmamis(k); if (n) B.unshift({ seviye: 'uyari', baslik: 'Ortak işte yeni giriş: ' + k.baslik, metin: n === 1 ? '1 yeni giriş' : n + ' yeni giriş',
+    ortak: k.id, anahtar: 'ortak|' + k.id + '|' + ortakSonT(k) }); });
+  V.kayitlar.filter(k => k.gorulmedi).forEach(k => B.unshift({ seviye: 'uyari', baslik: (k.gorulmedi === 'cevap' ? 'Talebe cevap: ' : k.gorulmedi === 'kapat' ? 'Talep kapatıldı: ' : 'Yeni talep: ') + k.baslik, metin: [k.kimden, k.no].filter(Boolean).join(' · '),
+    k: k.id, anahtar: 'gelen|' + k.id + '|' + (k.guncelleme || '') }));
   if (POSTA_BEKLEYEN) B.unshift({ seviye: 'bilgi', baslik: `${POSTA_BEKLEYEN} posta kayda eklenmedi`, metin: postaKaynakSecenek().find(x => x[0] === A.posta.kaynak)[1],
     hedef: 'posta', anahtar: `posta|${POSTA_BEKLEYEN}|${bugun()}`, masaustu: true });
   return B;
@@ -4682,7 +4847,7 @@ document.addEventListener('click', e => {
   if (c('#kisiYenile')) return rehberYukle(true);
   if (c('#kisiBalon')) return kisiPanel();
   if (c('#kisiKapat')) return kisiPanel(false);
-  if ((x = c('.bld-oge'))) { const b = ZIL[+x.dataset.b]; zilOkundu(b); zilAcKapa(false); if (b.k) kaydiAc(b.k, b.a); else if (b.hat) { git('hat'); hatAc(b.hat); } else if (b.hedef) git(b.hedef); return; }
+  if ((x = c('.bld-oge'))) { const b = ZIL[+x.dataset.b]; zilOkundu(b); zilAcKapa(false); if (b.k) kaydiAc(b.k, b.a); else if (b.hat) { git('hat'); hatAc(b.hat); } else if (b.ortak) { git('ortak'); ortakAc(b.ortak); } else if (b.hedef) git(b.hedef); return; }
   if (!c('.tb-bld') && $('#zilMenu').classList.contains('acik')) zilAcKapa(false);
   if ((x = c('[data-yeni]'))) return kayitYeni(x.dataset.yeni);
   if ((x = c('.kpi[data-f]'))) { ANA_GUN = ''; ANA_TALEP_YON = 'gelen'; return anaListePencere(x.dataset.f); }   // seçiciler başa döner
@@ -4701,7 +4866,10 @@ document.addEventListener('click', e => {
   if (c('#kSecili')) return seciliDoldur();
   if (c('#kListe')) { SEC_HEDEF = 'kayit'; return secAc(); }
   if (c('#mKayit [data-kapat]') || t.id === 'mKayit') return kayitKapat(true);
-  if (c('#mkKaydet')) return kayitKaydet();
+  if (c('#mkKaydet')) return K && K_YENI && K.tur === 'talep' ? talepYeniGonder() : kayitKaydet();
+  if (c('#tyGonder')) return talepCevapGonder();
+  if (c('#tyKapat')) return talepKapatGonder();
+  if (c('#tySil')) return talepSilGonder();
   if (c('#mkSil')) return kayitSil();
   if (c('#mkIlet')) return talepIletOnce();
   if (c('#mkNotKapat')) { formOku(); K.durum = acikMi(K) ? 'tamam' : 'acik'; return kayitKaydet(); }   // geçmişe kayitKaydet yazar
@@ -4761,7 +4929,7 @@ document.addEventListener('click', e => {
   if (c('#pmNot')) return pmNotAc();
   if ((x = c('[data-pm-sil]'))) { x.closest('.pm-blok').remove(); if (!$$('#pmAksBloklar .pm-blok').length) $('#pmAksEkle').style.display = 'none'; return; }
   if (c('[data-pm-not-sil]')) { $('#pmNotBlok').innerHTML = ''; return; }
-  if ((x = c('.pm-onceki'))) { $('#mPosta').classList.remove('show'); P = null; return kaydiAc(x.dataset.k, x.dataset.a); }
+  if ((x = c('.pm-onceki'))) { postaKapat(); return kaydiAc(x.dataset.k, x.dataset.a); }
   // Aksiyon penceresi
   if (c('#mAks [data-kapat]') || t.id === 'mAks') return aksiyonPencereKapat();
   if (c('#aksYeni') || c('[data-yeni-aks]')) return aksiyonYeni();
@@ -4771,12 +4939,12 @@ document.addEventListener('click', e => {
   if (c('#maPosta')) { const k = AK.k; return postaAc(k.postalar[k.postalar.length - 1]); }
   if ((x = c('[data-not-sil]'))) { e.stopPropagation(); return notSil(x.dataset.notSil); }
   if ((x = c('[data-not-kapat]'))) { e.stopPropagation(); return notKapatAc(x.dataset.notKapat); }
-  if (c('#mPosta [data-kapat]') || t.id === 'mPosta') { $('#mPosta').classList.remove('show'); P = null; return; }
+  if (c('#mPosta [data-kapat]') || t.id === 'mPosta') { postaKapat(); return; }
   if (c('#mpKaydet')) return postaAktarKaydet();
   if (c('#mpOutlook')) return postaAc(P);
   if (c('#mpYoksay')) {
     if (P) { V.yoksay.push(P.id); kaydet(); }
-    $('#mPosta').classList.remove('show'); P = null; postaBekleyenHesapla(); return postaListeCiz();
+    postaKapat(); postaBekleyenHesapla(); return postaListeCiz();
   }
   // Ayarlar
   if ((x = c('#ayarNav button'))) { ayarBolum = x.dataset.b; return ayarCiz(); }
@@ -4846,7 +5014,8 @@ document.addEventListener('keydown', e => {
     if ($('#mHat').classList.contains('show')) return hatKapat(true);
     if ($('#mListe').classList.contains('show') && !$('#mKayit').classList.contains('show') && !$('#mAks').classList.contains('show')) return $('#mListe').classList.remove('show');
     if ($('#mAks').classList.contains('show')) return aksiyonPencereKapat();
-    if ($('#mPosta').classList.contains('show')) { $('#mPosta').classList.remove('show'); P = null; return; }
+    if ($('#mPosta').classList.contains('show')) { postaKapat(); return; }
+    if ($('#mOrtakDetay').classList.contains('show')) return ortakKapat();
     if ($('#mKayit').classList.contains('show')) return kayitKapat(true);
   }
   if (e.key === 'Enter' && e.target.id === 'yaMetin') { e.preventDefault(); aksiyonEkle(); }
@@ -4910,7 +5079,7 @@ window.addEventListener('focus', async () => {
    Kurallar: katılımcı ekleme ve kapatma yalnız konuyu açan; ek yok; yeni katılan katıldığı
    andan sonrasını görür, açan "Geçmişi paylaş" ile önceki girişleri gönderebilir.
    ═══════════════════════════════════════════════════════════════ */
-let ORTAK = null, ORTAK_BEN = null, ORTAK_SECILI = '', ORTAK_REV = -1, ORTAK_BEKLEYEN = 0, OK_KISILER = [], ORTAK_KURAL = '';
+let ORTAK = null, ORTAK_BEN = null, ORTAK_SECILI = '', ORTAK_REV = -1, ORTAK_BEKLEYEN = 0, OK_KISILER = [], ORTAK_KURAL = '', ORTAK_PARMAK = '', ORTAK_DEGISEN = [], ORTAK_ANAHTAR_BEK = 0;
 const ortakBenMi = e => (e || '').toLowerCase() === (ORTAK_BEN && ORTAK_BEN.eposta || '');
 const ortakAcanMi = k => ortakBenMi(k.acan && k.acan.eposta);
 const ortakSonT = k => { const g = k.girisler || []; return g.length ? g[g.length - 1].t : (k.olusturma || ''); };
@@ -4921,10 +5090,11 @@ function ortakZaman(t) {
   return (yerelTarih(d) === bg ? 'Bugün' : trTarih(yerelTarih(d))) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 async function ortakYukle() {
-  try { const j = await apiJson('/api/ortak'); ORTAK = j.konular || []; ORTAK_BEN = j.ben || null; ORTAK_BEKLEYEN = j.bekleyen || 0; ORTAK_KURAL = j.kural || ''; }
+  try { const j = await apiJson('/api/ortak'); ORTAK = j.konular || []; ORTAK_BEN = j.ben || null; ORTAK_BEKLEYEN = j.bekleyen || 0; ORTAK_KURAL = j.kural || ''; ORTAK_PARMAK = j.parmak || ''; ORTAK_DEGISEN = j.degisen || []; ORTAK_ANAHTAR_BEK = j.anahtarBekleyen || 0; }
   catch (e) { if (ORTAK === null) ORTAK = []; }
-  ortakSayac();
-  if (aktif === 'ortak' && !$('#v-ortak textarea:focus') && !$('#v-ortak input:focus')) ortakCiz();
+  ortakSayac(); bildirimKontrol();
+  if (aktif === 'ortak') ortakCiz();
+  if (ortakPencereAcik() && !$('#mOrtakDetay textarea:focus') && !$('#mOrtakDetay input:focus')) ortakPencereCiz();
 }
 function ortakSayac() {
   const n = (ORTAK || []).reduce((s, k) => s + ortakOkunmamis(k), 0), e = $('#snOrtakSay');
@@ -4934,25 +5104,46 @@ function ortakCiz() {
   const v = $('#v-ortak'); if (!v) return;
   if (ORTAK === null) { v.innerHTML = '<div class="vhead"><h1>Ortak İşler</h1></div><div class="yukleniyor">Yükleniyor…</div>'; ortakYukle(); return; }
   const L = [...ORTAK].sort((a, b) => ((a.durum === 'acik' ? 0 : 1) - (b.durum === 'acik' ? 0 : 1)) || ortakSonT(b).localeCompare(ortakSonT(a)));
-  if (!L.find(k => k.id === ORTAK_SECILI)) ORTAK_SECILI = L.length ? L[0].id : '';
-  const k = L.find(x => x.id === ORTAK_SECILI);
-  const liste = L.length ? L.map(x => { const n = ortakOkunmamis(x);
-    return `<button class="ortak-oge${x.id === ORTAK_SECILI ? ' sec' : ''}${x.durum !== 'acik' ? ' kapali' : ''}" data-ortak="${esc(x.id)}">
-      <div class="oo-ust"><b>${esc(x.baslik)}</b>${n ? `<span class="oo-say">${n}</span>` : ''}</div>
-      <div class="oo-alt">${(x.katilimcilar || []).length} kişi${x.durum !== 'acik' ? ' · Kapalı' : ''} · ${esc(ortakZaman(ortakSonT(x)))}</div></button>`; }).join('')
-    : '<div class="od-not">Henüz ortak iş yok. "Yeni Ortak İş" ile başlayın.</div>';
-  v.innerHTML = `<div class="vhead"><h1>Ortak İşler</h1><span class="sp"></span>${ORTAK_BEKLEYEN ? `<span class="badge amber" data-ipucu="Outlook'a ulaşılınca kendiliğinden gönderilir">${ORTAK_BEKLEYEN} gönderim bekliyor</span>` : ''}
+  // Talepler listesi gibi: satıra tıklayınca yazışma açılır pencerede; görülmemiş giriş olan konu koyu
+  const liste = L.length ? `<table class="tbl"><thead><tr><th>Tarih</th><th>Başlık</th><th>Açan</th><th>Katılımcılar</th><th>Termin</th><th>Son hareket</th><th>Durum</th></tr></thead><tbody>${L.map(x => {
+      const n = ortakOkunmamis(x), acanE = ((x.acan && x.acan.eposta) || '').toLowerCase();
+      const kisi = (x.katilimcilar || []).filter(p => (p.eposta || '').toLowerCase() !== acanE).map(p => p.ad || p.eposta).join(', ');
+      return `<tr class="clickable${n ? ' yeni' : ''}" data-ortak="${esc(x.id)}"><td class="tarih">${esc(trTarihSaat(x.olusturma))}</td><td>${esc(x.baslik)}${n ? ` <span class="oo-say">${n}</span>` : ''}</td>` +
+        `<td>${esc((x.acan && x.acan.ad) || '')}</td><td>${esc(kisi)}</td><td class="tarih">${x.termin ? esc(trTarih(x.termin)) : ''}</td><td class="tarih">${esc(ortakZaman(ortakSonT(x)))}</td>` +
+        `<td class="dar">${x.durum === 'acik' ? '<span class="badge green">Açık</span>' : '<span class="badge gray">Kapandı</span>'}</td></tr>`; }).join('')}</tbody></table>`
+    : '<div class="bos">Henüz ortak iş yok. "Yeni Ortak İş" ile başlayın.</div>';
+  v.innerHTML = `<div class="vhead"><h1>Ortak İşler</h1><span class="sp"></span>${ORTAK_BEKLEYEN ? `<span class="badge amber" data-ipucu="Outlook'a ulaşılınca kendiliğinden gönderilir">${ORTAK_BEKLEYEN} gönderim bekliyor</span>` : ''}${ORTAK_ANAHTAR_BEK ? `<span class="badge amber" data-ipucu="Bu kişilerin Assist'i açılınca anahtar kendiliğinden alınır ve bekleyen girişler şifrelenip gönderilir">${ORTAK_ANAHTAR_BEK} kişinin anahtarı bekleniyor</span>` : ''}
     <button class="btn primary" id="okYeni"><svg class="i"><use href="#ic-arti"/></svg>Yeni Ortak İş</button></div>
-    ${ORTAK_KURAL === 'hata' ? `<div class="note warn" style="margin:0 0 12px">Outlook kuralı otomatik eklenemedi (Outlook'unuzda web'den oluşturulmuş kurallar var). Kural yokken ortak iş iletileri birkaç saniye Gelen Kutusu'nda görünür. Bir kez elle ekleyin:
-      <b>Dosya › Kuralları ve Uyarıları Yönet › Yeni Kural</b> › Aldığım iletilere kural uygula › <b>konusunda belirli sözcükler geçen</b>: <code>[Assist] Ortak iş:</code> › <b>belirtilen klasöre taşı</b>: Gelen Kutusu › Assist ve <b>başka kural işlemeyi durdur</b> › ad: <code>Assist ortak işler</code>.
+    ${ORTAK_KURAL === 'eksik' ? `<div class="note warn" style="margin:0 0 12px">Outlook kuralınıza talep iletileri için bir sözcük eklenmeli (otomatik eklenemedi). <b>Dosya › Kuralları ve Uyarıları Yönet</b> › <b>Assist ortak işler</b> › Kuralı Değiştir › "konusunda belirli sözcükler geçen" › sözcüklere <code>[Assist] Talep:</code> ekleyin. Eklemezseniz gelen talep iletileri birkaç saniye Gelen Kutusu'nda görünür.
       <button class="btn sm" id="okKuralBak" style="margin-left:8px">Kontrol et</button></div>` : ''}
-    <div class="ortak-duzen"><div class="card ortak-liste">${liste}</div><div class="card ortak-detay">${k ? ortakDetayHtml(k) : '<div class="od-not">Soldan bir konu seçin.</div>'}</div></div>`;
-  if (k && ortakOkunmamis(k)) {   // görülen konu okundu sayılır (sarı vurgu bu çizimde kalır)
-    const son = ortakSonT(k);
-    apiJson('/api/ortak/okundu', { method: 'POST', body: JSON.stringify({ id: k.id }) }).catch(() => {});
-    setTimeout(() => { k.okunan = son; ortakSayac(); }, 0);
-  }
-  const d = $('#v-ortak .od-defter'); if (d) d.scrollTop = d.scrollHeight;
+    ${ORTAK_KURAL === 'hata' ? `<div class="note warn" style="margin:0 0 12px">Outlook kuralı otomatik eklenemedi (Outlook'unuzda web'den oluşturulmuş kurallar var). Kural yokken ortak iş iletileri birkaç saniye Gelen Kutusu'nda görünür. Bir kez elle ekleyin:
+      <b>Dosya › Kuralları ve Uyarıları Yönet › Yeni Kural</b> › Aldığım iletilere kural uygula › <b>konusunda belirli sözcükler geçen</b>: <code>[Assist] Ortak iş:</code> ve <code>[Assist] Talep:</code> › <b>belirtilen klasöre taşı</b>: Gelen Kutusu › Assist ve <b>başka kural işlemeyi durdur</b> › ad: <code>Assist ortak işler</code>.
+      <button class="btn sm" id="okKuralBak" style="margin-left:8px">Kontrol et</button></div>` : ''}
+    ${ORTAK_DEGISEN.map(d => `<div class="note warn" style="margin:0 0 12px"><b>${esc(d.eposta)}</b> kişisinin Assist şifreleme anahtarı değişti (eski <code>${esc(d.eski || '—')}</code> → yeni <code>${esc(d.parmak)}</code>). Yeni bir bilgisayara geçtiyse kabul edin; emin değilseniz önce kişiye sorun ve kendi Ortak İşler sayfasında yazan parmak izini karşılaştırın. Kabul edene kadar bu kişiden gelen girişler bekletilir.
+      <button class="btn sm" data-ortak-kabul="${esc(d.eposta)}" style="margin-left:8px">Kabul et</button></div>`).join('')}
+    <div class="card">${liste}</div>${ORTAK_PARMAK ? `<div class="od-not" data-ipucu="Uçtan uca şifreleme: içerik yalnız katılımcıların Assist'inde açılır. Başka bir katılımcı anahtar değişikliği uyarısı alırsa bu kodu karşılaştırın.">Şifreleme anahtarınız: <code>${esc(ORTAK_PARMAK)}</code></div>` : ''}`;
+}
+const ortakPencereAcik = () => $('#mOrtakDetay').classList.contains('show');
+function ortakAc(id) { ORTAK_SECILI = id; ortakPencereCiz(); }
+function ortakPencereCiz() {
+  const k = (ORTAK || []).find(x => x.id === ORTAK_SECILI);
+  if (!k) { $('#mOrtakDetay').classList.remove('show'); return; }
+  const acan = ortakAcanMi(k), acik = k.durum === 'acik', b = $('#odDurumBtn');
+  $('#odBaslik').textContent = k.baslik;
+  $('#odDurum').innerHTML = acik ? '<span class="badge green">Açık</span>' : '<span class="badge gray">Kapandı</span>';
+  b.style.display = acan ? '' : 'none'; b.dataset.ortakDurum = acik ? 'kapat' : 'ac'; b.textContent = acik ? 'Konuyu kapat' : 'Yeniden aç';
+  $('#odGovde').innerHTML = ortakDetayHtml(k);
+  $('#mOrtakDetay').classList.add('show');
+  const d = $('#odGovde .od-defter'); if (d) d.scrollTop = d.scrollHeight;
+}
+// Pencere kapanınca konu okundu: listede incelir, sayaç ve zil düşer
+function ortakKapat() {
+  $('#mOrtakDetay').classList.remove('show');
+  const k = (ORTAK || []).find(x => x.id === ORTAK_SECILI); ORTAK_SECILI = '';
+  if (!k || !ortakOkunmamis(k)) return;
+  k.okunan = ortakSonT(k);
+  apiJson('/api/ortak/okundu', { method: 'POST', body: JSON.stringify({ id: k.id }) }).catch(() => {});
+  ortakSayac(); bildirimKontrol(); if (aktif === 'ortak') ortakCiz();
 }
 function ortakDetayHtml(k) {
   const acan = ortakAcanMi(k), acik = k.durum === 'acik';
@@ -4962,13 +5153,14 @@ function ortakDetayHtml(k) {
   }).join('');
   const defter = (k.girisler || []).map(g => `<li class="${g.tur !== 'not' ? 'sistem' : ''}${g.t > (k.okunan || '') && !ortakBenMi(g.yazar && g.yazar.eposta) ? ' yeni' : ''}">
       <div class="ust"><b>${esc(g.yazar && g.yazar.ad || '')}</b>${g.aktaran ? '<small class="aktarildi" title="Bu girişi konuyu açan kişi aktardı; yazarı doğrulanamaz.">aktarılan</small>' : ''}<span>${esc(ortakZaman(g.t))}</span></div><div class="metin">${esc(g.metin || '')}</div></li>`).join('');
-  return `<div class="od-bas"><div class="od-bas-ust"><h2>${esc(k.baslik)}</h2>
-      ${acan ? `<button class="btn sm" data-ortak-durum="${acik ? 'kapat' : 'ac'}">${acik ? 'Konuyu kapat' : 'Yeniden aç'}</button>` : ''}</div>
-    <div class="od-bilgi"><span>Açan: <b>${esc(k.acan.ad || '')}</b></span><span>Açılış: ${esc(ortakZaman(k.olusturma))}</span>${k.termin ? `<span>Termin: <b>${esc(trTarih(k.termin))}</b> ${kalanHtml(k.termin)}</span>` : ''}<span>Durum: <b>${acik ? 'Açık' : 'Kapalı'}</b></span></div>
-    <div class="od-kisiler">${kisiler}${acan && acik ? `<span class="od-ekle"><input id="okEkleGir" data-kisi-sec autocomplete="off" placeholder="+ Katılımcı ekle"></span>` : ''}</div></div>
-    <ul class="od-defter">${defter || '<li class="sistem"><div class="metin">Henüz giriş yok.</div></li>'}</ul>
-    ${acik ? `<div class="od-yaz"><textarea id="okGiris" placeholder="Ne yapıldı? (Ctrl+Enter ile gönder)"></textarea><button class="btn primary" id="okGonder">Gönder</button></div>`
-      : '<div class="od-not">Konu kapalı; yeni giriş eklenemez.</div>'}`;
+  const satir = (a, d) => d ? `<div class="ty-s"><span>${a}</span><b>${d}</b></div>` : '';
+  return `<div class="ty-bilgi">${satir('Açan', esc(k.acan.ad || ''))}${satir('Açılış', esc(ortakZaman(k.olusturma)))}${satir('Termin', k.termin ? esc(trTarih(k.termin)) + ' ' + (acik ? kalanHtml(k.termin) : '') : '')}</div>
+    <div class="od-kisiler" style="margin:0 0 12px">${kisiler}${acan && acik ? `<span class="od-ekle"><input id="okEkleGir" data-kisi-sec autocomplete="off" placeholder="+ Katılımcı ekle"></span>` : ''}</div>
+    <div class="bolum"><div class="bolum-h"><h4>Yazışma</h4></div>
+      <ul class="od-defter ty-defter od-pencere">${defter || '<li class="sistem"><div class="metin">Henüz giriş yok.</div></li>'}</ul></div>
+    ${acik ? `<div class="field"><label>Giriş</label><textarea id="okGiris" rows="3" placeholder="Ne yapıldı? (Ctrl+Enter ile gönder)"></textarea></div>
+      <div class="ty-dugmeler"><span class="sp"></span><button class="btn primary" id="okGonder">${svg('posta')}Gönder</button></div>`
+      : `<div class="note" style="margin-top:10px">${acan ? 'Konuyu kapattınız; yeni giriş eklenemez.' : 'Konu, açan kişi tarafından kapatıldı.'}</div>`}`;
 }
 // Rehberden e-posta: kişi seçicisi yalnız adı yazar
 function ortakKisiBul(ad) {
@@ -4995,8 +5187,8 @@ async function ortakYeniKaydet() {
   s.className = 'ayar-sonuc'; s.textContent = 'Gönderiliyor…'; $('#moKaydet').disabled = true;
   try {
     const j = await apiJson('/api/ortak/yeni', { method: 'POST', body: JSON.stringify({ baslik, termin: $('#moTermin').value, aciklama: $('#moAciklama').value, katilimcilar: OK_KISILER }) });
-    $('#mOrtak').classList.remove('show'); ORTAK_SECILI = j.id;
-    toast(j.gonderildi ? 'Ortak iş oluşturuldu ve katılımcılara gönderildi.' : 'Ortak iş oluşturuldu; Outlook\'a ulaşılınca gönderilecek.');
+    $('#mOrtak').classList.remove('show');
+    toast(j.gonderildi ? 'Ortak iş oluşturuldu ve katılımcılara şifreli gönderildi.' : j.anahtar ? 'Ortak iş oluşturuldu; ' + j.anahtar + ' katılımcının şifreleme anahtarı bekleniyor, Assist\'leri açılınca kendiliğinden gönderilecek.' : 'Ortak iş oluşturuldu; Outlook\'a ulaşılınca gönderilecek.');
     await ortakYukle(); git('ortak');
   } catch (e) { s.className = 'ayar-sonuc hata'; s.textContent = e.message; }
   $('#moKaydet').disabled = false;
@@ -5004,22 +5196,24 @@ async function ortakYeniKaydet() {
 async function ortakGirisGonder() {
   const g = $('#okGiris'), metin = g.value.trim(); if (!metin) return;
   $('#okGonder').disabled = true;
-  try { const j = await apiJson('/api/ortak/giris', { method: 'POST', body: JSON.stringify({ id: ORTAK_SECILI, metin }) }); g.value = ''; if (!j.gonderildi) toast('Giriş kaydedildi; Outlook\'a ulaşılınca gönderilecek.'); await ortakYukle(); ortakCiz(); }
+  try { const j = await apiJson('/api/ortak/giris', { method: 'POST', body: JSON.stringify({ id: ORTAK_SECILI, metin }) }); g.value = ''; if (!j.gonderildi) toast(j.anahtar ? 'Giriş kaydedildi; ' + j.anahtar + ' katılımcının anahtarı gelince gönderilecek.' : 'Giriş kaydedildi; Outlook\'a ulaşılınca gönderilecek.'); await ortakYukle(); ortakCiz(); ortakPencereCiz(); }
   catch (e) { toast(e.message, true); $('#okGonder').disabled = false; }
 }
 async function ortakYonet(govde, soru) {
   if (soru && !confirm(soru)) return;
-  try { const j = await apiJson('/api/ortak/yonet', { method: 'POST', body: JSON.stringify(Object.assign({ id: ORTAK_SECILI }, govde)) }); if (!j.gonderildi) toast('Kaydedildi; Outlook\'a ulaşılınca gönderilecek.'); await ortakYukle(); ortakCiz(); }
+  try { const j = await apiJson('/api/ortak/yonet', { method: 'POST', body: JSON.stringify(Object.assign({ id: ORTAK_SECILI }, govde)) }); if (!j.gonderildi) toast(j.anahtar ? 'Kaydedildi; ' + j.anahtar + ' katılımcının anahtarı gelince gönderilecek.' : 'Kaydedildi; Outlook\'a ulaşılınca gönderilecek.'); await ortakYukle(); ortakCiz(); if (ortakPencereAcik()) ortakPencereCiz(); }
   catch (e) { toast(e.message, true); }
 }
 document.addEventListener('click', e => {
   const c = s => e.target.closest(s); let x;
   if (c('#okYeni')) return ortakYeniAc();
+  if ((x = c('[data-ortak-kabul]'))) { if (!confirm(x.dataset.ortakKabul + ' kişisinin yeni anahtarı kabul edilsin mi? Bekletilen girişleri işlenecek.')) return; return apiJson('/api/ortak/anahtar-kabul', { method: 'POST', body: JSON.stringify({ eposta: x.dataset.ortakKabul }) }).then(j => { toast('Anahtar kabul edildi' + (j.eklenen ? '; ' + j.eklenen + ' giriş eklendi.' : '.')); ortakYukle(); }).catch(er => toast(er.message, true)); }
   if (c('#okKuralBak')) return apiJson('/api/ortak/kural', { method: 'POST', body: '{}' }).then(j => { ORTAK_KURAL = j.kural || ''; toast(ORTAK_KURAL === 'var' || ORTAK_KURAL === 'kuruldu' ? 'Outlook kuralı bulundu.' : 'Kural hâlâ bulunamadı; adı tam olarak \"Assist ortak işler\" olmalı.', !(ORTAK_KURAL === 'var' || ORTAK_KURAL === 'kuruldu')); ortakCiz(); }).catch(er => toast(er.message, true));
   if (c('#moKaydet')) return ortakYeniKaydet();
   if (c('#mOrtak [data-kapat]') || e.target.id === 'mOrtak') return $('#mOrtak').classList.remove('show');
   if ((x = c('[data-mo-sil]'))) { OK_KISILER.splice(+x.dataset.moSil, 1); return ortakYeniKisiCiz(); }
-  if ((x = c('[data-ortak]'))) { ORTAK_SECILI = x.dataset.ortak; return ortakCiz(); }
+  if (c('#mOrtakDetay [data-kapat]') || e.target.id === 'mOrtakDetay') return ortakKapat();
+  if ((x = c('[data-ortak]'))) return ortakAc(x.dataset.ortak);
   if (c('#okGonder')) return ortakGirisGonder();
   if ((x = c('[data-ortak-durum]'))) return ortakYonet({ islem: x.dataset.ortakDurum }, x.dataset.ortakDurum === 'kapat' ? 'Konu kapatılsın mı? Katılımcılar artık giriş ekleyemez.' : 'Konu yeniden açılsın mı?');
   if ((x = c('[data-ortak-gecmis]'))) { const p = (ORTAK.find(k => k.id === ORTAK_SECILI).katilimcilar || []).find(k => (k.eposta || '') === x.dataset.ortakGecmis); return ortakYonet({ islem: 'gecmis', eposta: x.dataset.ortakGecmis }, `${p ? p.ad : x.dataset.ortakGecmis} kişisine bu konunun önceki bütün girişleri gönderilsin mi?`); }
@@ -5063,14 +5257,17 @@ function acilisBitir() {
   const u = new URL(location.href); u.searchParams.delete('ilk'); history.replaceState(history.state, '', u);
   const yazi = document.createElement('div'); yazi.className = 'acilis-durum'; a.appendChild(yazi);
   const ad = { outlook: 'Outlook', micollab: 'MiCollab' }, en = DIL === 'en';
+  // pencere açılışta en üstte tutuldu (arkada açılan Outlook görünmesin); ekran kapanınca normale döner
+  const ustKaldir = () => apiJson('/api/pencere/ust-kaldir', { method: 'POST', body: '{}' }).catch(() => {});
+  setTimeout(ustKaldir, 32000);
   const bak = async () => {
     try {
       const j = await apiJson('/api/acilis/durum');
       const bekleyen = Object.entries(j.uygulamalar).filter(([, v]) => !v.hazir).map(([k]) => ad[k] || k);
-      if (!bekleyen.length) return kapat();
+      if (!bekleyen.length) { ustKaldir(); return kapat(); }
       yazi.textContent = en ? `Waiting for ${bekleyen.join(' and ')}…` : `${bekleyen.join(' ve ')} açılıyor…`;
     } catch { }
-    if (performance.now() - ACILIS_T0 > 30000) return kapat();
+    if (performance.now() - ACILIS_T0 > 30000) { ustKaldir(); return kapat(); }
     setTimeout(bak, 700);
   };
   bak();
@@ -5097,6 +5294,7 @@ function acilisBitir() {
   dilUygula();
   havaYukle();
   sayacYukle();   // balon sayaçları: okunmamış posta, cevapsız arama
+  talepSayac();   // görülmemiş gelen talepler
   postaRevBak();   // yeni posta anında
   gelenTalepAl();
   apiJson('/api/kullanici').then(j => { KULLANICI_AD = j.ad || ''; hosgeldinYaz(); }).catch(() => {});

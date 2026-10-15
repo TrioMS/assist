@@ -16,15 +16,15 @@
 #  gelen hedef yalniz izin verilen karakterlerle kabul edilir.
 #  Dosya ASCII'dir.
 # =====================================================================
-param([string]$Hedef = "", [string]$Url = "", [int]$Port = 8096, [switch]$Kapat, [switch]$Ilk)
+param([string]$Hedef = "", [string]$Url = "", [int]$Port = 8096, [switch]$Kapat, [switch]$Ilk, [switch]$UstKaldir)
 . (Join-Path $PSScriptRoot "guvenlik.ps1")
 
 $BASLIK = "STFA Assist"   # Portal\is_takip.html <title> ile ayni olmali (pencere bu adla bulunur)
 
-if (-not ('AssistPencere2' -as [type])) {
+if (-not ('AssistPencere3' -as [type])) {
   Add-Type @"
 using System; using System.Text; using System.Runtime.InteropServices;
-public static class AssistPencere2 {
+public static class AssistPencere3 {
   delegate bool EnumProc(IntPtr h, IntPtr l);
   [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc f, IntPtr l);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
@@ -35,6 +35,7 @@ public static class AssistPencere2 {
   [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
   [DllImport("user32.dll")] static extern void keybd_event(byte k, byte s, uint f, UIntPtr e);
+  [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr ust, int x, int y, int cx, int cy, uint f);
   // Uygulama penceresinin basligi yalniz sayfa basligidir; normal tarayici penceresinde
   // sonuna " - Microsoft Edge" vb. eklenir, o yuzden tam esitlik aranir.
   public static IntPtr Bul(string baslik) {
@@ -56,13 +57,16 @@ public static class AssistPencere2 {
     SetForegroundWindow(h);
   }
   public static void Buyut(IntPtr h) { ShowWindow(h, 3); }   // SW_MAXIMIZE
+  // Ilk acilista acilis ekrani donerken pencere en ustte: arkada acilan Outlook one cikip gorunmesin (15.10.2026)
+  public static void Ustte(IntPtr h, bool ac) { SetWindowPos(h, new IntPtr(ac ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010); }   // TOPMOST / NOTOPMOST; boyut-yer-odak degismez
   public static void Kapat(IntPtr h) { PostMessage(h, 0x0010, IntPtr.Zero, IntPtr.Zero); }   // WM_CLOSE
 }
 "@
 }
 
-$h = [AssistPencere2]::Bul($BASLIK)
-if ($Kapat) { if ($h -ne [IntPtr]::Zero) { [AssistPencere2]::Kapat($h) }; return }
+$h = [AssistPencere3]::Bul($BASLIK)
+if ($Kapat) { if ($h -ne [IntPtr]::Zero) { [AssistPencere3]::Kapat($h) }; return }
+if ($UstKaldir) { if ($h -ne [IntPtr]::Zero) { [AssistPencere3]::Ustte($h, $false) }; return }   # acilis ekrani kapandi
 
 if ($Url -match '^assist:(.*)$') { $Hedef = [Uri]::UnescapeDataString($Matches[1].TrimStart('/')) }
 # Hedef yalniz sayfa ici konum ("ac=<kayit>|<aksiyon>", "hat=<id>", "kisiler" ...): baska karakter kabul edilmez
@@ -82,7 +86,7 @@ if ($h -ne [IntPtr]::Zero) {
       $r.ContentLength = $b.Length; $s = $r.GetRequestStream(); $s.Write($b, 0, $b.Length); $s.Close(); $r.GetResponse().Close()
     } catch {}
   }
-  [AssistPencere2]::OneGetir($h)
+  [AssistPencere3]::OneGetir($h)
   return
 }
 
@@ -104,8 +108,8 @@ if ($tarayici) {
   # pencere belirince ekrani kaplayacak sekilde buyutulur (en cok 15 sn beklenir).
   for ($i = 0; $i -lt 60; $i++) {
     Start-Sleep -Milliseconds 250
-    $h = [AssistPencere2]::Bul($BASLIK)
-    if ($h -ne [IntPtr]::Zero) { [AssistPencere2]::Buyut($h); [AssistPencere2]::OneGetir($h); break }
+    $h = [AssistPencere3]::Bul($BASLIK)
+    if ($h -ne [IntPtr]::Zero) { [AssistPencere3]::Buyut($h); [AssistPencere3]::OneGetir($h); if ($Ilk) { [AssistPencere3]::Ustte($h, $true) }; break }
   }
 }
 else { try { Start-Process $u } catch { Start-Process explorer.exe -ArgumentList $u } }   # anahtarli adres yalniz bu kullanicinin tarayicisina gider   # Edge/Chrome yoksa normal tarayici sekmesi
@@ -113,8 +117,8 @@ else { try { Start-Process $u } catch { Start-Process explorer.exe -ArgumentList
 # SIG # Begin signature block
 # MIIdkQYJKoZIhvcNAQcCoIIdgjCCHX4CAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCmcciLxk4h9298
-# ZdQz7KQe8kW3OO5TwcaYSM+n3msge6CCF1QwggQWMIICfqADAgECAhA2m8l6HI/0
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCBlbmNnDECWfTBd
+# CbnTQcfKA83epaKM3D/pe5gIonbavqCCF1QwggQWMIICfqADAgECAhA2m8l6HI/0
 # gkepWCR7MrEPMA0GCSqGSIb3DQEBCwUAMCMxITAfBgNVBAMMGFNURkEgQXNzaXN0
 # IEtvZCBJbXphbGFtYTAeFw0yNjEwMTUwOTIwMzRaFw0zMTEwMTUwOTMwMzNaMCMx
 # ITAfBgNVBAMMGFNURkEgQXNzaXN0IEtvZCBJbXphbGFtYTCCAaIwDQYJKoZIhvcN
@@ -242,31 +246,31 @@ else { try { Start-Process $u } catch { Start-Process explorer.exe -ArgumentList
 # BZMwggWPAgEBMDcwIzEhMB8GA1UEAwwYU1RGQSBBc3Npc3QgS29kIEltemFsYW1h
 # AhA2m8l6HI/0gkepWCR7MrEPMA0GCWCGSAFlAwQCAQUAoIGEMBgGCisGAQQBgjcC
 # AQwxCjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYB
-# BAGCNwIBCzEOMAwGCisGAQQBgjcCARUwLwYJKoZIhvcNAQkEMSIEID/AT3IygUfp
-# VeqChdRvnYjzYHXYKhjmaRfKI09/V4MmMA0GCSqGSIb3DQEBAQUABIIBgG+r54g3
-# Chbcm5NDvD+7vk/eBhu70h+N9Ku0z4CXFmibCkwoNoqi4e2iDUprINnQp6MZQBmW
-# WLlT0PThdOehqOqN4Qz/aV0ZG3awmSBljObf5q5RaBI/BWoc3Fk8ai1DgrDpK6cG
-# GK1ya7cFXnyVELNjU3StDyG/MXHlVaYwcNUUtsweThoCdQuWZfB+uOj3V0IoCLbw
-# ymKmI8IvxO1hh09Z90f7ZzEyY1lMZxkQO0j+Catzvv1OF36FXbFVX5brgHln8PRI
-# JLA53myzZZOulT7MLGG1XlsL7CP080h+Sr9uGbqL6JRIXwTOrVdScdsJbjSZOD5t
-# qRKjKM8qgN3t6YsjI4uAqsIDwxWFsYlND8LkfD0TRwpBaKAijwaIlOENF2uQJNeC
-# NKt/VAEffpDBnwlUI7LY6VXmcinrSs27HFqbPW9H101xS8vQWM/q/lDiSQEOmyr4
-# mm0EipgKyv4E85EB/xkBHYhMeg1hsBjj2wKgTC2oRgFi73sAWz/U1WJrw6GCAyYw
+# BAGCNwIBCzEOMAwGCisGAQQBgjcCARUwLwYJKoZIhvcNAQkEMSIEIFp/Fnwn7TQ2
+# NMnQA+Nhv1gEFevZAPcQ0B8fq/QJLv8QMA0GCSqGSIb3DQEBAQUABIIBgDRDBPff
+# yrM1p0gmVSNwtorqAcOjHiMrhY//K34VA6zmMGD9d4ekuz/kDsWX7njGJAskY54A
+# wmupr5D2vbHulTH/Fqi5b3GjCrIuIWKRRq6Kp7QQnySvPCgWCp57SqMUNVPRYu1f
+# ruG+nXrl6gBMbJhamUCq/9/LTUd0ZzT1VJBvIMojjMvxdzBHvWrG0l/T7rjD1dlh
+# fbmDZKmPGSqHUf3IJ/H1OW/0OQYYM8JSTOAvwt1iHeHUaQxQkTjQcvgte7Crjfq7
+# 6XOZualLIJTD0cx2NDPLhBWUSsuAnZGAUnJ9FQP5oVNmMXzv9+EywOTCmQLfnd2L
+# pOxwmuFTvac5S5bA0EN8gTGo+6E9XUdDNeePwWDaMYvyC8gX0nTI6d7nAkK3lw26
+# lI946ocYkLGniEYM7VoQsuErwLovvkLqdO5li7OXOLg7pJoWJs4uuDd9Zh0OLkhx
+# WT3C+qVOyPZc4VW2vkjPeiejQdSf9pTnsu+yvZzbtEzPLMIPGrVuZ7s1dqGCAyYw
 # ggMiBgkqhkiG9w0BCQYxggMTMIIDDwIBATB9MGkxCzAJBgNVBAYTAlVTMRcwFQYD
 # VQQKEw5EaWdpQ2VydCwgSW5jLjFBMD8GA1UEAxM4RGlnaUNlcnQgVHJ1c3RlZCBH
 # NCBUaW1lU3RhbXBpbmcgUlNBNDA5NiBTSEEyNTYgMjAyNSBDQTECEAhP3DNPfkVO
 # 28MPj/mSGDUwDQYJYIZIAWUDBAIBBQCgaTAYBgkqhkiG9w0BCQMxCwYJKoZIhvcN
-# AQcBMBwGCSqGSIb3DQEJBTEPFw0yNjEwMTUxMDUxNDBaMC8GCSqGSIb3DQEJBDEi
-# BCD1IkaARQocMh/j5mRLrzuulxIiCmSi9wJaiacjQaGyQDANBgkqhkiG9w0BAQEF
-# AASCAgAQe+UF4Pfba6nYkoi6hfxmSyJokUtIbJg+fCVJoOTyRbwU4Mxo4H7N6IgR
-# y/ipQuP0pErcIjaZPipGbqRfly4HHG8zgAhT42XLHp7/q+6XqGcOadSkZyV6ATa3
-# f/p7b5mA8syE3j3dnSz+ssd95omA3viTmzYXlxQ6OP236O3qJYlq6Jb+yxsqbcwo
-# o65Mqc06SuIn2MzMSggD1KUvZTcohJVxqnXkqKgnMQmj/x0UfQNgWH5eaR3L/gSN
-# ADypPi9SFMDBqcag6ef8cNn3kGKVa4zkcisi1+hYIpjRcCFC/DP0OTa9wtNk6oib
-# oZ1eq9N+C2rKVzl++lFQbLF4zrtILc7awv+PKR3FlP/ZCkh8+S96VCVYRrNLnkuJ
-# 7RYxxo03MVold7lYZs+U0RxBBuDo69zxhettNXnWarVPpNF/BHvW2Jqay0Uo70zF
-# Ed9iZmwB7wwTsA4CSUr4FDfigLaCH/qAzWjk325oPGb7ITWqGgZaXCDt5obxPcf8
-# eq1pSDDZfQbikeolZUZ/a6BpSn0tG0Ss1C+dgt6xkY38VT3tDj5MEkxOKdjalXbj
-# yWT6/VRonUNXDRh+V+kHAmekamKKbWKMXUijFNq2owKhSh+nA1mSzfSf3ycmttut
-# jz45x/QscW6oZbu9r4swO+mnZvSh3tUiXCmnlMIpIC3jj8OG9A==
+# AQcBMBwGCSqGSIb3DQEJBTEPFw0yNjEwMTUxMjI1MDdaMC8GCSqGSIb3DQEJBDEi
+# BCAZ7nbor6/eueG2zZ/CRwe/pbCH3g+HBP6Uw5vAxkcuKzANBgkqhkiG9w0BAQEF
+# AASCAgCKEbeeiCBJt+Gca4QhcBhnXM31VkmRRwTJdqBSqRvrezB9FVC0SmQ9hTZP
+# bd2+XWt+7ZMZ/jed5Kizk/QLCLF09dM2G9VJIcJqBFC7FeBVtFtTHF1wvnzHfKYt
+# /i4OxCdmwCOu3bETe0upk1Q+jDCUNVO4n+Mib2w6C67jNMYTCCRqYVkT4eLz/KAi
+# K6fzzyzLK3+tn5a1nKxD3Uy7aVvbDSQ8XjFGBgXuagKmSctDhTSsRdQzuEvstmOq
+# 81Czyice9H6q/WthBIBVtqSmVXo3R0kJIczHD+VXNGS7ky1/Hsyzqi4mPJY8c7wx
+# zeyFC4IG0pWpJRbSH2M60H/uXTKLxEwgIFjzF1ELleRfcRk2HI8Dqac6rEH2Aiy+
+# pdhnGeQ6ETpqhRrp9QXM+Om4jLhYIy77FPozlrqRoCleMXiSwWyWJFa/1hh2vajB
+# FdPoem9QdWWsf24MsXMDrS3QiVSKjDataXE8hhQZUlgwUTD0ihf01f2dLLA/BQFy
+# No0FhfgsK3XcXtcUtXigXnPeprrNX/BmfbO6vt9ais/wrPlK9LCoWQg8JUThxz/z
+# WXqKai2jmpGR+U9B01gKIBVE/gmR34vpg587FJoqoWBlY9eZUDa2oyzDMd16HGd1
+# rDnYx+EWEGy3xcoGGFXWWxkWY7LQ2H8YaCXYJtBzYMX+9nDH4w==
 # SIG # End signature block

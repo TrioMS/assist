@@ -428,13 +428,17 @@ function Ortak-Oku {
   if ($null -eq $o.giden) { $o | Add-Member -NotePropertyName giden -NotePropertyValue @() -Force }
   $o.konular = @($o.konular | ForEach-Object { $_ }); $o.giden = @($o.giden | ForEach-Object { $_ })
   foreach ($k in $o.konular) { $k.girisler = @($k.girisler | Sort-Object { [string]$_.t }); $k.katilimcilar = @($k.katilimcilar | ForEach-Object { $_ }) }   # defter hep zaman sirasinda
+  # Sifreleme (15.10.2026): bilinen acik anahtarlar, degisen anahtarlar (onay bekler), istenme zamanlari,
+  # anahtari gelmemis aliciya bekleyen paketler, anahtari onaylanmamis gonderenden gelen paketler
+  foreach ($ad in "anahtarlar", "degisen", "istenen") { $h = @{}; if ($o.$ad) { foreach ($p in $o.$ad.PSObject.Properties) { $h[$p.Name] = $p.Value } }; $o | Add-Member -NotePropertyName $ad -NotePropertyValue $h -Force }
+  foreach ($ad in "bekleyenGiden", "bekleyenGelen", "bekleyenTalep") { $o | Add-Member -NotePropertyName $ad -NotePropertyValue @($o.$ad | Where-Object { $_ }) -Force }
   return $o
 }
 function Ortak-Yaz($o) { Sifreli-Yaz $ortakDos ($o | ConvertTo-Json -Depth 10 -Compress); $script:ortakRev++ }
 function Ben-Kimlik {
   if ($script:benKimlik) { return $script:benKimlik }
-  $ad = ""
-  try { Add-Type -AssemblyName System.DirectoryServices.AccountManagement; $ad = [string][System.DirectoryServices.AccountManagement.UserPrincipal]::Current.DisplayName } catch {}
+  $ad = [string]$env:ISTAKIP_BEN_AD   # test sunucusu
+  if (-not $ad) { try { Add-Type -AssemblyName System.DirectoryServices.AccountManagement; $ad = [string][System.DirectoryServices.AccountManagement.UserPrincipal]::Current.DisplayName } catch {} }
   if (-not $ad) { try { $ad = [string]((Veri-Oku) | ConvertFrom-Json).ayar.adSoyad } catch {} }
   if (-not $ad) { $ad = $env:USERNAME }
   $script:benKimlik = [pscustomobject]@{ ad = $ad; eposta = (Ben-Eposta) }
@@ -443,12 +447,77 @@ function Ben-Kimlik {
 function Ortak-Baslik($k) {
   return [ordered]@{ id = $k.id; baslik = $k.baslik; termin = $k.termin; acan = $k.acan; katilimcilar = @($k.katilimcilar); durum = $k.durum; olusturma = $k.olusturma }
 }
+# --- UCTAN UCA SIFRELEME (15.10.2026) -------------------------------------------------
+# Her Assist'in RSA-3072 anahtar cifti var; gizli anahtar ortak_anahtar.dat'ta DPAPI ile (bilgisayardan
+# cikmaz). Her konunun 64 baytlik anahtari (32 AES-256-CBC + 32 HMAC-SHA256) her alici icin onun acik
+# anahtariyla RSA-OAEP ile ayri ayri kilitlenir; govde sifreli, HMAC'li ve gonderenin gizli anahtariyla
+# imzali gider. Exchange'de icerik (baslik dahil) OKUNAMAZ; yalniz kimin kime ne zaman yazdigi gorunur.
+# Acik anahtarlar ilk temasta "anahtar-iste"/"anahtar" iletileriyle degisilir (ilk gorulen kabul edilir);
+# bir kisinin anahtari sonradan DEGISIRSE kullanici onaylayana kadar o kisiden giris kabul edilmez.
+# Eski surumun sifresiz (v1) iletileri gecis icin hala alinir.
+$ortakAnahtarDos = Join-Path $veriKok "ortak_anahtar.dat"
+$script:benRsa = $null; $script:benAcik = ""
+function Rsa-Bos { $p = New-Object System.Security.Cryptography.CspParameters 24; $r = New-Object System.Security.Cryptography.RSACryptoServiceProvider -ArgumentList $p; $r.PersistKeyInCsp = $false; return $r }
+function Benim-Rsa {
+  if ($script:benRsa) { return $script:benRsa }
+  if (Test-Path -LiteralPath $ortakAnahtarDos) {
+    $r = Rsa-Bos; $r.FromXmlString($UTF8.GetString((Coz ([System.IO.File]::ReadAllBytes($ortakAnahtarDos)))))
+  } else {
+    $p = New-Object System.Security.Cryptography.CspParameters 24
+    $r = New-Object System.Security.Cryptography.RSACryptoServiceProvider -ArgumentList 3072, $p; $r.PersistKeyInCsp = $false
+    Bayt-Yaz $ortakAnahtarDos (Sifrele ($UTF8.GetBytes($r.ToXmlString($true))))
+    Write-Host "  Ortak is sifreleme anahtari olusturuldu"
+  }
+  $script:benRsa = $r; $script:benAcik = $r.ToXmlString($false)
+  return $r
+}
+function Benim-Acik { $null = Benim-Rsa; return $script:benAcik }
+function Rsa-Acik([string]$xml) { $r = Rsa-Bos; $r.FromXmlString($xml); return $r }
+function Parmak([string]$acik) {
+  $h = [System.Security.Cryptography.SHA256]::Create().ComputeHash($UTF8.GetBytes($acik))
+  return (($h[0..7] | ForEach-Object { $_.ToString("X2") }) -join "") -replace '(.{4})(?!$)', '$1 '
+}
+function B64([byte[]]$b) { return [Convert]::ToBase64String($b) }
+function Bayt-Esit([byte[]]$a, [byte[]]$b) { if ($a.Length -ne $b.Length) { return $false }; $f = 0; for ($i = 0; $i -lt $a.Length; $i++) { $f = $f -bor ($a[$i] -bxor $b[$i]) }; return ($f -eq 0) }
+function Aes-Sifrele([byte[]]$ak, [byte[]]$veri) {
+  $aes = [System.Security.Cryptography.AesCryptoServiceProvider]::new(); $aes.KeySize = 256; $aes.Mode = "CBC"; $aes.Padding = "PKCS7"
+  $aes.Key = [byte[]]($ak[0..31]); $aes.GenerateIV()
+  $sif = $aes.CreateEncryptor().TransformFinalBlock($veri, 0, $veri.Length)
+  $mac = [System.Security.Cryptography.HMACSHA256]::new([byte[]]($ak[32..63])).ComputeHash([byte[]]($aes.IV + $sif))
+  return @{ iv = (B64 $aes.IV); sif = (B64 $sif); mac = (B64 $mac) }
+}
+function Aes-Coz([byte[]]$ak, [string]$iv, [string]$sif, [string]$mac) {
+  $ivB = [Convert]::FromBase64String($iv); $sB = [Convert]::FromBase64String($sif)
+  $beklenen = [System.Security.Cryptography.HMACSHA256]::new([byte[]]($ak[32..63])).ComputeHash([byte[]]($ivB + $sB))
+  if (-not (Bayt-Esit $beklenen ([Convert]::FromBase64String($mac)))) { throw "HMAC tutmadi (ileti degistirilmis ya da anahtar yanlis)" }
+  $aes = [System.Security.Cryptography.AesCryptoServiceProvider]::new(); $aes.KeySize = 256; $aes.Mode = "CBC"; $aes.Padding = "PKCS7"
+  $aes.Key = [byte[]]($ak[0..31]); $aes.IV = $ivB
+  return ,$aes.CreateDecryptor().TransformFinalBlock($sB, 0, $sB.Length)
+}
+function Imza-Verisi($z) { return $UTF8.GetBytes([string]$z.konuId + "|" + [string]$z.iv + "|" + [string]$z.sif + "|" + [string]$z.mac + "|" + ([string]$z.gonderen).ToLowerInvariant()) }
+# Kisinin acik anahtarini ogrenir. Doner: yeni | ayni | degisti (degisti: onay icin bekletilir)
+function Anahtar-Ogren($o, [string]$eposta, [string]$acik) {
+  $eposta = $eposta.ToLowerInvariant()
+  if (-not $acik -or $acik -notmatch '^<RSAKeyValue>') { return "gecersiz" }
+  $var = $o.anahtarlar[$eposta]
+  if (-not $var) { $o.anahtarlar[$eposta] = [pscustomobject]@{ acik = $acik; parmak = (Parmak $acik); t = (Get-Date).ToString("o") }; return "yeni" }
+  if ([string]$var.acik -eq $acik) { return "ayni" }
+  $o.degisen[$eposta] = [pscustomobject]@{ acik = $acik; parmak = (Parmak $acik); t = (Get-Date).ToString("o") }
+  return "degisti"
+}
+# Tasiyici ileti. Konu satirinda baslik YOK (sifreli icerikte). Test sunucusu: ISTAKIP_TEST_POSTA klasorune dosya.
 function Ortak-Ileti([string[]]$kime, [string]$json, [string]$baslik) {
+  $govde = (U "Bu ileti Assist ortak i{015F} takibi i{00E7}indir; Assist kullan{0131}yorsan{0131}z kendili{011F}inden i{015F}lenir.") + "`r`n" + $ORTAK_ISARET + [Convert]::ToBase64String($UTF8.GetBytes($json)) + ":SON"
+  if ($env:ISTAKIP_TEST_POSTA) {
+    foreach ($a in $kime) { [System.IO.File]::WriteAllText((Join-Path $env:ISTAKIP_TEST_POSTA ([guid]::NewGuid().ToString("N") + ".json")), (@{ kime = $a; gonderen = (Ben-Eposta); govde = $govde } | ConvertTo-Json -Compress), $UTF8) }
+    return
+  }
+  if ($env:ISTAKIP_PORT) { Write-Host ("  [test] ortak is iletisi GONDERILMEDI -> " + ($kime -join ", ")); return }
   $m = (Outlook).CreateItem(0)
   $m.MessageClass = $ORTAK_SINIF
   $m.To = ($kime -join "; ")
-  $m.Subject = "[Assist] " + (U "Ortak i{015F}: ") + $baslik
-  $m.Body = (U "Bu ileti Assist ortak i{015F} takibi i{00E7}indir; Assist kullan{0131}yorsan{0131}z kendili{011F}inden i{015F}lenir.") + "`r`n" + $ORTAK_ISARET + [Convert]::ToBase64String($UTF8.GetBytes($json)) + ":SON"
+  $m.Subject = "[Assist] " + (U "Ortak i{015F}: g{00FC}venli ileti")
+  $m.Body = $govde
   $m.DeleteAfterSubmit = $true   # Gonderilmis Ogeler dolmasin
   # Gonderenin Outlook'unda "her iletiye teslim/okundu bildirimi iste" acik olabilir: tasiyici iletiye
   # bildirim istenmez (15.10.2026: gonderene "Delivered" postasi geliyordu)
@@ -456,21 +525,62 @@ function Ortak-Ileti([string[]]$kime, [string]$json, [string]$baslik) {
   [void]$m.Recipients.ResolveAll()
   $m.Send()
 }
-# Paketi verilen adreslere yollar; olmazsa kuyruga birakir (dakikalik kontrolde yeniden denenir).
-function Ortak-Gonder($o, [string[]]$kime, $paket) {
-  $ben = Ben-Eposta
-  $kime = @($kime | Where-Object { $_ -and $_.ToLowerInvariant() -ne $ben } | Select-Object -Unique)
-  if (-not $kime.Count) { return $true }
-  $json = $paket | ConvertTo-Json -Depth 10 -Compress
-  if ($env:ISTAKIP_PORT) { Write-Host ("  [test] ortak is iletisi GONDERILMEDI -> " + ($kime -join ", ")); return $true }   # test sunucusu posta yollamaz
-  try { Ortak-Ileti $kime $json ([string]$paket.konu.baslik); return $true }
+# Hazir JSON'u yollar; Outlook'a ulasilamazsa kuyruga (giden) birakir.
+function Ortak-Teslim($o, [string[]]$kime, $zarf) {
+  $json = $zarf | ConvertTo-Json -Depth 10 -Compress
+  try { Ortak-Ileti $kime $json ""; return $true }
   catch {
     Write-Host ("  Ortak is gonderilemedi, kuyrukta: " + $_.Exception.Message) -ForegroundColor Yellow
-    $o.giden = @($o.giden) + @([pscustomobject]@{ kime = @($kime); json = $json; baslik = [string]$paket.konu.baslik; t = (Get-Date).ToString("o") })
+    $o.giden = @($o.giden) + @([pscustomobject]@{ kime = @($kime); json = $json; baslik = ""; t = (Get-Date).ToString("o") })
     return $false
   }
 }
-function Ortak-Giris([string]$tur, [string]$metin) {
+function Konu-Anahtari($k) {
+  if (-not $k.anahtar) { $b = New-Object byte[] 64; [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); $k | Add-Member -NotePropertyName anahtar -NotePropertyValue (B64 $b) -Force }
+  return ,[Convert]::FromBase64String([string]$k.anahtar)
+}
+# Sifreli zarf: icerik (konu basligi + girisler) yalniz $alicilar (acik anahtari bilinen) acabilir
+function Ortak-Zarf($o, $k, [string[]]$alicilar, $ic) {
+  $ak = Konu-Anahtari $k
+  $s = Aes-Sifrele $ak ($UTF8.GetBytes(($ic | ConvertTo-Json -Depth 10 -Compress)))
+  $kilit = @{}; foreach ($e in $alicilar) { $kilit[$e] = B64 ((Rsa-Acik ([string]$o.anahtarlar[$e].acik)).Encrypt($ak, $true)) }
+  $z = [ordered]@{ v = 2; tur = "veri"; konuId = $k.id; gonderen = (Ben-Eposta); acik = (Benim-Acik); anahtarlar = $kilit; iv = $s.iv; sif = $s.sif; mac = $s.mac }
+  $z.imza = B64 ((Benim-Rsa).SignData((Imza-Verisi $z), [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1))
+  return $z
+}
+function Anahtar-Iste($o, [string]$e) {
+  $son = $o.istenen[$e]
+  if ($son -and ((Get-Date) - [datetime]::Parse([string]$son)).TotalMinutes -lt 10) { return }
+  $o.istenen[$e] = (Get-Date).ToString("o")
+  [void](Ortak-Teslim $o @($e) ([ordered]@{ v = 2; tur = "anahtar-iste"; gonderen = (Ben-Eposta); acik = (Benim-Acik) }))
+}
+# Anahtari yeni gelen kisiye bekleyen paketleri sifreleyip yollar
+function Bekleyen-Gonder($o, [string]$e) {
+  $kalan = @()
+  foreach ($b in @($o.bekleyenGiden)) {
+    if ([string]$b.kime -ne $e) { $kalan += $b; continue }
+    $k = $o.konular | Where-Object { $_.id -eq $b.konuId } | Select-Object -First 1
+    if (-not $k) { continue }
+    [void](Ortak-Teslim $o @($e) (Ortak-Zarf $o $k @($e) ([string]$b.ic | ConvertFrom-Json)))
+  }
+  $o.bekleyenGiden = $kalan
+}
+# Paketi katilimcilara yollar. Doner: @{ ok = hepsi gitti mi; anahtar = anahtari beklenen kisi sayisi }
+function Ortak-Gonder($o, [string[]]$kime, $paket) {
+  $ben = Ben-Eposta
+  $kime = @($kime | Where-Object { $_ } | ForEach-Object { ([string]$_).ToLowerInvariant() } | Where-Object { $_ -ne $ben } | Select-Object -Unique)
+  if (-not $kime.Count) { return @{ ok = $true; anahtar = 0 } }
+  $k = $o.konular | Where-Object { $_.id -eq $paket.konu.id } | Select-Object -First 1
+  $ic = [ordered]@{ konu = $paket.konu; girisler = @($paket.girisler) }
+  $bilinen = @($kime | Where-Object { $o.anahtarlar[$_] }); $bilinmeyen = @($kime | Where-Object { -not $o.anahtarlar[$_] })
+  $ok = $true
+  if ($bilinen.Count) { $ok = Ortak-Teslim $o $bilinen (Ortak-Zarf $o $k $bilinen $ic) }
+  foreach ($e in $bilinmeyen) {
+    $o.bekleyenGiden = @($o.bekleyenGiden) + @([pscustomobject]@{ kime = $e; konuId = $k.id; ic = ($ic | ConvertTo-Json -Depth 10 -Compress); t = (Get-Date).ToString("o") })
+    Anahtar-Iste $o $e
+  }
+  return @{ ok = ($ok -and -not $bilinmeyen.Count); anahtar = $bilinmeyen.Count }
+}function Ortak-Giris([string]$tur, [string]$metin) {
   $b = Ben-Kimlik
   return [pscustomobject]@{ id = [guid]::NewGuid().ToString("N"); t = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss.fff"); yazar = [pscustomobject]@{ ad = $b.ad; eposta = $b.eposta }; tur = $tur; metin = $metin }
 }
@@ -519,10 +629,18 @@ function Ortak-Kural {
   $script:ortakKuralBakildi = $true
   try {
     $ad = U "Assist ortak i{015F}ler"
+    $sozcukler = [string[]]@(("[Assist] " + (U "Ortak i{015F}:")), "[Assist] Talep:")   # 15.10.2026: talep iletileri de
     $kurallar = (Ns).DefaultStore.GetRules()
-    foreach ($r in $kurallar) { if ($r.Name -eq $ad) { $script:ortakKural = "var"; return } }
+    foreach ($r in $kurallar) {
+      if ($r.Name -ne $ad) { continue }
+      $var = @($r.Conditions.Subject.Text)
+      if ($var -contains "[Assist] Talep:") { $script:ortakKural = "var"; return }
+      try { $r.Conditions.Subject.Text = [string[]]@($var + "[Assist] Talep:"); $kurallar.Save($false); $script:ortakKural = "var"; Write-Host "  Outlook kuralina talep sozcugu eklendi" }
+      catch { $script:ortakKural = "eksik"; Write-Host ("  Outlook kuralina talep sozcugu eklenemedi: " + $_.Exception.Message) -ForegroundColor Yellow }
+      return
+    }
     $r = $kurallar.Create($ad, 0)   # olRuleReceive
-    $r.Conditions.Subject.Text = @("[Assist] " + (U "Ortak i{015F}:"))
+    $r.Conditions.Subject.Text = $sozcukler
     $r.Conditions.Subject.Enabled = $true
     $r.Actions.MoveToFolder.Folder = (Assist-Klasoru)
     $r.Actions.MoveToFolder.Enabled = $true
@@ -532,36 +650,82 @@ function Ortak-Kural {
     Write-Host "  Outlook kurali kuruldu: Assist ortak isler"; $script:ortakKural = "kuruldu"
   } catch { $script:ortakKural = "hata"; Write-Host ("  Outlook kurali kurulamadi: " + $_.Exception.Message) -ForegroundColor Yellow }
 }
+# Tek bir gelen paketi isler. Doner: eklenen giris sayisi.
+function Ortak-Isle($o, $paket, [string]$gonderen) {
+  $gonderen = ([string]$gonderen).ToLowerInvariant()
+  if (-not $paket.v -or [int]$paket.v -lt 2) { return (Ortak-Al $o $paket $gonderen) }   # eski surum (sifresiz)
+  if (([string]$paket.gonderen).ToLowerInvariant() -ne $gonderen) { Write-Host "  Ortak is: gonderen tutmadi, alinmadi" -ForegroundColor Yellow; return 0 }
+  $durum = Anahtar-Ogren $o $gonderen ([string]$paket.acik)
+  if ($durum -eq "gecersiz") { return 0 }
+  if ($durum -eq "degisti") {   # onaylanana kadar bekler
+    $o.bekleyenGelen = @($o.bekleyenGelen) + @([pscustomobject]@{ gonderen = $gonderen; paket = $paket; t = (Get-Date).ToString("o") })
+    Write-Host ("  Ortak is: " + $gonderen + " anahtari degisti - onay bekliyor") -ForegroundColor Yellow
+    return 0
+  }
+  if ($paket.tur -eq "anahtar-iste") { [void](Ortak-Teslim $o @($gonderen) ([ordered]@{ v = 2; tur = "anahtar"; gonderen = (Ben-Eposta); acik = (Benim-Acik) })) }
+  if ($paket.tur -eq "anahtar-iste" -or $paket.tur -eq "anahtar") { Bekleyen-Gonder $o $gonderen; return 0 }
+  if ($paket.tur -ne "veri") { return 0 }
+  # dogrula: imza (gonderenin bilinen anahtari) -> konu anahtarini ac -> HMAC -> coz
+  $acikR = Rsa-Acik ([string]$o.anahtarlar[$gonderen].acik)
+  if (-not $acikR.VerifyData((Imza-Verisi $paket), [Convert]::FromBase64String([string]$paket.imza), [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)) {
+    Write-Host ("  Ortak is: imza gecersiz, alinmadi (" + $gonderen + ")") -ForegroundColor Yellow; return 0 }
+  $kilit = $null; foreach ($p in $paket.anahtarlar.PSObject.Properties) { if ($p.Name.ToLowerInvariant() -eq (Ben-Eposta)) { $kilit = [string]$p.Value } }
+  if (-not $kilit) { return 0 }   # bana kilitlenmemis
+  $ak = (Benim-Rsa).Decrypt([Convert]::FromBase64String($kilit), $true)
+  $ic = $UTF8.GetString((Aes-Coz $ak ([string]$paket.iv) ([string]$paket.sif) ([string]$paket.mac))) | ConvertFrom-Json
+  if ([string]$ic.konu.id -ne [string]$paket.konuId) { return 0 }
+  $n = Ortak-Al $o $ic $gonderen
+  $k = $o.konular | Where-Object { $_.id -eq $paket.konuId } | Select-Object -First 1
+  if ($k -and -not $k.anahtar) { $k | Add-Member -NotePropertyName anahtar -NotePropertyValue (B64 $ak) -Force }   # sonraki gonderimlerim ayni anahtarla
+  return $n
+}
 # Ortak is iletilerini alir: kural kurulmadan Gelen Kutusu'na dusenler Assist'e tasinir; kuralla Assist
 # klasorune gelenler (okunmamis) islenir ve okundu yapilir. Gonderim kuyrugu da bosaltilir.
+# Test sunucusu (ISTAKIP_TEST_POSTA): Outlook yerine klasordeki bana gelen dosyalar.
 function Ortak-Kontrol {
-  if (-not (Outlook-Uygun)) { return }
+  $test = [bool]$env:ISTAKIP_TEST_POSTA
+  if (-not $test -and -not (Outlook-Uygun)) { return }
   $o = Ortak-Oku; $degisti = $false
   if (@($o.giden).Count) {
     $kalan = @()
     foreach ($p in $o.giden) { try { Ortak-Ileti @($p.kime) ([string]$p.json) ([string]$p.baslik) } catch { $kalan += $p } }
     $o.giden = $kalan; $degisti = $true
   }
-  $gk = (Ns).GetDefaultFolder(6); $hedef = Assist-Klasoru
-  $bulunan = @(); foreach ($it in $gk.Items.Restrict("[MessageClass] = '$ORTAK_SINIF'")) { $bulunan += $it }
-  foreach ($it in $hedef.Items.Restrict("[MessageClass] = '$ORTAK_SINIF' AND [UnRead] = True")) { $bulunan += $it }
-  $yeni = 0
-  if ($bulunan.Count) {
-    foreach ($it in $bulunan) {
-      try {
-        $govde = [string]$it.Body
-        $i = $govde.IndexOf($ORTAK_ISARET); $j = if ($i -ge 0) { $govde.IndexOf(":SON", $i) } else { -1 }
-        if ($i -ge 0 -and $j -gt $i) {
-          $b64 = ($govde.Substring($i + $ORTAK_ISARET.Length, $j - $i - $ORTAK_ISARET.Length)) -replace '\s', ''
-          $paket = $UTF8.GetString([Convert]::FromBase64String($b64)) | ConvertFrom-Json
-          $yeni += Ortak-Al $o $paket (Gonderen-Eposta $it)
-          $degisti = $true
-        }
-        $it.UnRead = $false
-        if ($it.Parent.EntryID -ne $hedef.EntryID) { [void]$it.Move($hedef) } else { $it.Save() }
-      } catch { Write-Host ("  Ortak is iletisi okunamadi: " + $_.Exception.Message) -ForegroundColor Yellow }
+  # Anahtari beklenen kisilerden (Assist'i kapali / eski surum) 10 dk'da bir yeniden iste
+  $bek = @($o.bekleyenGiden | ForEach-Object { [string]$_.kime } | Select-Object -Unique)
+  foreach ($e in $bek) { $once = [string]$o.istenen[$e]; Anahtar-Iste $o $e; if ([string]$o.istenen[$e] -ne $once) { $degisti = $true } }
+  $gelen = @()
+  if ($test) {
+    foreach ($d in @(Get-ChildItem -LiteralPath $env:ISTAKIP_TEST_POSTA -Filter "*.json" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime)) {
+      try { $x = [System.IO.File]::ReadAllText($d.FullName, $UTF8) | ConvertFrom-Json } catch { continue }
+      if (([string]$x.kime).ToLowerInvariant() -ne (Ben-Eposta)) { continue }
+      $gelen += @{ govde = [string]$x.govde; gonderen = [string]$x.gonderen; dosya = $d.FullName }
     }
+  } else {
+    $gk = (Ns).GetDefaultFolder(6); $hedef = Assist-Klasoru
+    foreach ($it in $gk.Items.Restrict("[MessageClass] = '$ORTAK_SINIF'")) { $gelen += @{ it = $it } }
+    foreach ($it in $hedef.Items.Restrict("[MessageClass] = '$ORTAK_SINIF' AND [UnRead] = True")) { $gelen += @{ it = $it } }
   }
+  $yeni = 0
+  foreach ($g in $gelen) {
+    try {
+      if ($g.it) { $g.govde = [string]$g.it.Body; $g.gonderen = Gonderen-Eposta $g.it }
+      $govde = $g.govde
+      $i = $govde.IndexOf($ORTAK_ISARET); $j = if ($i -ge 0) { $govde.IndexOf(":SON", $i) } else { -1 }
+      if ($i -ge 0 -and $j -gt $i) {
+        $b64 = ($govde.Substring($i + $ORTAK_ISARET.Length, $j - $i - $ORTAK_ISARET.Length)) -replace '\s', ''
+        $paket = $UTF8.GetString([Convert]::FromBase64String($b64)) | ConvertFrom-Json
+        $yeni += Ortak-Isle $o $paket $g.gonderen
+        $degisti = $true
+      }
+    } catch { Write-Host ("  Ortak is iletisi islenemedi: " + $_.Exception.Message) -ForegroundColor Yellow }
+    try {
+      if ($g.dosya) { [System.IO.File]::Delete($g.dosya) }
+      elseif ($g.it) { $g.it.UnRead = $false; $g.it.Save(); if ($g.it.Parent.EntryID -ne $hedef.EntryID) { [void]$g.it.Move($hedef) } }   # once kaydet, sonra tasi
+    } catch {}
+  }
+  # Kuralla Assist klasorune gelen teslim/okundu bildirimleri ("Delivered: [Assist] ...") okundu yapilir; birikmesin
+  if (-not $test) { try { foreach ($it in @((Assist-Klasoru).Items.Restrict("[UnRead] = True"))) { if ([string]$it.MessageClass -like "REPORT.*") { $it.UnRead = $false; $it.Save() } } } catch {} }
   if ($degisti) { Ortak-Yaz $o }
   if ($yeni) { try { Bildirim-Goster $BLD_AD ($(if ($yeni -eq 1) { U "Ortak i{015F}lerde 1 yeni giri{015F}" } else { (U "Ortak i{015F}lerde ") + $yeni + (U " yeni giri{015F}") })) "ortak" } catch {} }
 }
@@ -569,6 +733,7 @@ function Ortak-Kontrol {
 $script:benEposta = $null
 function Ben-Eposta {
   if ($null -ne $script:benEposta) { return $script:benEposta }
+  if ($env:ISTAKIP_BEN_EPOSTA) { $script:benEposta = $env:ISTAKIP_BEN_EPOSTA.ToLowerInvariant(); return $script:benEposta }   # test sunucusu
   $e = ""
   try { Add-Type -AssemblyName System.DirectoryServices.AccountManagement; $e = [string][System.DirectoryServices.AccountManagement.UserPrincipal]::Current.EmailAddress } catch {}
   if (-not $e) { try { $e = [string](Ns).CurrentUser.AddressEntry.GetExchangeUser().PrimarySmtpAddress } catch {} }
@@ -577,10 +742,71 @@ function Ben-Eposta {
 }
 
 
+# --- TALEP UCTAN UCA SIFRELEME (G6/G7, 16.10.2026) -----------------------------------
+# Talep iletileri de ortak istekiyle AYNI altyapiyla sifreli + imzali gider: icerik (baslik,
+# aciklama, cevap, kapatma/silme) Exchange'de OKUNAMAZ ve imzasiz ileti kabul edilmez; boylece
+# "Send As / Send on Behalf" ile baskasi adina cevap/kapat/sil URETILEMEZ. Alicinin acik anahtari
+# bilinmiyorsa istenir, talep kuyrukta (bekleyenTalep) bekler, anahtar gelince yollanir.
+# Tek fark: talep tek aliciya gider ve her iletinin kendi tek kullanimlik anahtari vardir (saklanmaz).
+function Talep-Zarf($o, [string]$alici, $ic) {
+  $ak = New-Object byte[] 64; [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($ak)
+  $s = Aes-Sifrele $ak ($UTF8.GetBytes(($ic | ConvertTo-Json -Depth 8 -Compress)))
+  $kilit = @{}; $kilit[$alici] = B64 ((Rsa-Acik ([string]$o.anahtarlar[$alici].acik)).Encrypt($ak, $true))
+  $z = [ordered]@{ v = 2; tur = "talep"; konuId = [guid]::NewGuid().ToString("N"); gonderen = (Ben-Eposta); acik = (Benim-Acik); anahtarlar = $kilit; iv = $s.iv; sif = $s.sif; mac = $s.mac }
+  $z.imza = B64 ((Benim-Rsa).SignData((Imza-Verisi $z), [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1))
+  return $z
+}
+# Gelen sifreli talep zarfini dogrular ve acar; basarisizsa HATA firlatir. Doner: talep nesnesi.
+function Talep-Ic-Coz($paket, [string]$gonderen) {
+  $gonderen = ([string]$gonderen).ToLowerInvariant()
+  if (([string]$paket.gonderen).ToLowerInvariant() -ne $gonderen) { throw "gonderen tutmadi" }
+  if ([string]$paket.tur -ne "talep") { throw "tur beklenmeyen" }
+  $o = Ortak-Oku
+  $durum = Anahtar-Ogren $o $gonderen ([string]$paket.acik)
+  if ($durum -eq "gecersiz") { throw "anahtar gecersiz" }
+  if ($durum -eq "degisti") { Ortak-Yaz $o; throw ("anahtar degisti - onay gerekli: " + $gonderen) }
+  if ($durum -eq "yeni") { Ortak-Yaz $o }
+  $acikR = Rsa-Acik ([string]$o.anahtarlar[$gonderen].acik)
+  if (-not $acikR.VerifyData((Imza-Verisi $paket), [Convert]::FromBase64String([string]$paket.imza), [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)) { throw "imza gecersiz" }
+  $kilit = $null; foreach ($p in $paket.anahtarlar.PSObject.Properties) { if ($p.Name.ToLowerInvariant() -eq (Ben-Eposta)) { $kilit = [string]$p.Value } }
+  if (-not $kilit) { throw "bana kilitlenmemis" }
+  $ak = (Benim-Rsa).Decrypt([Convert]::FromBase64String($kilit), $true)
+  $ic = $UTF8.GetString((Aes-Coz $ak ([string]$paket.iv) ([string]$paket.sif) ([string]$paket.mac))) | ConvertFrom-Json
+  return $ic.talep
+}
+# Tek talebi aliciya yollar (test modunda ISTAKIP_TEST_POSTA klasorune).
+function Talep-Yolla($o, [string]$alici, $talep, [string]$konu, $posta) {
+  $zarf = Talep-Zarf $o $alici ([ordered]@{ talep = $talep; konu = $konu })
+  $govde = (U "Bu talep Assist ile g{00F6}nderildi (sifreli; yaln{0131}z Assist kullan{0131}c{0131}lar{0131} a{00E7}ar).") + "`r`n" + $VERI_ISARET + ([Convert]::ToBase64String($UTF8.GetBytes(($zarf | ConvertTo-Json -Depth 8 -Compress)))) + ":SON"
+  if ($env:ISTAKIP_TEST_POSTA) {
+    [System.IO.File]::WriteAllText((Join-Path $env:ISTAKIP_TEST_POSTA ([guid]::NewGuid().ToString("N") + ".json")), (@{ kime = $alici; gonderen = (Ben-Eposta); govde = $govde; sinif = "talep" } | ConvertTo-Json -Compress), $UTF8)
+    return
+  }
+  $m = (Outlook).CreateItem(0); $m.MessageClass = $GELEN_SINIF; $m.To = $alici
+  $m.OriginatorDeliveryReportRequested = $false; $m.ReadReceiptRequested = $false
+  $m.Subject = "[Assist] " + (U "Talep: g{00FC}venli ileti"); $m.Body = $govde
+  if ($posta -and $posta.id) { try { $k = Posta-Bul ([string]$posta.id) ([string]$posta.store) ([string]$posta.msgId); if ($k) { [void]$m.Attachments.Add($k, 5) } } catch {} }
+  [void]$m.Recipients.ResolveAll(); $m.Send()
+}
+# Anahtari beklenen taleplerin kuyrugu: anahtar gelmisse yollar, yoksa yeniden ister.
+function Talep-Giden-Kontrol {
+  if (-not $env:ISTAKIP_TEST_POSTA -and -not (Outlook-Uygun)) { return }
+  $o = Ortak-Oku; if (-not @($o.bekleyenTalep).Count) { return }
+  $kalan = @(); $degisti = $false
+  foreach ($b in @($o.bekleyenTalep)) {
+    $alici = ([string]$b.kime).ToLowerInvariant()
+    if (-not $o.anahtarlar[$alici]) { $once = [string]$o.istenen[$alici]; Anahtar-Iste $o $alici; if ([string]$o.istenen[$alici] -ne $once) { $degisti = $true }; $kalan += $b; continue }
+    try { Talep-Yolla $o $alici $b.talep ([string]$b.konu) $b.posta; $degisti = $true; Write-Host ("  Kuyruktaki talep yollandi: " + $alici) }
+    catch { $kalan += $b }
+  }
+  $o.bekleyenTalep = $kalan; if ($degisti) { Ortak-Yaz $o }
+}
 function Gelen-Talep-Kontrol {
   if (-not (Outlook-Uygun)) { return }
   $gk = (Ns).GetDefaultFolder(6)
   $bulunan = @(); foreach ($it in $gk.Items.Restrict("[MessageClass] = '$GELEN_SINIF'")) { $bulunan += $it }   # tasirken koleksiyon degismesin
+  # Outlook kurali (konu "[Assist] Talep:") talebi dogrudan Assist klasorune koyar: orada okunmamis olanlar da alinir
+  try { foreach ($it in (Assist-Klasoru).Items.Restrict("[MessageClass] = '$GELEN_SINIF' AND [UnRead] = True")) { $bulunan += $it } } catch {}
   if (-not $bulunan.Count) { return }
   $L = New-Object System.Collections.ArrayList
   foreach ($x in @(Gelen-Oku)) { [void]$L.Add($x) }
@@ -600,17 +826,30 @@ function Gelen-Talep-Kontrol {
       $j = $govde.IndexOf(":SON", $i); if ($j -lt 0) { continue }
       if ($j - $i -gt 90000) { $script:gelenRed[[string]$it.EntryID] = $true; Write-Host "  Gelen talep reddedildi: veri cok buyuk" -ForegroundColor Yellow; continue }
       $b64 = ($govde.Substring($i + $VERI_ISARET.Length, $j - $i - $VERI_ISARET.Length)) -replace '\s', ''
-      $t = $UTF8.GetString([Convert]::FromBase64String($b64)) | ConvertFrom-Json
+      $paket = $UTF8.GetString([Convert]::FromBase64String($b64)) | ConvertFrom-Json
+      # G6/G7 (16.10.2026): v2 ise sifreli+imzali; dogrula ve coz. v1 (eski, sifresiz) gecis icin alinir ama dogrulanmamis isaretlenir.
+      $dogrulandi = $false
+      if ($paket -and $paket.v -and [int]$paket.v -ge 2) {
+        $t = $null; $hata = ""
+        try { $t = Talep-Ic-Coz $paket $ep } catch { $hata = $_.Exception.Message }
+        if (-not $t) { $script:gelenRed[[string]$it.EntryID] = $true; Write-Host ("  Gelen talep reddedildi: " + $hata) -ForegroundColor Yellow; continue }
+        $dogrulandi = $true
+      } else { $t = $paket }
       if (-not $t -or $t -isnot [System.Management.Automation.PSCustomObject] -or ([string]$t.baslik).Length -gt 500 -or @($t.aksiyonlar).Count -gt 50) { $script:gelenRed[[string]$it.EntryID] = $true; Write-Host "  Gelen talep reddedildi: beklenmeyen bicim" -ForegroundColor Yellow; continue }
       $msgId = ""; try { $msgId = [string]$it.PropertyAccessor.GetProperty($PR_MSGID) } catch {}
-      $tasinan = $it.Move($hedef)
-      [void]$L.Add([ordered]@{ id = [guid]::NewGuid().ToString("N"); gonderen = $gonderen; gonderenEposta = $ep; alinma = $alinma; talep = $t;
+      # Okundu isareti TASIMADAN ONCE kaydedilir: kaydedilmeden tasinan ileti Assist klasorunde okunmamis kaliyor,
+      # bir sonraki taramada yeniden alinip talep IKI KEZ dusuyordu (15.10.2026)
+      $it.UnRead = $false; $it.Save()
+      if ($it.Parent.EntryID -eq $hedef.EntryID) { $tasinan = $it } else { $tasinan = $it.Move($hedef) }
+      if ($msgId -and @($L | Where-Object { $_.posta -and [string]$_.posta.msgId -eq $msgId }).Count) { continue }   # ayni ileti zaten kuyrukta
+      [void]$L.Add([ordered]@{ id = [guid]::NewGuid().ToString("N"); gonderen = $gonderen; gonderenEposta = $ep; alinma = $alinma; talep = $t; dogrulanmis = $dogrulandi;
         posta = @{ id = [string]$tasinan.EntryID; store = [string]$hedef.StoreID; msgId = $msgId; konu = [string]$tasinan.Subject; kimden = $gonderen; tarih = $alinma } })
       $yeni++
     } catch { Write-Host ("  Gelen talep okunamadi: " + $_.Exception.Message) -ForegroundColor Yellow }
   }
   if ($yeni) {
     Gelen-Yaz $L
+    $script:gelenRev++   # sayfa /api/posta/rev'den hemen gorsun (talep kuralla Assist klasorune gidince Gelen Kutusu degismez)
     Write-Host ("  " + $yeni + " gelen talep alindi")
     try { Bildirim-Goster $BLD_AD ($(if ($yeni -eq 1) { "1 yeni talep geldi" } else { "$yeni yeni talep geldi" })) "talep" } catch {}
   }
@@ -690,7 +929,7 @@ $bldDos = Join-Path $veriKok "bildirim.json"
 $script:bldSon = [datetime]::MinValue
 $script:postaSon = [datetime]::MinValue
 $script:postaBekleyen = 0
-$script:gelenSon = [datetime]::MinValue; $script:gelenRev = 0; $script:gelenOkunmamis = -1; $script:gelenToplam = -1   # Gelen Kutusu izleme
+$script:testPostaSon = [datetime]::MinValue; $script:gelenSon = [datetime]::MinValue; $script:gelenRev = 0; $script:gelenOkunmamis = -1; $script:gelenToplam = -1   # Gelen Kutusu izleme
 $script:bildirimHazir = $false
 try {
   $null = [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime]
@@ -1110,11 +1349,13 @@ while ($listener.IsListening) {
       $script:bldSon = Get-Date
       try { Bildirim-Kontrol } catch { Write-Host ("  Bildirim hatasi: " + $_.Exception.Message) -ForegroundColor Yellow }
       if (-not $env:ISTAKIP_PORT) { try { Gelen-Talep-Kontrol } catch { Write-Host ("  Gelen talep hatasi: " + $_.Exception.Message) -ForegroundColor Yellow } }
+      if (-not $env:ISTAKIP_PORT) { try { Talep-Giden-Kontrol } catch { Write-Host ("  Talep giden hatasi: " + $_.Exception.Message) -ForegroundColor Yellow } }
       if (-not $env:ISTAKIP_PORT) { try { Ortak-Kural } catch {} }
       if (-not $env:ISTAKIP_PORT) { try { Ortak-Kontrol } catch { Write-Host ("  Ortak is hatasi: " + $_.Exception.Message) -ForegroundColor Yellow } }
       try { Gecici-Temizle } catch {}
       try { Mobil-Disa-Aktar } catch { Write-Host ("  Mobil disa aktarma hatasi: " + $_.Exception.Message) -ForegroundColor Yellow }
     }
+    if ($env:ISTAKIP_TEST_POSTA -and ((Get-Date) - $script:testPostaSon).TotalSeconds -ge 2) { $script:testPostaSon = Get-Date; try { Ortak-Kontrol } catch { Write-Host ("  [test] ortak hata: " + $_.Exception.Message) } }
     # Gelen Kutusu izleme (5 sn): yalniz okunmamis + toplam sayi okunur (hafif, korumali alan yok). Degisince
     # gelenRev artar; sayfa ve tepsi /api/posta/rev'i yoklayip hemen tazelenir (yeni posta aninda dusar).
     if (((Get-Date) - $script:gelenSon).TotalSeconds -ge 5) {
@@ -1123,11 +1364,11 @@ while ($listener.IsListening) {
         try {
           $gk = (Ns).GetDefaultFolder(6); $u = [int]$gk.UnReadItemCount; $c = [int]$gk.Items.Count
           $ak = 0; try { $ak = [int]$gk.Folders.Item("Assist").UnReadItemCount } catch {}
-          if ($ak -gt 0 -and -not $env:ISTAKIP_PORT) { try { Ortak-Kontrol } catch {} }   # kuralla Assist klasorune ortak is iletisi geldi
+          if ($ak -gt 0 -and -not $env:ISTAKIP_PORT) { try { Ortak-Kontrol } catch {}; try { Gelen-Talep-Kontrol } catch {} }   # kuralla Assist klasorune ileti geldi
           if ($u -ne $script:gelenOkunmamis -or $c -ne $script:gelenToplam) {
             if ($script:gelenToplam -ge 0) {
               $script:gelenRev++
-              if (-not $env:ISTAKIP_PORT) { try { Ortak-Kontrol } catch {} }   # ortak is iletisi geldiyse hemen islensin
+              if (-not $env:ISTAKIP_PORT) { try { Ortak-Kontrol } catch {}; try { Gelen-Talep-Kontrol } catch {} }   # ortak is / talep iletisi geldiyse hemen islensin
             }
             $script:gelenOkunmamis = $u; $script:gelenToplam = $c
           }
@@ -1600,7 +1841,23 @@ while ($listener.IsListening) {
       # ---------- ORTAK IS TAKIBI ----------
       elseif ($yol -eq "/api/ortak" -and $metod -eq "GET") {
         $o = Ortak-Oku; $b = Ben-Kimlik
-        Yaz-Json $ctx @{ ok = $true; ben = $b; konular = @($o.konular); bekleyen = @($o.giden).Count; kural = $script:ortakKural }
+        $deg = @(foreach ($e in $o.degisen.Keys) { @{ eposta = $e; parmak = $o.degisen[$e].parmak; eski = $(if ($o.anahtarlar[$e]) { $o.anahtarlar[$e].parmak } else { "" }) } })
+        $kon = @($o.konular | Select-Object * -ExcludeProperty anahtar)   # konu anahtari sayfaya verilmez
+        Yaz-Json $ctx @{ ok = $true; ben = $b; konular = $kon; bekleyen = @($o.giden).Count; kural = $script:ortakKural
+          parmak = (Parmak (Benim-Acik)); degisen = $deg; anahtarBekleyen = @($o.bekleyenGiden | ForEach-Object { $_.kime } | Select-Object -Unique).Count }
+      }
+      # Bir kisinin anahtari degistiyse (yeni bilgisayar) kullanici onaylar; bekleyen girisleri islenir
+      elseif ($yol -eq "/api/ortak/anahtar-kabul" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json; $o = Ortak-Oku; $e = ([string]$g.eposta).ToLowerInvariant()
+        if (-not $o.degisen[$e]) { Yaz-Hata $ctx (U "Bu ki{015F}i i{00E7}in bekleyen anahtar de{011F}i{015F}ikli{011F}i yok.") 404 }
+        else {
+          $o.anahtarlar[$e] = $o.degisen[$e]; [void]$o.degisen.Remove($e)
+          $bek = @($o.bekleyenGelen | Where-Object { $_.gonderen -eq $e }); $o.bekleyenGelen = @($o.bekleyenGelen | Where-Object { $_.gonderen -ne $e })
+          $n = 0; foreach ($x in $bek) { try { $n += Ortak-Isle $o $x.paket $e } catch {} }
+          Bekleyen-Gonder $o $e
+          Ortak-Yaz $o
+          Yaz-Json $ctx @{ ok = $true; eklenen = $n }
+        }
       }
       # Kural elle eklendiyse ya da yeniden denenmek isteniyorsa: tekrar bak / kur
       elseif ($yol -eq "/api/ortak/kural" -and $metod -eq "POST") {
@@ -1627,7 +1884,7 @@ while ($listener.IsListening) {
           $o.konular = @($o.konular) + @($k)
           $gitti = Ortak-Gonder $o @($kat | ForEach-Object { $_.eposta }) @{ v = 1; konu = (Ortak-Baslik $k); girisler = @($gl) }
           Ortak-Yaz $o
-          Yaz-Json $ctx @{ ok = $true; id = $k.id; gonderildi = $gitti }
+          Yaz-Json $ctx @{ ok = $true; id = $k.id; gonderildi = $gitti.ok; anahtar = $gitti.anahtar }
         }
       }
       elseif ($yol -eq "/api/ortak/giris" -and $metod -eq "POST") {
@@ -1642,7 +1899,7 @@ while ($listener.IsListening) {
           $k.girisler = @($k.girisler) + @($gr); $k.okunan = $gr.t
           $gitti = Ortak-Gonder $o @($k.katilimcilar | ForEach-Object { $_.eposta }) @{ v = 1; konu = (Ortak-Baslik $k); girisler = @($gr) }
           Ortak-Yaz $o
-          Yaz-Json $ctx @{ ok = $true; gonderildi = $gitti }
+          Yaz-Json $ctx @{ ok = $true; gonderildi = $gitti.ok; anahtar = $gitti.anahtar }
         }
       }
       # Yalniz konuyu acan: katilimci ekle / kapat / yeniden ac / gecmisi paylas
@@ -1652,7 +1909,7 @@ while ($listener.IsListening) {
         if (-not $k) { Yaz-Hata $ctx (U "Konu bulunamad{0131}.") 404 }
         elseif (([string]$k.acan.eposta).ToLowerInvariant() -ne $b.eposta) { Yaz-Hata $ctx (U "Bu i{015F}lemi yaln{0131}z konuyu a{00E7}an yapabilir.") 403 }
         else {
-          $islem = [string]$g.islem; $gitti = $true
+          $islem = [string]$g.islem; $gitti = @{ ok = $true; anahtar = 0 }
           if ($islem -eq "katilimci") {
             $mevcut = @{}; foreach ($x in $k.katilimcilar) { $mevcut[([string]$x.eposta).ToLowerInvariant()] = $true }
             $yeni = @(@($g.kisiler) | Where-Object { $_.eposta -match '^[^@\s;,]+@[^@\s;,]+\.[A-Za-z]{2,}$' -and -not $mevcut[([string]$_.eposta).ToLowerInvariant()] } | ForEach-Object { [pscustomobject]@{ ad = [string]$_.ad; eposta = ([string]$_.eposta).ToLowerInvariant() } })
@@ -1681,7 +1938,7 @@ while ($listener.IsListening) {
           else { Yaz-Hata $ctx "Bilinmeyen islem." 400; $ctx.Response.OutputStream.Close(); continue }
           $k.okunan = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss")
           Ortak-Yaz $o
-          Yaz-Json $ctx @{ ok = $true; gonderildi = $gitti }
+          Yaz-Json $ctx @{ ok = $true; gonderildi = $gitti.ok; anahtar = $gitti.anahtar }
         }
       }
       elseif ($yol -eq "/api/ortak/okundu" -and $metod -eq "POST") {
@@ -1713,6 +1970,10 @@ while ($listener.IsListening) {
       elseif ($yol -eq "/api/pencere/hedef") {
         if ($metod -eq "POST") { $script:pencereHedef = [string]((Govde-Oku $ctx) | ConvertFrom-Json).hedef; Yaz-Json $ctx @{ ok = $true } }
         else { $h = [string]$script:pencereHedef; $script:pencereHedef = ""; Yaz-Json $ctx @{ ok = $true; hedef = $h } }
+      }
+      elseif ($yol -eq "/api/pencere/ust-kaldir" -and $metod -eq "POST") {   # acilis ekrani bitti: pencere en ustte kalmasin
+        & (Join-Path $betikKok "pencere.ps1") -UstKaldir
+        Yaz-Json $ctx @{ ok = $true }
       }
       elseif ($yol -eq "/api/pencere/kapat" -and $metod -eq "POST") {
         & (Join-Path $betikKok "pencere.ps1") -Kapat
@@ -1976,6 +2237,13 @@ while ($listener.IsListening) {
       # ---------- bayrak ekle / kaldir (Outlook'taki postaya islenir) ----------
       # ---------- Gelen Kutusu: tumunu okundu yap (Posta Kutusu sayfasindaki dugme) ----------
       # Yalniz Gelen Kutusu'nun okunmamislari; posta silinmez/tasinmaz, yalniz "okundu" isaretlenir.
+      # Assist'te acilan posta penceresi kapatilinca o posta Outlook'ta okundu yapilir (kullanici istedi, 15.10.2026)
+      elseif ($yol -eq "/api/posta/okundu-tek" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json
+        $it = Posta-Bul ([string]$g.id) ([string]$g.store) ([string]$g.msgId)
+        if (-not $it) { Yaz-Hata $ctx "Posta bulunamadi." 404 }
+        else { if ($it.UnRead) { $it.UnRead = $false; $it.Save() }; Yaz-Json $ctx @{ ok = $true; kalan = [int]((Ns).GetDefaultFolder(6).UnReadItemCount) } }
+      }
       elseif ($yol -eq "/api/posta/okundu" -and $metod -eq "POST") {
         $gk = (Ns).GetDefaultFolder(6); $n = 0
         $liste = @(); foreach ($it in $gk.Items.Restrict("[UnRead] = True")) { $liste += $it }
@@ -2027,20 +2295,19 @@ while ($listener.IsListening) {
         $kime = [string]$g.kime
         if ($kime -notmatch '^[^@\s;,]+@[^@\s;,]+\.[A-Za-z]{2,}$') { Yaz-Hata $ctx "Gecersiz e-posta adresi." 400 }
         else {
-          $b64 = [Convert]::ToBase64String($UTF8.GetBytes(($g.talep | ConvertTo-Json -Depth 6 -Compress)))
-          $m = (Outlook).CreateItem(0)
-          $m.MessageClass = $GELEN_SINIF
-          $m.To = $kime
-          $m.OriginatorDeliveryReportRequested = $false; $m.ReadReceiptRequested = $false   # "Delivered" bildirimi gelmesin
-          $m.Subject = "[Assist] " + [string]$g.konu
-          $m.Body = [string]$g.govde + "`r`n`r`n-----`r`n" + (U "Bu talep Assist ile g{00F6}nderildi; Assist kullan{0131}yorsan{0131}z portal{0131}n{0131}za kendili{011F}inden d{00FC}{015F}er.") + "`r`n" + $VERI_ISARET + $b64 + ":SON"
-          if ($g.posta -and $g.posta.id) {
-            try { $kaynak = Posta-Bul ([string]$g.posta.id) ([string]$g.posta.store) ([string]$g.posta.msgId); if ($kaynak) { [void]$m.Attachments.Add($kaynak, 5) } } catch {}
+          # G6/G7 (16.10.2026): talep uctan uca sifreli + imzali gider (ortak isteki altyapi).
+          # Alicinin acik anahtari yoksa istenir ve talep kuyruga alinir; dakikalik kontrolde yollanir.
+          $o = Ortak-Oku; $alici = $kime.ToLowerInvariant()
+          if (-not $o.anahtarlar[$alici]) {
+            Anahtar-Iste $o $alici
+            $o.bekleyenTalep = @($o.bekleyenTalep) + @([pscustomobject]@{ kime = $alici; talep = $g.talep; konu = [string]$g.konu; posta = $g.posta; t = (Get-Date).ToString("o") })
+            Ortak-Yaz $o
+            Write-Host ("  Talep kuyrukta: " + $alici + " guvenlik anahtari bekleniyor")
+            Yaz-Json $ctx @{ ok = $true; beklemede = $true }
+          } else {
+            try { Talep-Yolla $o $alici $g.talep ([string]$g.konu) $g.posta; Write-Host "  Talep gonderildi (sifreli Assist iletisi)"; Yaz-Json $ctx @{ ok = $true } }
+            catch { Write-Host ("  Talep gonderilemedi: " + $_.Exception.Message) -ForegroundColor Yellow; Yaz-Hata $ctx ("Talep gonderilemedi: " + $_.Exception.Message) 500 }
           }
-          [void]$m.Recipients.ResolveAll()
-          $m.Send()
-          Write-Host "  Talep gonderildi (Assist iletisi)"
-          Yaz-Json $ctx @{ ok = $true }
         }
       }
       # Gelen talep kuyrugu: sayfa alir, kayda donusturur, sonra "al" ile kuyruktan siler
@@ -2113,11 +2380,12 @@ while ($listener.IsListening) {
   }
 }
 
+
 # SIG # Begin signature block
 # MIIdkQYJKoZIhvcNAQcCoIIdgjCCHX4CAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCjhkILT+v8yc3b
-# /q/AGHpJAEkxyD4C6/2iY0oRrEPpRKCCF1QwggQWMIICfqADAgECAhA2m8l6HI/0
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCCsjuavnISb4ND
+# lrl2d6KZZP3j2mBNa7MjL+KKIX+rcKCCF1QwggQWMIICfqADAgECAhA2m8l6HI/0
 # gkepWCR7MrEPMA0GCSqGSIb3DQEBCwUAMCMxITAfBgNVBAMMGFNURkEgQXNzaXN0
 # IEtvZCBJbXphbGFtYTAeFw0yNjEwMTUwOTIwMzRaFw0zMTEwMTUwOTMwMzNaMCMx
 # ITAfBgNVBAMMGFNURkEgQXNzaXN0IEtvZCBJbXphbGFtYTCCAaIwDQYJKoZIhvcN
@@ -2245,31 +2513,31 @@ while ($listener.IsListening) {
 # BZMwggWPAgEBMDcwIzEhMB8GA1UEAwwYU1RGQSBBc3Npc3QgS29kIEltemFsYW1h
 # AhA2m8l6HI/0gkepWCR7MrEPMA0GCWCGSAFlAwQCAQUAoIGEMBgGCisGAQQBgjcC
 # AQwxCjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYB
-# BAGCNwIBCzEOMAwGCisGAQQBgjcCARUwLwYJKoZIhvcNAQkEMSIEIDTgMvkhFXai
-# 0BROJbAqWQstqGANrG4pcDWBgARmrzkuMA0GCSqGSIb3DQEBAQUABIIBgB5F3CdX
-# 6jlpcL+BRAUZADmoFkp9U41lxyxXmklC46Esthc1Nqxztrjcxuft+AVBtvL6fgnP
-# 8EWii6D10RXxX1KG1pO5bHvLMP0vByXLW/WlDIFxVXb7maeXg99PIHLWU62aLT3+
-# ty3gzOOBJYcrQBGMK/pB0qSxfxzPcmEQBaF8DaSBqwtZ5X5Pm7erXdO5CUS3H5jm
-# 7okEQdazlhYF1cSUaeY7QcTS/LTMDXNepsK3cq2+UcbTLIcoeNv5JTfZzh5wM0++
-# d9mpRdAdyDT+E/nyuMog/phtcPMRsgdxpBwW4fQSxrqbZ4/haiyNKf4tPOzTVdoD
-# btCVzapc/istPt+RPZtTTV5zWBVA/Dxnymhwe9hoNUddXxtomUzyUD1ufLRB88Ot
-# qUzx87kswGcSeEN7GRqIKN5HnpDTAZx1Oqt08OlbATbV7Or33w3j7MKbiZSDZyfB
-# iScEoBx7/sYtdh0y8YmBsOjpEd239/hf921tIBXGjAVLd5krsr/r93U7RqGCAyYw
+# BAGCNwIBCzEOMAwGCisGAQQBgjcCARUwLwYJKoZIhvcNAQkEMSIEIIH2SJ+zX2CZ
+# rK/bAVGbqsj/i4xUbqydFQtFfuwcPQ3cMA0GCSqGSIb3DQEBAQUABIIBgGE48TJD
+# HspY/feenBon5H3EllSVnqqMCqCcxNEwAYJAcr+rElQVDEQMCHceX/B7YxqTNucI
+# hSuVUM+rtSo7ZiLHkyhNzoFm77Hok7se+/vY9lsg8Nqf0Gc230WuLnah0zVYJ1XD
+# w8+4BsPGoPlP5nMogTeuHAeJ+hu3pU4BJXEFnYb9/2bfS4whk7dCNKnCVBp08iit
+# 3/+9XDZLBbtBhyGCKn/zVv1ljv0OGvbTEmxY+Bk1Ck9kr+dxMnNPIS95kyabjadr
+# PrDhYneQU+RXska7bPVh/uWPtP0daUe9zPCVscy7qMVKHnbluE8CK3rTOPVuw550
+# aiBoWO20UNgKZ6RkXh6TiFJ72MdpHItt1cSQ2Z8CxLzzEdNZs2L8WAcepVYb9TyC
+# F5IBBKsP78ERi6B0/FSOmSiK7II305CjxaKJfyaTmi02+IZEQWT61etvsThDKUwV
+# onjcVsvzFMhNNxJspXvflWDyILWQfeYpGkSBrKwR0ZVyDWvoRdEfGMXog6GCAyYw
 # ggMiBgkqhkiG9w0BCQYxggMTMIIDDwIBATB9MGkxCzAJBgNVBAYTAlVTMRcwFQYD
 # VQQKEw5EaWdpQ2VydCwgSW5jLjFBMD8GA1UEAxM4RGlnaUNlcnQgVHJ1c3RlZCBH
 # NCBUaW1lU3RhbXBpbmcgUlNBNDA5NiBTSEEyNTYgMjAyNSBDQTECEAhP3DNPfkVO
 # 28MPj/mSGDUwDQYJYIZIAWUDBAIBBQCgaTAYBgkqhkiG9w0BCQMxCwYJKoZIhvcN
-# AQcBMBwGCSqGSIb3DQEJBTEPFw0yNjEwMTUxMDUxNDJaMC8GCSqGSIb3DQEJBDEi
-# BCChNjfmvdIrc/P1C38j6wKxw5rhJ8t8SMYFkcAHgLNlzDANBgkqhkiG9w0BAQEF
-# AASCAgAAYDxR2i+TtzACnxGWkor0GgVr8xnpebGkbvS4FM85aTa1a5SSjQ2Di7Hj
-# HF0/Ds4egI66vTvhfVV6jegSUX0d9CQp2BzHX1HElWkGGvDYAIF3GbVdsY2eYSIx
-# HjONwQRrHmfM5KPPNwx4pJvAvLQKbQyiJSiL+wp2kHqLIMNuE4lMSurnWRg7LLY2
-# dUw0S0KABv1Fc/Ta9pM1UpDBqQHxq/R5eCC4o1hMOEid8+u3cp/r/zG1oUphPLq/
-# 3rDcoq+iuGh2O62NSX+gYfRG8YkDyLxmY1Se6xps+ma60sCBu3j+U6VzIOQzM10o
-# O2P2uLgBHj0t+ejYbcBNW2qqAMLQINHidBIKd3FHihsRz5POaZXgUtYXim1MH9OV
-# Gx9NdCNFEPpVwy1jt0oVjUn8RKOH92ERiHqjVwFLzV5cxPfE0NbVyjfQFHPr/qui
-# uWFFH5y/izbyXxTaCwZ9VEZ1Db0ayMsOPimUMLb+OztdlkXhmldu3j/Z4tLh2Cmx
-# +Ozj0T+sW1NsK4hVFv3PS3jLIy2UmKQ7nJYZSRmfkok5FwsbihgPi6z5q3wVxjgY
-# hbIjBU0WMWxZ0daT+HzTLTLa/GiO+cALKkkXVV7Qs0YXGiTbOnu8aomeKoQF68qL
-# 2gmF5tJtOqEmB+SoXsW1+9vM0UhCHdg8g5SdA+3fd7OETUhddA==
+# AQcBMBwGCSqGSIb3DQEJBTEPFw0yNjEwMTUxMjI1MDlaMC8GCSqGSIb3DQEJBDEi
+# BCC2QcZ2Fyzg4gRR/ptOooXHVlDvXm9ZZHfvPPk5mqhdUzANBgkqhkiG9w0BAQEF
+# AASCAgCz/o9lErXfUBCqi0qv6+XPTT0dN6Z0VkcYixmvwbifH1Ci/3/RZeitp+KT
+# gvnfTkoWdGejVkr0LTQg0QXcxWqdttJx7ECIQuZTXMGpYxPwGlG82S9By6VLu7Cg
+# 8zYAw53t4Ji3I6+xv6oHAZRqzKm/DQy67XcgZwAgGLIpNA1nyoUiBipCcXhLStDu
+# yPY3XaIGLZkRAj7H+aAVkSiUILM1I98Naoer4cRyMOd32SYTpCIYFf37VBbeif1t
+# Da9s+fiqtqQ/IeWcJiHHyVIo4hBnTAN4vQ97vXqA8vVGNbk1hHLmu2x5zhNaeeLn
+# qkuKAnyx59yr/+mzvOQ8zGk1nf1Q95E5oboqbSLezs1IPobRwreYXTXhUdvL7wXE
+# LK/v8P7uAaK5r/J02w4kUblh9Q7CW9dExbNnBcKakaSOQz2PZ9k9OVEKSA5mLDZH
+# mNp3U3hUpm3BTyP7m+QhBld22KgYjZrMzVeGKIKLX09JMwwOL5+dTdz4o44OPlv4
+# /aRxNGwWNdueB19AWTTgc551hYngEd0zMYPo6v/KuT4FtWB/h6LOMAph/KZi3MbE
+# NTF8hQpOU3cN9AzpjnoMqYu0a2ebMzzWXkiujugcbfBQwcFeHRwA+qqaA1fVlLsG
+# PoOZObOQ9MytkISNg0Tq8zLMk7EqSteSSehfNYXkVPN4RFkINQ==
 # SIG # End signature block
