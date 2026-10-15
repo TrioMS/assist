@@ -9,4 +9,9 @@ rem  Sira: sunucu > tepsi simgesi > uygulama penceresi (acilis ekrani) > Outlook
 rem  MiCollab / Teams > MiCollab izleyici. Hatalar mesaj kutusunda gosterilir.
 rem  Kayit: %LOCALAPPDATA%\Assist\_baslangic_<BILGISAYAR>.log
 rem ===================================================================
+rem GUVENLIK (15.10.2026): imza zorunlulugu acik bilgisayarda yerel (AllSigned) baslatici kullanilir.
+if exist "%LOCALAPPDATA%\Assist\guvenlik.json" if exist "%LOCALAPPDATA%\Assist\Assist.bat" (
+  call "%LOCALAPPDATA%\Assist\Assist.bat"
+  exit /b
+)
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Sunucu\gizli.ps1" -Betik "%~dp0Sunucu\baslat.ps1" -Port 8096

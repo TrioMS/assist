@@ -16,6 +16,10 @@
 #  Dinleme yalnizca localhost'tur. /api uclari ozel bir baslik ister
 #  (X-IsTakip); baska bir web sayfasi tarayici uzerinden bu uclara
 #  istek atamasin diye.
+#  GUVENLIK (15.10.2026): /api uclari ayrica OTURUM ANAHTARI ister
+#  (X-Assist-Anahtar); /__saglik anahtarla kanit uretir; imza zorunlu
+#  kipte imzasiz kod yeniden yuklenmez, dogrulanamayan sayfa sunulmaz.
+#  Ayrinti: Sunucu\guvenlik.ps1
 #
 #  NOT: Bu dosya bilincli olarak ASCII'dir (PowerShell 5.1 BOM'suz UTF-8
 #  dosyayi yanlis okur). Turkce metinler portal tarafinda durur.
@@ -25,6 +29,12 @@ $SURUM = "0.1.0"
 
 $betikKok = $PSScriptRoot
 $BETIK_ZAMAN = (Get-Item -LiteralPath $PSCommandPath).LastWriteTimeUtc.Ticks
+. (Join-Path $betikKok "guvenlik.ps1")
+$GUV = Assist-Guvenlik-Ayar
+# Oturum anahtari: sunucu kendini yeniden yukleyince (ayni surec) ayni anahtar korunur.
+if ($global:AssistAnahtar -and (Assist-Anahtar-Oku) -eq $global:AssistAnahtar) { $ANAHTAR = $global:AssistAnahtar }
+else { $ANAHTAR = Assist-Anahtar-Hazirla; $global:AssistAnahtar = $ANAHTAR }
+$script:katalogAnahtar = ""; $script:katalogOk = $false   # sayfa katalog dogrulamasi onbellegi
 
 # --- Ayar ------------------------------------------------------------
 # Ayar dosyasi MAKINEYE OZELDIR: klasor paylasilirsa herkesin kendi
@@ -117,6 +127,12 @@ function Sifre-Gocu {
   }
   return $n
 }
+# Bulgu 3 (15.10.2026): acilmak icin cozulen dosyaya "internetten geldi" isareti (Mark-of-the-Web, Zone 3)
+# konur. Isaretsiz dosyada Office Korumali Gorunum'u ve internet makrolarini engelleme kuralini uygulamiyordu.
+function Internet-Isareti([string]$yol) {
+  try { Set-Content -LiteralPath $yol -Stream "Zone.Identifier" -Value "[ZoneTransfer]`r`nZoneId=3" -Encoding ASCII -ErrorAction Stop }
+  catch { Write-Host ("  Internet isareti konamadi: " + $_.Exception.Message) -ForegroundColor Yellow }
+}
 # Acmak icin cozulen posta kopyalari 1 saat sonra silinir (Outlook aciksa kilitli; sonra denenir).
 function Gecici-Temizle {
   if (-not (Test-Path -LiteralPath $acKok)) { return }
@@ -184,8 +200,21 @@ function Yaz-Hata($ctx, [string]$mesaj, [int]$kod) {
   Yaz-Json $ctx @{ ok = $false; hata = $mesaj } $kod
 }
 function Govde-Oku($ctx) {
-  $sr = New-Object System.IO.StreamReader($ctx.Request.InputStream, $UTF8)
-  $s = $sr.ReadToEnd(); $sr.Close(); return $s
+  # Bulgu 10 (15.10.2026) + G1 (16.10.2026): govde ustten sinirli okunur. ContentLength64'e GUVENILMEZ:
+  # chunked (Transfer-Encoding: chunked) istekte -1 gelir ve eski kontrol atlanirdi; burada gercek
+  # okunan bayt sayisi sinirlanir.
+  $sinir = 52428800
+  if ($ctx.Request.ContentLength64 -gt $sinir) { throw "Istek govdesi cok buyuk." }
+  $tampon = New-Object byte[] 65536
+  $ms = New-Object System.IO.MemoryStream
+  $gs = $ctx.Request.InputStream
+  try {
+    while (($o = $gs.Read($tampon, 0, $tampon.Length)) -gt 0) {
+      $ms.Write($tampon, 0, $o)
+      if ($ms.Length -gt $sinir) { throw "Istek govdesi cok buyuk." }
+    }
+    return $UTF8.GetString($ms.ToArray())
+  } finally { $ms.Dispose() }
 }
 # Sorgu parametresi UTF-8 olarak okunur (.NET QueryString Turkce harfleri bozar).
 function Sorgu($ctx, [string]$ad) {
@@ -463,9 +492,18 @@ function Ortak-Al($o, $paket, [string]$gonderen) {
   $acanGonderdi = (([string]$k.acan.eposta).ToLowerInvariant() -eq $gonderen)
   $var = @{}; foreach ($g in $k.girisler) { $var[[string]$g.id] = $true }
   $n = 0
+  $gelecek = (Get-Date).AddDays(1)
   foreach ($g in @($paket.girisler | ForEach-Object { $_ })) {
     if (-not $g.id -or $var[[string]$g.id]) { continue }
-    if (([string]$g.yazar.eposta).ToLowerInvariant() -ne $gonderen -and -not $acanGonderdi) { continue }
+    # G2 (16.10.2026): zaman GERCEK tarih olarak ayristirilir (metin karsilastirmasi bicim hilesiyle asilabiliyordu)
+    $gt = [datetime]::MinValue
+    if (-not $g.t -or -not [datetime]::TryParse([string]$g.t, [ref]$gt) -or $gt -gt $gelecek) { continue }
+    if (([string]$g.yazar.eposta).ToLowerInvariant() -ne $gonderen) {
+      # Bulgu 4 (15.10.2026): baskasinin girisi yalniz konuyu acan aktarabilir ve "aktaran" ile isaretlenir;
+      # yazari dogrulanamadigi icin sayfada "aktarilan" diye gosterilir.
+      if (-not $acanGonderdi) { continue }
+      $g | Add-Member -NotePropertyName aktaran -NotePropertyValue $gonderen -Force
+    }
     $k.girisler = @($k.girisler) + @($g); $var[[string]$g.id] = $true; $n++
   }
   $k.girisler = @($k.girisler | Sort-Object { [string]$_.t })
@@ -547,14 +585,23 @@ function Gelen-Talep-Kontrol {
   $L = New-Object System.Collections.ArrayList
   foreach ($x in @(Gelen-Oku)) { [void]$L.Add($x) }
   $hedef = Assist-Klasoru; $yeni = 0
+  # Bulgu 5 (15.10.2026): yalniz kendi kurum alan adindan, makul boyutta ve dakikada en cok 20 talep alinir.
+  # Kurala uymayan ileti Gelen Kutusu'nda normal posta olarak KALIR (tasinmaz, kayit olusmaz).
+  $benAlan = ((Ben-Eposta) -split '@')[-1]
+  if (-not $script:gelenRed) { $script:gelenRed = @{} }   # reddedilen iletiler her dakika yeniden yazilmasin
   foreach ($it in $bulunan) {
+    if ($yeni -ge 20) { break }
     try {
+      if ($script:gelenRed.ContainsKey([string]$it.EntryID)) { continue }
+      $gonderen = [string]$it.SenderName; $ep = Gonderen-Eposta $it; $alinma = Tarih-Iso $it.ReceivedTime
+      if (-not $benAlan -or ([string]$ep).ToLowerInvariant() -notlike ("*@" + $benAlan)) { $script:gelenRed[[string]$it.EntryID] = $true; Write-Host "  Gelen talep reddedildi: kurum disi gonderen" -ForegroundColor Yellow; continue }
       $govde = [string]$it.Body
       $i = $govde.IndexOf($VERI_ISARET); if ($i -lt 0) { continue }
       $j = $govde.IndexOf(":SON", $i); if ($j -lt 0) { continue }
+      if ($j - $i -gt 90000) { $script:gelenRed[[string]$it.EntryID] = $true; Write-Host "  Gelen talep reddedildi: veri cok buyuk" -ForegroundColor Yellow; continue }
       $b64 = ($govde.Substring($i + $VERI_ISARET.Length, $j - $i - $VERI_ISARET.Length)) -replace '\s', ''
       $t = $UTF8.GetString([Convert]::FromBase64String($b64)) | ConvertFrom-Json
-      $gonderen = [string]$it.SenderName; $ep = Gonderen-Eposta $it; $alinma = Tarih-Iso $it.ReceivedTime
+      if (-not $t -or $t -isnot [System.Management.Automation.PSCustomObject] -or ([string]$t.baslik).Length -gt 500 -or @($t.aksiyonlar).Count -gt 50) { $script:gelenRed[[string]$it.EntryID] = $true; Write-Host "  Gelen talep reddedildi: beklenmeyen bicim" -ForegroundColor Yellow; continue }
       $msgId = ""; try { $msgId = [string]$it.PropertyAccessor.GetProperty($PR_MSGID) } catch {}
       $tasinan = $it.Move($hedef)
       [void]$L.Add([ordered]@{ id = [guid]::NewGuid().ToString("N"); gonderen = $gonderen; gonderenEposta = $ep; alinma = $alinma; talep = $t;
@@ -660,7 +707,7 @@ try {
 $script:assistAdres = $false
 try {
   $rk = "HKCU:\Software\Classes\assist"
-  $komut = 'powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + (Join-Path $betikKok "pencere.ps1") + '" -Port ' + $port + ' -Url "%1"'
+  $komut = 'powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy ' + (Assist-Politika) + ' -File "' + (Join-Path $betikKok "pencere.ps1") + '" -Port ' + $port + ' -Url "%1"'
   if (-not (Test-Path "$rk\shell\open\command")) { New-Item -Path "$rk\shell\open\command" -Force | Out-Null }
   Set-ItemProperty -Path $rk -Name "(default)" -Value "URL:Assist"
   Set-ItemProperty -Path $rk -Name "URL Protocol" -Value ""
@@ -996,7 +1043,7 @@ Gecici-Temizle
 # kurumsal guvenlik yazilimi SILIYOR (zararli yazilim kalibi); bat dogrudan acilir.
 function Assist-Kisayol([string]$lnk) {
   $k = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
-  $k.TargetPath = Join-Path $portalKok "Assist.bat"; $k.Arguments = ""
+  $k.TargetPath = Assist-Baslatici $portalKok; $k.Arguments = ""   # imza zorunluysa yerel baslatici
   $k.WorkingDirectory = $portalKok; $k.WindowStyle = 7; $k.Description = "STFA Assist"
   $k.IconLocation = (Join-Path $portalKok "AssistA.ico") + ",0"
   $k.Save()
@@ -1088,12 +1135,26 @@ while ($listener.IsListening) {
       }
     }
     try { $z = (Get-Item -LiteralPath $PSCommandPath).LastWriteTimeUtc.Ticks } catch { $z = $BETIK_ZAMAN }
-    if ($z -ne $BETIK_ZAMAN) { $yenidenYukle = $true; break }
+    if ($z -ne $BETIK_ZAMAN) {
+      # Imza zorunlu kipte yeni kod, sabitlenen sertifikayla gecerli imzali degilse YUKLENMEZ (guvenlik bulgu 1).
+      if ($GUV.imzaZorunlu) {
+        Start-Sleep -Milliseconds 500   # dosya yazimi bitsin
+        $yeniOk = (Assist-Imza-Gecerli $PSCommandPath $GUV.parmakIzi) -and (Assist-Imza-Gecerli (Join-Path $betikKok "guvenlik.ps1") $GUV.parmakIzi)
+        if (-not $yeniOk) {
+          Write-Host "  GUVENLIK: sunucu dosyasi degisti ama imzasi gecersiz - yeniden YUKLENMEDI, mevcut surum calisiyor." -ForegroundColor Red
+          $BETIK_ZAMAN = $z; continue
+        }
+      }
+      $yenidenYukle = $true; break
+    }
   }
   if ($yenidenYukle) {
     Write-Host "  Sunucu dosyasi guncellendi - yeniden yukleniyor..." -ForegroundColor Cyan
     Start-Sleep -Milliseconds 500   # dosya yazimi bitsin
     try { $listener.Stop(); $listener.Close() } catch {}
+    # Bulgu 10 (15.10.2026): ic ice "& $PSCommandPath" her guncellemede cagri yiginini buyutuyordu.
+    # Yeni sunucu_calistir.ps1 dongusu varsa ona birakilir (yigin buyumez); eski baslatici icin eski yol.
+    if ($global:AssistSunucuDongusu) { $global:AssistYenidenYukle = $true; return }
     & $PSCommandPath
     return
   }
@@ -1103,19 +1164,29 @@ while ($listener.IsListening) {
     $metod = $ctx.Request.HttpMethod
 
     if ($yol -eq "/__saglik") {
-      Yaz-Json $ctx @{ ok = $true; urun = "istakip"; surum = $SURUM; portalKok = $portalKok; veriKok = $veriKok;
-                       pid = $PID; betikZaman = [string]$BETIK_ZAMAN }
+      # Kanit: istemci (baslat/pencere/tepsi) rastgele nonce yollar; sunucu oturum anahtariyla HMAC uretir.
+      # Anahtari bilmeyen bir program portu kapsa bile Assist sunucusu taklidi yapamaz (guvenlik bulgu 2).
+      $sg = [ordered]@{ ok = $true; urun = "istakip"; surum = $SURUM; portalKok = $portalKok; pid = $PID; betikZaman = [string]$BETIK_ZAMAN }
+      $nonce = Sorgu $ctx "nonce"
+      if ($nonce -match '^[0-9a-f]{32}$') { $sg.kanit = Assist-Hmac $ANAHTAR (Assist-Kanit-Metni ([pscustomobject]$sg) $nonce) }
+      Yaz-Json $ctx $sg
       $ctx.Response.OutputStream.Close(); continue
     }
 
     if ($yol.StartsWith("/api/")) {
       # Istek kaydi: sunucu bir istekte takilirsa kayittaki SON satir hangisi oldugunu gosterir.
-      if (($yol -ne "/api/pencere/hedef" -or $metod -ne "GET") -and $yol -ne "/api/acilis/durum" -and $yol -ne "/api/posta/rev") { Write-Host ("  > " + (Get-Date).ToString("HH:mm:ss") + " " + $metod + " " + $yol + $(if ($yol -ne "/api/kisi/coz") { $ctx.Request.Url.Query })) }   # kisi adi kayda yazilmaz; pencerenin 2 sn yoklamasi yazilmaz
+      if (($yol -ne "/api/pencere/hedef" -or $metod -ne "GET") -and $yol -ne "/api/acilis/durum" -and $yol -ne "/api/posta/rev") { Write-Host ("  > " + (Get-Date).ToString("HH:mm:ss") + " " + $metod + " " + $yol) }   # Bulgu 7 (15.10.2026): sorgu dizisi (posta kimligi, kategori, kisi adi) kayda YAZILMAZ; pencerenin 2 sn yoklamasi yazilmaz
       # Baska bir sayfadan gelen istek ozel basligi gonderemez (CORS izni yok).
       $koken = [string]$ctx.Request.Headers["Origin"]
       $kokenOk = (-not $koken) -or ($koken -eq "http://localhost:$port") -or ($koken -eq "http://127.0.0.1:$port")
       if (-not $ctx.Request.IsLocal -or $ctx.Request.Headers["X-IsTakip"] -ne "1" -or -not $kokenOk) {
         Yaz-Hata $ctx "Erisim reddedildi." 403
+        $ctx.Response.OutputStream.Close(); continue
+      }
+      # Oturum anahtari (guvenlik bulgu 2): sabit baslik ayni bilgisayardaki her programca gonderilebilir;
+      # anahtar yalniz bu Windows kullanicisinin dosyasinda durur.
+      if (-not (Assist-Esit ([string]$ctx.Request.Headers["X-Assist-Anahtar"]) $ANAHTAR)) {
+        Yaz-Hata $ctx "Oturum anahtari gecersiz." 403
         $ctx.Response.OutputStream.Close(); continue
       }
 
@@ -1146,6 +1217,7 @@ while ($listener.IsListening) {
         $ad = [System.IO.Path]::GetFileName([Uri]::UnescapeDataString([string]$ctx.Request.Headers["X-Ad"]))
         $uz = [System.IO.Path]::GetExtension($ad).ToLowerInvariant()
         if ($BELGE_UZ -notcontains $uz) { Yaz-Hata $ctx "Bu dosya turu eklenemez." 400 }
+        elseif ($ctx.Request.ContentLength64 -lt 0 -or $ctx.Request.ContentLength64 -gt 26214400) { Yaz-Hata $ctx "Belge 25 MB'tan buyuk." 413 }   # Bulgu 10: once boyut, sonra okuma
         else {
           $ms = New-Object System.IO.MemoryStream
           $ctx.Request.InputStream.CopyTo($ms)
@@ -1171,6 +1243,7 @@ while ($listener.IsListening) {
           if (-not (Test-Path -LiteralPath $acKok)) { New-Item -ItemType Directory -Path $acKok | Out-Null }
           $hedef = Join-Path $acKok ($id.Substring(0, 8) + "_" + $ad)
           [System.IO.File]::WriteAllBytes($hedef, (Coz ([System.IO.File]::ReadAllBytes($kaynak))))
+          Internet-Isareti $hedef   # Bulgu 3: Office Korumali Gorunum / makro engeli devrede kalsin
           Start-Process -FilePath $hedef
           Yaz-Json $ctx @{ ok = $true }
         }
@@ -2000,6 +2073,7 @@ while ($listener.IsListening) {
             if (-not (Test-Path -LiteralPath $acKok)) { New-Item -ItemType Directory -Path $acKok | Out-Null }
             $yolMsg = Join-Path $acKok $ad
             [System.IO.File]::WriteAllBytes($yolMsg, (Coz ([System.IO.File]::ReadAllBytes($sifreli))))
+            Internet-Isareti $yolMsg   # Bulgu 3
             Start-Process -FilePath $yolMsg
             Yaz-Json $ctx @{ ok = $true; kaynak = "kopya" }
           } else { Yaz-Hata $ctx "Posta Outlook'ta bulunamadi ve kopyasi yok." 404 }
@@ -2015,6 +2089,14 @@ while ($listener.IsListening) {
     if ($yol -eq "/favicon.ico") { $tam = Join-Path $portalKok "AssistA.ico" }   # uygulama penceresinin gorev cubugu simgesi
     if (-not ($tam.StartsWith($webKok, [StringComparison]::OrdinalIgnoreCase) -or $yol -eq "/favicon.ico") -or -not (Test-Path -LiteralPath $tam -PathType Leaf)) {
       Yaz-Cevap $ctx "Bulunamadi" "text/plain; charset=utf-8" 404
+    } elseif ($GUV.imzaZorunlu -and $yol -ne "/favicon.ico" -and -not (& {
+        # Sayfa imzali katalogla (Sunucu\assist.cat) dogrulanir; sonuc dosya zamanlari degismedikce onbellekte (guvenlik bulgu 1)
+        $cat = Join-Path $betikKok "assist.cat"
+        $an = (Get-Item -LiteralPath $tam).LastWriteTimeUtc.Ticks.ToString() + "|" + $(if (Test-Path -LiteralPath $cat) { (Get-Item -LiteralPath $cat).LastWriteTimeUtc.Ticks } else { "" })
+        if ($an -ne $script:katalogAnahtar) { $script:katalogOk = Assist-Katalog-Gecerli $portalKok $GUV.parmakIzi; $script:katalogAnahtar = $an }
+        $script:katalogOk })) {
+      Write-Host ("  GUVENLIK: " + $yol + " imzali katalogla dogrulanamadi - sunulmadi.") -ForegroundColor Red
+      Yaz-Cevap $ctx "Assist sayfasi dogrulanamadi (imza/katalog gecersiz). Yoneticiye bildirin." "text/plain; charset=utf-8" 503
     } else {
       $b = [System.IO.File]::ReadAllBytes($tam)
       $ctx.Response.ContentType = Icerik-Turu ([System.IO.Path]::GetExtension($tam))
@@ -2030,3 +2112,164 @@ while ($listener.IsListening) {
     try { $ctx.Response.OutputStream.Close() } catch {}
   }
 }
+
+# SIG # Begin signature block
+# MIIdkQYJKoZIhvcNAQcCoIIdgjCCHX4CAQExDzANBglghkgBZQMEAgEFADB5Bgor
+# BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCjhkILT+v8yc3b
+# /q/AGHpJAEkxyD4C6/2iY0oRrEPpRKCCF1QwggQWMIICfqADAgECAhA2m8l6HI/0
+# gkepWCR7MrEPMA0GCSqGSIb3DQEBCwUAMCMxITAfBgNVBAMMGFNURkEgQXNzaXN0
+# IEtvZCBJbXphbGFtYTAeFw0yNjEwMTUwOTIwMzRaFw0zMTEwMTUwOTMwMzNaMCMx
+# ITAfBgNVBAMMGFNURkEgQXNzaXN0IEtvZCBJbXphbGFtYTCCAaIwDQYJKoZIhvcN
+# AQEBBQADggGPADCCAYoCggGBALol4yzEvwnBFpLaqcZWkvILmaw2+1sgO9N1S+re
+# HoUijjLl4Wq8NWQ87+9VP0ylDfCMiVZb8UBF/hvUKj9PC3hZNOTnND2+gTftgWVI
+# vytdYehJgxtaPqV0i+UqtpwMrWNT6I9t7Ic2H4Dnq8CsJZoormENBah8iV6vghK9
+# jyI7zOyK1Mi9EZuf4kFnit9kZGVXUqZ5DyPUzvS3nktniHC2uFJ/mM+pFJWlEGBB
+# Th3qPbOnlHVv9PxTx+n101y7u7aMYNnWmXUqhv8kqst7t/P44bk0t+byPXNYHkJB
+# 3i1U7qZOEt8uO4rv+GnM59YiPlyeFQTYk32RkI46EEfs0WqwbOvp4qrQgreq6Afs
+# ynK7BPrDooj+IzfamKVl6lD/YkfabsgGfsa7FOz4A7egsErC1R4PEiCOXKvRNvR0
+# mSkW2E1xAohxIiEWrydYf8aJVS5h4wRh4UmLfohIzsDl5LvyyNBaaCbVt4ZAGu0p
+# chHeC8Dj8axLww1L0S2pYyfLNQIDAQABo0YwRDAOBgNVHQ8BAf8EBAMCB4AwEwYD
+# VR0lBAwwCgYIKwYBBQUHAwMwHQYDVR0OBBYEFFs9XAgqsDeD6t6sZCu2pNf361G+
+# MA0GCSqGSIb3DQEBCwUAA4IBgQBCHRE3cTj056EKV1BLbvv0ScvX6EX05r2ZuH83
+# 2d9kbPvUfa868rtwS4spEIn/3KC9aNp63BpAnojZvMQq6cC0lSQVrl77UzW5pWFg
+# 0RWCZUmjLVKyj3aJlJdeIF5S7EW4McJ9WoJI23EHl90ZKR4VWYOejGG7uaT2f9jM
+# APkI+4mypRnQVDr9u9jUB5mrO0vbMF7ecVLL/DK3ComtDmQU7lpGRhSXetJwdH19
+# lJa1jDycnK1vqW3c28zvj6fZbP5ZYlfCJMMOOFxzXR24gq/vjc5UtOCIPNcPS6sL
+# aA2X3+6BNuZyxliyBunma4WQLHj5UM77RljLYGIS6m95AANd6w6It4hZXfyH5f1q
+# 7cN2PV0tcDcJGsq4D1eAhPIA+f+3huv43rk1RLGcvfYpwgefQO1Bbzx1KM5fLC5T
+# kTOOGxPXTIdlM2Ql2AwgJ386mASmf6jBSvZ0NsgMHJteZFHZW8TVP0cw3rcr5grJ
+# hsc4FGXpjYyqKMG1oc5W+fvLYRgwggWNMIIEdaADAgECAhAOmxiO+dAt5+/bUOII
+# QBhaMA0GCSqGSIb3DQEBDAUAMGUxCzAJBgNVBAYTAlVTMRUwEwYDVQQKEwxEaWdp
+# Q2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5jb20xJDAiBgNVBAMTG0Rp
+# Z2lDZXJ0IEFzc3VyZWQgSUQgUm9vdCBDQTAeFw0yMjA4MDEwMDAwMDBaFw0zMTEx
+# MDkyMzU5NTlaMGIxCzAJBgNVBAYTAlVTMRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMx
+# GTAXBgNVBAsTEHd3dy5kaWdpY2VydC5jb20xITAfBgNVBAMTGERpZ2lDZXJ0IFRy
+# dXN0ZWQgUm9vdCBHNDCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAL/m
+# kHNo3rvkXUo8MCIwaTPswqclLskhPfKK2FnC4SmnPVirdprNrnsbhA3EMB/zG6Q4
+# FutWxpdtHauyefLKEdLkX9YFPFIPUh/GnhWlfr6fqVcWWVVyr2iTcMKyunWZanMy
+# lNEQRBAu34LzB4TmdDttceItDBvuINXJIB1jKS3O7F5OyJP4IWGbNOsFxl7sWxq8
+# 68nPzaw0QF+xembud8hIqGZXV59UWI4MK7dPpzDZVu7Ke13jrclPXuU15zHL2pNe
+# 3I6PgNq2kZhAkHnDeMe2scS1ahg4AxCN2NQ3pC4FfYj1gj4QkXCrVYJBMtfbBHMq
+# bpEBfCFM1LyuGwN1XXhm2ToxRJozQL8I11pJpMLmqaBn3aQnvKFPObURWBf3JFxG
+# j2T3wWmIdph2PVldQnaHiZdpekjw4KISG2aadMreSx7nDmOu5tTvkpI6nj3cAORF
+# JYm2mkQZK37AlLTSYW3rM9nF30sEAMx9HJXDj/chsrIRt7t/8tWMcCxBYKqxYxhE
+# lRp2Yn72gLD76GSmM9GJB+G9t+ZDpBi4pncB4Q+UDCEdslQpJYls5Q5SUUd0vias
+# tkF13nqsX40/ybzTQRESW+UQUOsxxcpyFiIJ33xMdT9j7CFfxCBRa2+xq4aLT8LW
+# RV+dIPyhHsXAj6KxfgommfXkaS+YHS312amyHeUbAgMBAAGjggE6MIIBNjAPBgNV
+# HRMBAf8EBTADAQH/MB0GA1UdDgQWBBTs1+OC0nFdZEzfLmc/57qYrhwPTzAfBgNV
+# HSMEGDAWgBRF66Kv9JLLgjEtUYunpyGd823IDzAOBgNVHQ8BAf8EBAMCAYYweQYI
+# KwYBBQUHAQEEbTBrMCQGCCsGAQUFBzABhhhodHRwOi8vb2NzcC5kaWdpY2VydC5j
+# b20wQwYIKwYBBQUHMAKGN2h0dHA6Ly9jYWNlcnRzLmRpZ2ljZXJ0LmNvbS9EaWdp
+# Q2VydEFzc3VyZWRJRFJvb3RDQS5jcnQwRQYDVR0fBD4wPDA6oDigNoY0aHR0cDov
+# L2NybDMuZGlnaWNlcnQuY29tL0RpZ2lDZXJ0QXNzdXJlZElEUm9vdENBLmNybDAR
+# BgNVHSAECjAIMAYGBFUdIAAwDQYJKoZIhvcNAQEMBQADggEBAHCgv0NcVec4X6Cj
+# dBs9thbX979XB72arKGHLOyFXqkauyL4hxppVCLtpIh3bb0aFPQTSnovLbc47/T/
+# gLn4offyct4kvFIDyE7QKt76LVbP+fT3rDB6mouyXtTP0UNEm0Mh65ZyoUi0mcud
+# T6cGAxN3J0TU53/oWajwvy8LpunyNDzs9wPHh6jSTEAZNUZqaVSwuKFWjuyk1T3o
+# sdz9HNj0d1pcVIxv76FQPfx2CWiEn2/K2yCNNWAcAgPLILCsWKAOQGPFmCLBsln1
+# VWvPJ6tsds5vIy30fnFqI2si/xK4VC0nftg62fC2h5b9W9FcrBjDTZ9ztwGpn1eq
+# XijiuZQwgga0MIIEnKADAgECAhANx6xXBf8hmS5AQyIMOkmGMA0GCSqGSIb3DQEB
+# CwUAMGIxCzAJBgNVBAYTAlVTMRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAXBgNV
+# BAsTEHd3dy5kaWdpY2VydC5jb20xITAfBgNVBAMTGERpZ2lDZXJ0IFRydXN0ZWQg
+# Um9vdCBHNDAeFw0yNTA1MDcwMDAwMDBaFw0zODAxMTQyMzU5NTlaMGkxCzAJBgNV
+# BAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjFBMD8GA1UEAxM4RGlnaUNl
+# cnQgVHJ1c3RlZCBHNCBUaW1lU3RhbXBpbmcgUlNBNDA5NiBTSEEyNTYgMjAyNSBD
+# QTEwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQC0eDHTCphBcr48RsAc
+# rHXbo0ZodLRRF51NrY0NlLWZloMsVO1DahGPNRcybEKq+RuwOnPhof6pvF4uGjwj
+# qNjfEvUi6wuim5bap+0lgloM2zX4kftn5B1IpYzTqpyFQ/4Bt0mAxAHeHYNnQxqX
+# mRinvuNgxVBdJkf77S2uPoCj7GH8BLuxBG5AvftBdsOECS1UkxBvMgEdgkFiDNYi
+# OTx4OtiFcMSkqTtF2hfQz3zQSku2Ws3IfDReb6e3mmdglTcaarps0wjUjsZvkgFk
+# riK9tUKJm/s80FiocSk1VYLZlDwFt+cVFBURJg6zMUjZa/zbCclF83bRVFLeGkuA
+# hHiGPMvSGmhgaTzVyhYn4p0+8y9oHRaQT/aofEnS5xLrfxnGpTXiUOeSLsJygoLP
+# p66bkDX1ZlAeSpQl92QOMeRxykvq6gbylsXQskBBBnGy3tW/AMOMCZIVNSaz7BX8
+# VtYGqLt9MmeOreGPRdtBx3yGOP+rx3rKWDEJlIqLXvJWnY0v5ydPpOjL6s36czwz
+# sucuoKs7Yk/ehb//Wx+5kMqIMRvUBDx6z1ev+7psNOdgJMoiwOrUG2ZdSoQbU2rM
+# kpLiQ6bGRinZbI4OLu9BMIFm1UUl9VnePs6BaaeEWvjJSjNm2qA+sdFUeEY0qVjP
+# KOWug/G6X5uAiynM7Bu2ayBjUwIDAQABo4IBXTCCAVkwEgYDVR0TAQH/BAgwBgEB
+# /wIBADAdBgNVHQ4EFgQU729TSunkBnx6yuKQVvYv1Ensy04wHwYDVR0jBBgwFoAU
+# 7NfjgtJxXWRM3y5nP+e6mK4cD08wDgYDVR0PAQH/BAQDAgGGMBMGA1UdJQQMMAoG
+# CCsGAQUFBwMIMHcGCCsGAQUFBwEBBGswaTAkBggrBgEFBQcwAYYYaHR0cDovL29j
+# c3AuZGlnaWNlcnQuY29tMEEGCCsGAQUFBzAChjVodHRwOi8vY2FjZXJ0cy5kaWdp
+# Y2VydC5jb20vRGlnaUNlcnRUcnVzdGVkUm9vdEc0LmNydDBDBgNVHR8EPDA6MDig
+# NqA0hjJodHRwOi8vY3JsMy5kaWdpY2VydC5jb20vRGlnaUNlcnRUcnVzdGVkUm9v
+# dEc0LmNybDAgBgNVHSAEGTAXMAgGBmeBDAEEAjALBglghkgBhv1sBwEwDQYJKoZI
+# hvcNAQELBQADggIBABfO+xaAHP4HPRF2cTC9vgvItTSmf83Qh8WIGjB/T8ObXAZz
+# 8OjuhUxjaaFdleMM0lBryPTQM2qEJPe36zwbSI/mS83afsl3YTj+IQhQE7jU/kXj
+# jytJgnn0hvrV6hqWGd3rLAUt6vJy9lMDPjTLxLgXf9r5nWMQwr8Myb9rEVKChHyf
+# pzee5kH0F8HABBgr0UdqirZ7bowe9Vj2AIMD8liyrukZ2iA/wdG2th9y1IsA0QF8
+# dTXqvcnTmpfeQh35k5zOCPmSNq1UH410ANVko43+Cdmu4y81hjajV/gxdEkMx1NK
+# U4uHQcKfZxAvBAKqMVuqte69M9J6A47OvgRaPs+2ykgcGV00TYr2Lr3ty9qIijan
+# rUR3anzEwlvzZiiyfTPjLbnFRsjsYg39OlV8cipDoq7+qNNjqFzeGxcytL5TTLL4
+# ZaoBdqbhOhZ3ZRDUphPvSRmMThi0vw9vODRzW6AxnJll38F0cuJG7uEBYTptMSbh
+# dhGQDpOXgpIUsWTjd6xpR6oaQf/DJbg3s6KCLPAlZ66RzIg9sC+NJpud/v4+7RWs
+# WCiKi9EOLLHfMR2ZyJ/+xhCx9yHbxtl5TPau1j/1MIDpMPx0LckTetiSuEtQvLsN
+# z3Qbp7wGWqbIiOWCnb5WqxL3/BAPvIXKUjPSxyZsq8WhbaM2tszWkPZPubdcMIIG
+# 7TCCBNWgAwIBAgIQCE/cM09+RU7bww+P+ZIYNTANBgkqhkiG9w0BAQsFADBpMQsw
+# CQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xQTA/BgNVBAMTOERp
+# Z2lDZXJ0IFRydXN0ZWQgRzQgVGltZVN0YW1waW5nIFJTQTQwOTYgU0hBMjU2IDIw
+# MjUgQ0ExMB4XDTI2MDgwNTAwMDAwMFoXDTM3MTEwNDIzNTk1OVowYzELMAkGA1UE
+# BhMCVVMxFzAVBgNVBAoTDkRpZ2lDZXJ0LCBJbmMuMTswOQYDVQQDEzJEaWdpQ2Vy
+# dCBTSEEyNTYgUlNBNDA5NiBUaW1lc3RhbXAgUmVzcG9uZGVyIDIwMjYgMTCCAiIw
+# DQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBALZ7pvLJ/s1K+NSbTGWz/TjGMPh8
+# CQ6RucZCLv5anHzWJjF/NWJrFIhy24fcpKXlgRiky4WAawDfU3YP0BMxt9l3Dm5o
+# CG5Z69AqEN1kgHg2epx+l+lZBcmJCcN0ASURML5uFIS80sZsDwO3BSkUxDjLJhBI
+# +qiZP3aixAC/qEGLjsBNlLol9VZ7pfGEXiMlneJIC5/YKuizVzNFKZZEeoy/0B8Z
+# m+nzKBgSWG52lCO1w+nCg6XpCtklTJXeIg283hw7TmmsZXR+SMbjbrEOvZ3fP2Vx
+# IgeR28Y90ZStd3F9VuA5RVynb/whITPAo9b75Zr4Ta6Mj3URm26QZYMn/FnbuTeg
+# coRcFEZ9FOqM5T6MTdtr/n74lIT/ug0eeOzmZ6QTFg33otX+bFRsIolvykE1jive
+# 4PuESaT8zzVeFWDAMDtozNgLctkGD1ZjkEyZtJrLl5ya0m5doH/ScpaZCZVl6pNU
+# OCybMc/kxC6EAmSJY24L0yYKD1Nkddsnb/ItVKi/2nXpQNMu1PT5prW83vV8d67W
+# owuUs0HdY4H8AMLGvdL/WHEj3ZnqMqAQQP9u3Ai9t+5eQ02GDwy0ODjdzi0xlp70
+# W+ow63/0++YDEX1M0iwgUHwbrJvfpklkZQvw3+kv3vUPItdwroczk9icflf55W1z
+# OEKAcJVAIXpcMCU9AgMBAAGjggGVMIIBkTAMBgNVHRMBAf8EAjAAMB0GA1UdDgQW
+# BBQUyWOKMC7USvtulPPm40B+9ezN4jAfBgNVHSMEGDAWgBTvb1NK6eQGfHrK4pBW
+# 9i/USezLTjAOBgNVHQ8BAf8EBAMCB4AwFgYDVR0lAQH/BAwwCgYIKwYBBQUHAwgw
+# gZUGCCsGAQUFBwEBBIGIMIGFMCQGCCsGAQUFBzABhhhodHRwOi8vb2NzcC5kaWdp
+# Y2VydC5jb20wXQYIKwYBBQUHMAKGUWh0dHA6Ly9jYWNlcnRzLmRpZ2ljZXJ0LmNv
+# bS9EaWdpQ2VydFRydXN0ZWRHNFRpbWVTdGFtcGluZ1JTQTQwOTZTSEEyNTYyMDI1
+# Q0ExLmNydDBfBgNVHR8EWDBWMFSgUqBQhk5odHRwOi8vY3JsMy5kaWdpY2VydC5j
+# b20vRGlnaUNlcnRUcnVzdGVkRzRUaW1lU3RhbXBpbmdSU0E0MDk2U0hBMjU2MjAy
+# NUNBMS5jcmwwIAYDVR0gBBkwFzAIBgZngQwBBAIwCwYJYIZIAYb9bAcBMA0GCSqG
+# SIb3DQEBCwUAA4ICAQCNxTphHp1SCt+ZrAmAfn0oQLFr0mLywSLaDXQIENoyKqxr
+# FbJblzCVP/pkXmwXOdrOpWygLzlT12os5ipDCy35RBCg2UMeApEtrfGhz45F4Wt4
+# WGdNdIbRWt3YTYJmpR+b7lr4d7Uwn+H600u4D7RnOGf8Wj4UNgAdZkfHhHv1mx9E
+# Vh71SJelcEN/oORSjXzdjfw1iZH9d8Nh/thn6hH23d+VsPAr6GAYyzSA02nXD1nY
+# LI7Ijmiv+xLCiYC41DSFYL3GhTiy0PxpawPtGRyaBVGzq+UiTfM8pD7KVyF5aQyW
+# P4KhVGUUTnmm/RlYJoW3TiXA/+t0YcT2oRVBm3JETjajHug2AL+v5jhtKVnd3D0r
+# bHXEu27o+Q8p4sEWPMqKDB+qbceb6T/6WcwTwXmQ9lOCLLYcsQeSWmvKqzpAec9e
+# tE14jOQAzLKWdE3w/TCaKtLRaRT7LCkRYVnhA2D73FLje1O5b3HR5eHs0NzU/+xX
+# 7NbEdcofy0W3Wdwd1XOqtlpg/JgwtKfZM5dqO94lbUveOiJBI+xZEbGRsMNbXmMR
+# EUTgu+Oca7Y73MPWcslIx2VhkSKSXjDbD6rgg39H5Mh7QfieAIjWagkJNt68Yfim
+# 6cjEzVSiLSeZfdkr5dtFPTW6jATlWJdYeeDRGCyatf8R1hSjzSvdN8yWQPT9gzGC
+# BZMwggWPAgEBMDcwIzEhMB8GA1UEAwwYU1RGQSBBc3Npc3QgS29kIEltemFsYW1h
+# AhA2m8l6HI/0gkepWCR7MrEPMA0GCWCGSAFlAwQCAQUAoIGEMBgGCisGAQQBgjcC
+# AQwxCjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYB
+# BAGCNwIBCzEOMAwGCisGAQQBgjcCARUwLwYJKoZIhvcNAQkEMSIEIDTgMvkhFXai
+# 0BROJbAqWQstqGANrG4pcDWBgARmrzkuMA0GCSqGSIb3DQEBAQUABIIBgB5F3CdX
+# 6jlpcL+BRAUZADmoFkp9U41lxyxXmklC46Esthc1Nqxztrjcxuft+AVBtvL6fgnP
+# 8EWii6D10RXxX1KG1pO5bHvLMP0vByXLW/WlDIFxVXb7maeXg99PIHLWU62aLT3+
+# ty3gzOOBJYcrQBGMK/pB0qSxfxzPcmEQBaF8DaSBqwtZ5X5Pm7erXdO5CUS3H5jm
+# 7okEQdazlhYF1cSUaeY7QcTS/LTMDXNepsK3cq2+UcbTLIcoeNv5JTfZzh5wM0++
+# d9mpRdAdyDT+E/nyuMog/phtcPMRsgdxpBwW4fQSxrqbZ4/haiyNKf4tPOzTVdoD
+# btCVzapc/istPt+RPZtTTV5zWBVA/Dxnymhwe9hoNUddXxtomUzyUD1ufLRB88Ot
+# qUzx87kswGcSeEN7GRqIKN5HnpDTAZx1Oqt08OlbATbV7Or33w3j7MKbiZSDZyfB
+# iScEoBx7/sYtdh0y8YmBsOjpEd239/hf921tIBXGjAVLd5krsr/r93U7RqGCAyYw
+# ggMiBgkqhkiG9w0BCQYxggMTMIIDDwIBATB9MGkxCzAJBgNVBAYTAlVTMRcwFQYD
+# VQQKEw5EaWdpQ2VydCwgSW5jLjFBMD8GA1UEAxM4RGlnaUNlcnQgVHJ1c3RlZCBH
+# NCBUaW1lU3RhbXBpbmcgUlNBNDA5NiBTSEEyNTYgMjAyNSBDQTECEAhP3DNPfkVO
+# 28MPj/mSGDUwDQYJYIZIAWUDBAIBBQCgaTAYBgkqhkiG9w0BCQMxCwYJKoZIhvcN
+# AQcBMBwGCSqGSIb3DQEJBTEPFw0yNjEwMTUxMDUxNDJaMC8GCSqGSIb3DQEJBDEi
+# BCChNjfmvdIrc/P1C38j6wKxw5rhJ8t8SMYFkcAHgLNlzDANBgkqhkiG9w0BAQEF
+# AASCAgAAYDxR2i+TtzACnxGWkor0GgVr8xnpebGkbvS4FM85aTa1a5SSjQ2Di7Hj
+# HF0/Ds4egI66vTvhfVV6jegSUX0d9CQp2BzHX1HElWkGGvDYAIF3GbVdsY2eYSIx
+# HjONwQRrHmfM5KPPNwx4pJvAvLQKbQyiJSiL+wp2kHqLIMNuE4lMSurnWRg7LLY2
+# dUw0S0KABv1Fc/Ta9pM1UpDBqQHxq/R5eCC4o1hMOEid8+u3cp/r/zG1oUphPLq/
+# 3rDcoq+iuGh2O62NSX+gYfRG8YkDyLxmY1Se6xps+ma60sCBu3j+U6VzIOQzM10o
+# O2P2uLgBHj0t+ejYbcBNW2qqAMLQINHidBIKd3FHihsRz5POaZXgUtYXim1MH9OV
+# Gx9NdCNFEPpVwy1jt0oVjUn8RKOH92ERiHqjVwFLzV5cxPfE0NbVyjfQFHPr/qui
+# uWFFH5y/izbyXxTaCwZ9VEZ1Db0ayMsOPimUMLb+OztdlkXhmldu3j/Z4tLh2Cmx
+# +Ozj0T+sW1NsK4hVFv3PS3jLIy2UmKQ7nJYZSRmfkok5FwsbihgPi6z5q3wVxjgY
+# hbIjBU0WMWxZ0daT+HzTLTLa/GiO+cALKkkXVV7Qs0YXGiTbOnu8aomeKoQF68qL
+# 2gmF5tJtOqEmB+SoXsW1+9vM0UhCHdg8g5SdA+3fd7OETUhddA==
+# SIG # End signature block

@@ -524,6 +524,7 @@ table.tbl td.konu b{display:block;overflow:hidden;text-overflow:ellipsis;font-we
 .kisi-mesaj-bg{position:fixed;inset:0;z-index:500;background:rgba(15,18,24,.45);display:grid;place-items:center;padding:20px}
 .kisi-mesaj{background:#fff;border-radius:14px;max-width:440px;width:100%;box-shadow:0 18px 50px rgba(0,0,0,.25);overflow:hidden;border-top:4px solid var(--s-red-deep)}
 .km-h{display:flex;align-items:center;gap:8px;padding:16px 20px 6px;font-size:15px;color:var(--s-red-deep)} .km-h svg.i{width:20px;height:20px}
+.od-defter .aktarildi{margin-left:6px;padding:0 6px;border-radius:8px;font-size:11px;background:#f1e7c6;color:#7a5b00}
 .km-metin{padding:6px 20px 14px;font-size:15px;line-height:1.55;white-space:pre-line;color:var(--s-ink)}
 .km-alt{display:flex;justify-content:flex-end;padding:10px 16px 16px}
 @media (max-width:900px){.ayar-duzen{grid-template-columns:1fr}.ayar-nav{position:static;flex-direction:row;flex-wrap:wrap}}
@@ -1103,14 +1104,26 @@ const SUNUCU_METIN = {
   'Posta bulunamadi.': 'Posta Outlook\'ta bulunamadı.',
   "Posta Outlook'ta bulunamadi ve kopyasi yok.": 'Posta Outlook\'ta bulunamadı, kayıtlı kopyası da yok.',
   'Erisim reddedildi.': 'Erişim reddedildi.',
+  'Oturum anahtari gecersiz.': 'Oturum doğrulanamadı. Assist\'i masaüstündeki simgeden ya da saatin yanındaki simgeden ("Assist\'i Aç") yeniden açın.',
   'Bilinmeyen uc.': 'Sunucu eski sürümle çalışıyor. "Assist.bat" dosyasını yeniden çalıştırın.',
   "Outlook'ta secili posta yok.": 'Outlook\'ta seçili posta yok. Önce Outlook\'ta bir posta seçin.',
   'Secili oge posta degil.': 'Outlook\'ta seçili öğe bir posta değil.'
 };
+// GÜVENLİK (15.10.2026): Yerel API oturum anahtarı ister. Anahtarı Sunucu\pencere.ps1 adresle (?k=) verir;
+// adres çubuğundan/geçmişten hemen silinir, yalnız bu pencerenin sessionStorage'ında tutulur.
+const ASSIST_ANAHTAR = (() => {
+  try {
+    const p = new URLSearchParams(location.search), k = p.get('k');
+    if (k && /^[A-Za-z0-9_-]{43}$/.test(k)) sessionStorage.setItem('assistAnahtar', k);
+    if (p.has('k')) { p.delete('k'); const q = p.toString(); history.replaceState(history.state, '', location.pathname + (q ? '?' + q : '') + location.hash); }
+    return sessionStorage.getItem('assistAnahtar') || '';
+  } catch { return ''; }
+})();
 async function api(yol, opt = {}) {
-  opt.headers = Object.assign({ 'X-IsTakip': '1', 'Content-Type': 'application/json' }, opt.headers || {});
+  opt.headers = Object.assign({ 'X-IsTakip': '1', 'X-Assist-Anahtar': ASSIST_ANAHTAR, 'Content-Type': 'application/json' }, opt.headers || {});
   return fetch(yol, opt);
 }
+if (!ASSIST_ANAHTAR) setTimeout(() => toast('Oturum doğrulanamadı: Assist\'i masaüstündeki simgeden ya da saatin yanındaki simgeden ("Assist\'i Aç") açın.', true), 1200);
 async function apiJson(yol, opt) {
   const r = await api(yol, opt);
   let j; try { j = await r.json(); } catch { throw new Error('Sunucu cevabı okunamadı (' + r.status + ').'); }
@@ -2110,7 +2123,7 @@ const DIL_EN = {
   'Veri klasörü': 'Data folder', 'Kapanan işler ve notlar silinsin': 'Delete closed items and notes', 'Yedek indir (şifresiz)': 'Download backup (unencrypted)',
   'Yedekten yükle': 'Restore from backup', 'Silinmesin': 'Never', 'Windows açılınca Assist\'i başlat': 'Start Assist when Windows starts',
   'Ekranın köşesinde bildirim göster': 'Show notification in the screen corner', 'Termini geçen işleri her gün hatırlat': 'Remind overdue items every day',
-  'Yeni posta geldi.': 'New mail arrived.', 'Ortak İşler': 'Shared Work', 'Yeni Ortak İş': 'New Shared Work', 'Oluştur ve gönder': 'Create and send', 'Konuyu kapat': 'Close topic', 'Yeniden aç': 'Reopen', 'Geçmişi paylaş': 'Share history', '+ Katılımcı ekle': '+ Add participant', 'Katılımcılar': 'Participants', 'Soldan bir konu seçin.': 'Select a topic on the left.', 'Henüz giriş yok.': 'No entries yet.', 'Konu kapalı; yeni giriş eklenemez.': 'Topic is closed; no new entries.', 'Geri': 'Back', 'İleri': 'Forward', 'Tam ekran': 'Full screen', 'Tam ekrandan çık': 'Exit full screen', 'Çıkış (Assist arka planda çalışmaya devam eder)': 'Exit (Assist keeps running in the background)',
+  'Yeni posta geldi.': 'New mail arrived.', 'Talep henüz kaydedilmedi. Kaydedip iletme panelini açayım mı?': 'The request is not saved yet. Save it and open the forward panel?', 'Kaydedilmemiş değişiklikler var. Kaydedip iletme panelini açayım mı?': 'There are unsaved changes. Save and open the forward panel?', 'Ortak İşler': 'Shared Work', 'Yeni Ortak İş': 'New Shared Work', 'Oluştur ve gönder': 'Create and send', 'Konuyu kapat': 'Close topic', 'Yeniden aç': 'Reopen', 'Geçmişi paylaş': 'Share history', '+ Katılımcı ekle': '+ Add participant', 'Katılımcılar': 'Participants', 'Soldan bir konu seçin.': 'Select a topic on the left.', 'Henüz giriş yok.': 'No entries yet.', 'Konu kapalı; yeni giriş eklenemez.': 'Topic is closed; no new entries.', 'Geri': 'Back', 'İleri': 'Forward', 'Tam ekran': 'Full screen', 'Tam ekrandan çık': 'Exit full screen', 'Çıkış (Assist arka planda çalışmaya devam eder)': 'Exit (Assist keeps running in the background)',
   'Termin günü': 'Due date', 'Gece modu': 'Dark mode', 'Gündüz modu': 'Light mode', 'Dil / Language': 'Language / Dil', 'Gelen Kutusu · ': 'Inbox · ',
   'Pazar': 'Sunday', 'Pazartesi': 'Monday', 'Salı': 'Tuesday', 'Çarşamba': 'Wednesday', 'Perşembe': 'Thursday', 'Cuma': 'Friday', 'Cumartesi': 'Saturday',
   'Pzt': 'Mon', 'Sal': 'Tue', 'Çar': 'Wed', 'Per': 'Thu', 'Cum': 'Fri', 'Cmt': 'Sat', 'Paz': 'Sun',
@@ -2820,7 +2833,11 @@ function kayitYeni(tur, ek) {
   TERMIN_IPUCU = '';
   K = Object.assign({ id: uid(), tur, no: '', baslik: '', ozet: '', kimden: '', kimdenEposta: '', sorumlu: '',
     termin: '', oncelik: 'normal', kategori: '', durum: 'acik', postalar: [], aksiyonlar: [], gecmis: [], olusturma: '', guncelleme: '', kapanis: '' }, ek || {});
+  // Elle açılan talepte Kimden = kullanıcının kendisi (postadan açılanda postanın göndereni kalır)
+  if (tur === 'talep' && !K.kimden) K.kimden = V.ayar.adSoyad || KULLANICI_AD || '';
   K_YENI = true; kayitPencere();
+  // Ad henüz gelmediyse (sayfa yeni açıldı) gelince doldurulur; kullanıcı bu arada yazdıysa dokunulmaz
+  if (tur === 'talep' && !K.kimden) { const yeniK = K; apiJson('/api/kullanici').then(j => { if (K === yeniK && !K.kimden && j.ad) { K.kimden = j.ad; const g = $('#kKimden'); if (g && !g.value) g.value = j.ad; } }).catch(() => {}); }
 }
 function kayitAc(id, aksiyonId) {
   const k = kayitBul(id); if (!k) return;
@@ -3017,6 +3034,17 @@ async function kayitKaydet() {
   kaydet(); hepsiniCiz();
   if (yeniPosta.length) postaBekleyenHesapla();
   toast(`${no} kaydedildi.` + (uyari ? ' ' + uyari : ''), !!uyari);
+}
+// İlet: talep yeni ya da kaydedilmemiş değişiklik varsa önce kaydedilir, sonra iletme paneli açılır
+async function talepIletOnce() {
+  formOku();
+  if (!K_YENI && JSON.stringify(K) === K_ORJ) return talepIletPanel();
+  if (!confirm(K_YENI ? 'Talep henüz kaydedilmedi. Kaydedip iletme panelini açayım mı?' : 'Kaydedilmemiş değişiklikler var. Kaydedip iletme panelini açayım mı?')) return;
+  const id = K.id;
+  try { await kayitKaydet(); } catch (e) { console.warn('kayıt sonrası çizim hatası', e); }   // kayıt yapıldıysa yine de iletilir
+  if (!kayitBul(id)) return;   // kaydedilemedi (ör. başlık boş): pencere açık kalır, uyarı gösterildi
+  kayitAc(id);
+  setTimeout(talepIletPanel, 0);
 }
 /* ── Talebi bir kişiye ilet (Assist'ten Assist'e, Exchange üzerinden) ──
    "Gönder"e basınca ileti gönderilir: kişinin Assist'i onu "Gelen talep" olarak
@@ -4282,7 +4310,7 @@ function hatEkPosta(p) {
 async function hatEkBelge(dosyalar) {
   for (const f of dosyalar) {
     try {
-      const r = await fetch('/api/belge/yukle', { method: 'POST', body: f, headers: { 'X-IsTakip': '1', 'X-Ad': encodeURIComponent(f.name), 'Content-Type': 'application/octet-stream' } });
+      const r = await fetch('/api/belge/yukle', { method: 'POST', body: f, headers: { 'X-IsTakip': '1', 'X-Assist-Anahtar': ASSIST_ANAHTAR, 'X-Ad': encodeURIComponent(f.name), 'Content-Type': 'application/octet-stream' } });
       const j = await r.json(); if (!r.ok || !j.ok) throw new Error(SUNUCU_METIN[j.hata] || j.hata || 'yüklenemedi');
       HT.ekler.push({ tur: 'belge', belgeId: j.id, ad: f.name, boyut: j.boyut });
     } catch (e) { toast(`${f.name}: ${e.message}`, true); }
@@ -4675,7 +4703,7 @@ document.addEventListener('click', e => {
   if (c('#mKayit [data-kapat]') || t.id === 'mKayit') return kayitKapat(true);
   if (c('#mkKaydet')) return kayitKaydet();
   if (c('#mkSil')) return kayitSil();
-  if (c('#mkIlet')) return talepIletPanel();
+  if (c('#mkIlet')) return talepIletOnce();
   if (c('#mkNotKapat')) { formOku(); K.durum = acikMi(K) ? 'tamam' : 'acik'; return kayitKaydet(); }   // geçmişe kayitKaydet yazar
   if (c('#kIletKapat')) { $('#kIletPanel').innerHTML = ''; return; }
   if (c('#kIletGonder')) return talepIlet();
@@ -4933,7 +4961,7 @@ function ortakDetayHtml(k) {
     return `<span class="od-kisi" data-ipucu="${esc(p.eposta || '')}">${esc(p.ad || p.eposta)}${sahip ? ' <i>açan</i>' : ''}${ben ? ' <i>siz</i>' : ''}${acan && !ben && acik ? ` <button data-ortak-gecmis="${esc(p.eposta)}" data-ipucu="Önceki bütün girişleri bu kişiye gönder">Geçmişi paylaş</button>` : ''}</span>`;
   }).join('');
   const defter = (k.girisler || []).map(g => `<li class="${g.tur !== 'not' ? 'sistem' : ''}${g.t > (k.okunan || '') && !ortakBenMi(g.yazar && g.yazar.eposta) ? ' yeni' : ''}">
-      <div class="ust"><b>${esc(g.yazar && g.yazar.ad || '')}</b><span>${esc(ortakZaman(g.t))}</span></div><div class="metin">${esc(g.metin || '')}</div></li>`).join('');
+      <div class="ust"><b>${esc(g.yazar && g.yazar.ad || '')}</b>${g.aktaran ? '<small class="aktarildi" title="Bu girişi konuyu açan kişi aktardı; yazarı doğrulanamaz.">aktarılan</small>' : ''}<span>${esc(ortakZaman(g.t))}</span></div><div class="metin">${esc(g.metin || '')}</div></li>`).join('');
   return `<div class="od-bas"><div class="od-bas-ust"><h2>${esc(k.baslik)}</h2>
       ${acan ? `<button class="btn sm" data-ortak-durum="${acik ? 'kapat' : 'ac'}">${acik ? 'Konuyu kapat' : 'Yeniden aç'}</button>` : ''}</div>
     <div class="od-bilgi"><span>Açan: <b>${esc(k.acan.ad || '')}</b></span><span>Açılış: ${esc(ortakZaman(k.olusturma))}</span>${k.termin ? `<span>Termin: <b>${esc(trTarih(k.termin))}</b> ${kalanHtml(k.termin)}</span>` : ''}<span>Durum: <b>${acik ? 'Açık' : 'Kapalı'}</b></span></div>
