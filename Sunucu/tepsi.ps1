@@ -170,7 +170,7 @@ function Bildirim-Yenile {
   [void]$mBld.DropDownItems.Add($mPo)
   if (-not $po.Count) { $x = $mPo.DropDownItems.Add((U "Son 48 saatte okunmam{0131}{015F} posta yok")); $x.Enabled = $false }
   foreach ($o in $po) {
-    $x = New-Object System.Windows.Forms.ToolStripMenuItem ([string]$o.saat + "   " + (& $kisa ([string]$o.kimden) 24) + "  " + [char]0x2014 + "  " + (& $kisa ([string]$o.konu) 46))
+    $x = New-Object System.Windows.Forms.ToolStripMenuItem ([string]$o.saat + "   " + (& $kisa ([string]$o.konu) 64))   # gonderen yok (Outlook guvenlik uyarisi)
     $x.Tag = (ConvertTo-Json @{ id = [string]$o.id; store = [string]$o.store } -Compress); if ($o.yeni) { $x.Font = $kalin }
     $x.Padding = New-Object System.Windows.Forms.Padding(6, 4, 18, 4)
     $x.add_Click({ param($s, $e) [void](Api "/api/posta/ac" $true ([string]$s.Tag)) })
@@ -238,6 +238,16 @@ $zam.add_Tick({
   elseif (($script:tikSay++ % 2) -eq 0 -and -not $menu.Visible) { Bildirim-Yenile }   # bildirimler 30 sn'de bir
 })
 $zam.Start()
+# Yeni posta aninda: 5 sn'de bir Gelen Kutusu surumu yoklanir, degisince bildirimler hemen tazelenir
+$script:postaRev = -1
+$poz = New-Object System.Windows.Forms.Timer
+$poz.Interval = 5000
+$poz.add_Tick({
+  $r = Api "/api/posta/rev"
+  if ($r -and $script:postaRev -ge 0 -and [int]$r.rev -ne $script:postaRev -and -not $menu.Visible) { Bildirim-Yenile }
+  if ($r) { $script:postaRev = [int]$r.rev }
+})
+$poz.Start()
 Bildirim-Yenile
 
 Kayit ("tepsi basladi (pid " + $PID + ", STA=" + ([Threading.Thread]::CurrentThread.ApartmentState) + ")")
