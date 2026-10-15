@@ -15,7 +15,8 @@ $VARSAYILAN = @{ outlook = $true; micollab = $true; teams = $false }
 
 $secim = @{} + $VARSAYILAN
 try {
-  $ayar = Get-Content -LiteralPath (Join-Path $PSScriptRoot ("istakip_ayar." + $env:COMPUTERNAME + ".json")) -Raw -Encoding UTF8 | ConvertFrom-Json
+  $ayarYol = Join-Path $env:LOCALAPPDATA ("Assist\istakip_ayar." + $env:COMPUTERNAME + ".json"); if (-not (Test-Path -LiteralPath $ayarYol)) { $ayarYol = Join-Path $PSScriptRoot ("istakip_ayar." + $env:COMPUTERNAME + ".json") }
+  $ayar = [System.IO.File]::ReadAllText($ayarYol, [Text.Encoding]::UTF8) | ConvertFrom-Json   # 15.10.2026: dosya okunmuyordu, secimler yok sayiliyordu
   if ($ayar.baslat) { foreach ($k in @($VARSAYILAN.Keys)) { if ($null -ne $ayar.baslat.$k) { $secim[$k] = [bool]$ayar.baslat.$k } } }
 } catch {}
 function Istendi([string]$ad) { if ($Yalniz) { return $Yalniz -eq $ad } else { return $secim[$ad] } }

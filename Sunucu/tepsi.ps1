@@ -3,7 +3,7 @@
 #  ---------------------------------------------------------------
 #  Sunucu gizli calisir (pencere yok); bu betik saatin yanina kucuk bir
 #  simge koyar:
-#    cift tik      -> uygulamayi tarayicida ac
+#    cift tik      -> uygulamayi kendi penceresinde ac
 #    sag tik menu  -> Ac / (Baslat) / Kapat
 #  Sunucu durursa simge yazisi "durdu" olur, menude "Baslat" cikar.
 #  Tek kopya calisir (bat her calistiginda yenisi acilmaz).
@@ -23,18 +23,19 @@ if (-not $yeni) { return }
 
 $kok = Split-Path -Parent $PSScriptRoot
 $bat = Join-Path $kok "Assist.bat"
-$log = Join-Path $PSScriptRoot ("_baslangic_" + $env:COMPUTERNAME + ".log")
+$yerel = Join-Path $env:LOCALAPPDATA "Assist"; if (-not (Test-Path -LiteralPath $yerel)) { New-Item -ItemType Directory -Path $yerel -Force | Out-Null }   # yazilan dosyalar BILGISAYARDA (paylasilan klasor salt okunur olabilir)
+$log = Join-Path $yerel ("_baslangic_" + $env:COMPUTERNAME + ".log")
 $adres = "http://localhost:$Port/"
 $AD = "STFAssist"   # simgenin uzerine gelince gorunen ad (kullanici istegi)
 
-# Simge: kurum logosunun bayrak isareti (tepsi_simge.png, portaldaki logodan kesildi).
+# Simge: Assist logosu (assist_simge.png, Assist.svg'den uretildi; 15.10.2026).
 # Kare simgeye en-boy orani korunarak ortalanir. Dosya yoksa kirmizi kare + onay isareti.
 $bmp = New-Object System.Drawing.Bitmap 32, 32
 $g = [System.Drawing.Graphics]::FromImage($bmp)
 $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
 $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
 $g.Clear([System.Drawing.Color]::Transparent)
-$simgeDos = Join-Path $PSScriptRoot "tepsi_simge.png"
+$simgeDos = Join-Path $PSScriptRoot "assist_simge.png"
 if (Test-Path -LiteralPath $simgeDos) {
   $isaret = [System.Drawing.Image]::FromFile($simgeDos)
   $h = [int][math]::Round(32 * $isaret.Height / $isaret.Width)
@@ -90,15 +91,20 @@ function Saglik {
 }
 # Tani kaydi: simgeye gelen tiklamalar ve hatalar (sunucu kaydindan ayri; sunucu
 # yeniden baslayinca o kayit sifirlaniyor).
-$tlog = Join-Path $PSScriptRoot ("_tepsi_" + $env:COMPUTERNAME + ".log")
+$tlog = Join-Path $yerel ("_tepsi_" + $env:COMPUTERNAME + ".log")
 function Kayit([string]$m) { try { Add-Content -LiteralPath $tlog -Value ((Get-Date).ToString("dd.MM.yyyy HH:mm:ss") + " " + $m) } catch {} }
 # DIKKAT: islev adi "Ac" OLAMAZ - PowerShell'de "ac" = Add-Content takma adi, islevin onune gecer;
 # cift tik/menu bu yuzden hic tarayici acmiyordu (13.10.2026).
 # Tarayici kapaliyken de acilsin: once varsayilan tarayici, olmazsa explorer uzerinden.
+# Assist uygulama penceresinde acilir (Sunucu\pencere.ps1: adres cubugu yok; aciksa one gelir).
+$pencere = Join-Path $PSScriptRoot "pencere.ps1"
 function Tarayici-Ac {
-  $u = $adres + "?v=" + [DateTime]::Now.Ticks
-  try { Start-Process $u; Kayit "Ac: tarayici acildi" }
-  catch { Kayit ("Ac hatasi: " + $_.Exception.Message); try { Start-Process explorer.exe -ArgumentList $u } catch {} }
+  try { & $pencere -Port $Port; Kayit "Ac: uygulama penceresi" }
+  catch {
+    Kayit ("Ac hatasi: " + $_.Exception.Message)
+    $u = $adres + "?v=" + [DateTime]::Now.Ticks
+    try { Start-Process $u } catch { try { Start-Process explorer.exe -ArgumentList $u } catch {} }
+  }
 }
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
@@ -122,18 +128,21 @@ $ni.ContextMenuStrip = $menu
 $mAc.add_Click({ Tarayici-Ac })
 
 # Sunucu API'si (X-IsTakip basligi: sunucu yalniz bu basligi tasiyan yerel istegi kabul eder)
-function Api([string]$yol, [bool]$post = $false) {
+function Api([string]$yol, [bool]$post = $false, [string]$govde = "{}") {
   try {
     $r = [System.Net.WebRequest]::Create($adres.TrimEnd('/') + $yol)
     $r.Timeout = 8000; $r.Headers.Add("X-IsTakip", "1")
-    if ($post) { $r.Method = "POST"; $r.ContentType = "application/json"; $b = [Text.Encoding]::UTF8.GetBytes("{}"); $r.ContentLength = $b.Length; $s = $r.GetRequestStream(); $s.Write($b, 0, $b.Length); $s.Close() }
+    if ($post) { $r.Method = "POST"; $r.ContentType = "application/json"; $b = [Text.Encoding]::UTF8.GetBytes($govde); $r.ContentLength = $b.Length; $s = $r.GetRequestStream(); $s.Write($b, 0, $b.Length); $s.Close() }
     $c = $r.GetResponse(); $sr = New-Object System.IO.StreamReader($c.GetResponseStream(), [Text.Encoding]::UTF8); $t = $sr.ReadToEnd(); $c.Close()
     return ($t | ConvertFrom-Json)
   } catch { return $null }
 }
 function Hedef-Ac([string]$hedef) {
-  $u = $adres + "?v=" + [DateTime]::Now.Ticks + "#" + [Uri]::EscapeDataString($hedef)   # "ac=kayit|aksiyon" gibi
-  try { Start-Process $u } catch { try { Start-Process explorer.exe -ArgumentList $u } catch {} }
+  try { & $pencere -Port $Port -Hedef $hedef }   # "ac=kayit|aksiyon" gibi
+  catch {
+    $u = $adres + "?v=" + [DateTime]::Now.Ticks + "#" + [Uri]::EscapeDataString($hedef)
+    try { Start-Process $u } catch { try { Start-Process explorer.exe -ArgumentList $u } catch {} }
+  }
 }
 $kalin = New-Object System.Drawing.Font($menu.Font, [System.Drawing.FontStyle]::Bold)
 function Bildirim-Yenile {
@@ -145,7 +154,7 @@ function Bildirim-Yenile {
   $mBld.Text = if ($n) { (U "Bildirimler") + " (" + $n + " yeni)" } else { U "Bildirimler" }
   $mBld.Font = if ($n) { $kalin } else { $menu.Font }
   $ni.Text = if ($n) { $AD + " - " + $n + " yeni bildirim" } else { $AD }
-  # Iki grup: Cevapsiz aramalar (son 48 saat) ve Gorevler (geciken/yaklasan ilk 5). Ogeye tiklayinca ilgili yer.
+  # Uc grup: E-postalar (okunmamis), Cevapsiz aramalar (son 48 saat), Gorevler (geciken/yaklasan ilk 5). Ogeye tiklayinca ilgili yer.
   $oge = { param($ust, [string]$metin, [string]$hedef, [bool]$k)
     $x = New-Object System.Windows.Forms.ToolStripMenuItem $metin
     $x.Tag = $hedef; if ($k) { $x.Font = $kalin }
@@ -153,6 +162,21 @@ function Bildirim-Yenile {
     $x.add_Click({ param($s, $e) Hedef-Ac ([string]$s.Tag) })
     [void]$ust.DropDownItems.Add($x) }
   $kisa = { param([string]$s, [int]$n) if ($s.Length -gt $n) { $s.Substring(0, $n - 1) + [char]0x2026 } else { $s } }
+
+  # E-postalar: Gelen Kutusu'nda okunmamislar (son 48 saat, en yeni 8); tiklayinca Outlook'ta acilir.
+  $po = @($j.postalar | ForEach-Object { $_ }); $poYeni = @($po | Where-Object { $_.yeni }).Count; $poSay = [int]$j.postaSay
+  $mPo = New-Object System.Windows.Forms.ToolStripMenuItem ("E-postalar" + $(if ($poYeni) { " (" + $poYeni + " yeni)" } elseif ($poSay) { " (" + $poSay + (U " okunmam{0131}{015F})") } else { "" }))
+  if ($poYeni) { $mPo.Font = $kalin }
+  [void]$mBld.DropDownItems.Add($mPo)
+  if (-not $po.Count) { $x = $mPo.DropDownItems.Add((U "Son 48 saatte okunmam{0131}{015F} posta yok")); $x.Enabled = $false }
+  foreach ($o in $po) {
+    $x = New-Object System.Windows.Forms.ToolStripMenuItem ([string]$o.saat + "   " + (& $kisa ([string]$o.kimden) 24) + "  " + [char]0x2014 + "  " + (& $kisa ([string]$o.konu) 46))
+    $x.Tag = (ConvertTo-Json @{ id = [string]$o.id; store = [string]$o.store } -Compress); if ($o.yeni) { $x.Font = $kalin }
+    $x.Padding = New-Object System.Windows.Forms.Padding(6, 4, 18, 4)
+    $x.add_Click({ param($s, $e) [void](Api "/api/posta/ac" $true ([string]$s.Tag)) })
+    [void]$mPo.DropDownItems.Add($x)
+  }
+  [void]$mPo.DropDownItems.Add((New-Object System.Windows.Forms.ToolStripSeparator)); & $oge $mPo (U "Posta Kutusu'nda a{00E7}") "posta" $false
 
   $cev = @($j.cevapsiz | ForEach-Object { $_ }); $cevYeni = @($cev | Where-Object { $_.yeni }).Count
   $mCev = New-Object System.Windows.Forms.ToolStripMenuItem ((U "Cevaps{0131}z aramalar") + $(if ($cevYeni) { " (" + $cevYeni + " yeni)" } elseif ($cev.Count) { " (" + $cev.Count + ")" } else { "" }))

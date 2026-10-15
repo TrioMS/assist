@@ -14,7 +14,8 @@ if (-not $yeni) { return }
 
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 Add-Type -Namespace IsTakip -Name Pencere -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(System.IntPtr h, int k); [DllImport("user32.dll")] public static extern bool IsWindowVisible(System.IntPtr h);'
-$log = Join-Path $PSScriptRoot ("_tepsi_" + $env:COMPUTERNAME + ".log")
+$yerel = Join-Path $env:LOCALAPPDATA "Assist"; if (-not (Test-Path -LiteralPath $yerel)) { New-Item -ItemType Directory -Path $yerel -Force | Out-Null }   # yazilan dosyalar BILGISAYARDA (paylasilan klasor salt okunur olabilir)
+$log = Join-Path $yerel ("_tepsi_" + $env:COMPUTERNAME + ".log")
 function Kayit([string]$m) { try { Add-Content -LiteralPath $log -Value ((Get-Date).ToString("dd.MM.yyyy HH:mm:ss") + " " + $m) } catch {} }
 
 $MITEL = @("UCA", "53xxPCApp", "UCASoftphoneManager", "MCAC", "Mitel.PIM.ServiceHost")

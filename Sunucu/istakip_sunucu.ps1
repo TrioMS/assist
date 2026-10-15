@@ -29,7 +29,10 @@ $BETIK_ZAMAN = (Get-Item -LiteralPath $PSCommandPath).LastWriteTimeUtc.Ticks
 # --- Ayar ------------------------------------------------------------
 # Ayar dosyasi MAKINEYE OZELDIR: klasor paylasilirsa herkesin kendi
 # dosyasi olur, kimse otekinin veri yolunu ezmez.
-$ayarDos = Join-Path $betikKok ("istakip_ayar." + $env:COMPUTERNAME + ".json")
+$yerel = Join-Path $env:LOCALAPPDATA "Assist"; if (-not (Test-Path -LiteralPath $yerel)) { New-Item -ItemType Directory -Path $yerel -Force | Out-Null }   # yazilan dosyalar BILGISAYARDA (paylasilan klasor salt okunur olabilir)
+$ayarDos = Join-Path $yerel ("istakip_ayar." + $env:COMPUTERNAME + ".json")
+$eskiAyar = Join-Path $betikKok ("istakip_ayar." + $env:COMPUTERNAME + ".json")   # 14.10.2026 oncesi yeri: bir kez tasinir
+if (-not (Test-Path -LiteralPath $ayarDos) -and (Test-Path -LiteralPath $eskiAyar)) { try { Copy-Item -LiteralPath $eskiAyar -Destination $ayarDos } catch {} }
 $varsayilan = [ordered]@{
   port    = 8096
   veriKok = (Join-Path $env:USERPROFILE "IsTakipVeri")
@@ -323,6 +326,55 @@ function Assist-Klasoru {
   $gk = (Ns).GetDefaultFolder(6)
   try { return $gk.Folders.Item("Assist") } catch { return $gk.Folders.Add("Assist") }
 }
+# Mobil Assist (Power Apps) icin gorevler: kullanicinin OneDrive'inda Assist\assist_mobil.json.
+# Power Apps OneDrive baglantisiyla okuyup ParseJSON ile acar (yalniz okuma). Veri degismedikce
+# (rev) ve gun donmedikce yeniden yazilmaz. Test sunucusunda (ISTAKIP_PORT) yazilmaz.
+$script:mobilAnahtar = ""
+$MOBIL_GELEN = if ($env:ISTAKIP_PORT) { "Assist\mobil_gelen_test" } else { "Assist\mobil_gelen" }   # test sunucusu gercek istekleri almasin
+function Mobil-Disa-Aktar {
+  if ($env:ISTAKIP_PORT -or -not $env:OneDriveCommercial -or -not (Test-Path -LiteralPath $veriDos)) { return }
+  $an = [string]$script:rev + "|" + (Get-Date).ToString("yyyy-MM-dd")
+  if ($an -eq $script:mobilAnahtar) { return }
+  $V = (Veri-Oku) | ConvertFrom-Json
+  if (-not $V) { return }
+  $L = New-Object System.Collections.ArrayList
+  $ekle = { param($tur, $no, $baslik, $ust, $termin, $sorumlu, $kid, $aid)
+    $g = Gun-Fark $termin
+    [void]$L.Add([ordered]@{ tur = $tur; no = [string]$no; baslik = [string]$baslik; ust = [string]$ust; termin = [string]$termin
+      kalan = $(if ($null -eq $g) { 9999 } else { $g }); sorumlu = [string]$sorumlu; kid = [string]$kid; aid = [string]$aid }) }
+  foreach ($k in @($V.kayitlar | ForEach-Object { $_ })) {
+    $acik = ($k.durum -eq "acik" -or $k.durum -eq "beklemede")
+    if ($acik -and $k.tur -ne "posta") { & $ekle $(if ($k.tur -eq "not") { "Not" } else { "Talep" }) $k.no $k.baslik "" $k.termin $k.sorumlu $k.id "" }
+    if ($k.durum -eq "iptal") { continue }
+    foreach ($ak in @($k.aksiyonlar | ForEach-Object { $_ })) {
+      if ($ak.durum -ne "tamam") { & $ekle "Aksiyon" $ak.no $ak.metin $k.baslik $ak.termin $ak.sorumlu $k.id $ak.id }
+    }
+  }
+  $sirali = @($L | Sort-Object { $_.kalan }, { $_.no })
+  $yg = [int]$V.ayar.yaklasanGun; if ($yg -le 0) { $yg = 7 }
+  $cikti = [ordered]@{ surum = 1; guncelleme = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss"); ad = [string]$V.ayar.adSoyad
+    yaklasanGun = $yg; telOnek = $(if ($null -ne $V.ayar.telOnek) { [string]$V.ayar.telOnek } else { "1" }); gorevler = $sirali }
+  $kl = Join-Path $env:OneDriveCommercial "Assist"
+  if (-not (Test-Path -LiteralPath $kl)) { New-Item -ItemType Directory -Path $kl | Out-Null }
+  $klG = Join-Path $env:OneDriveCommercial $MOBIL_GELEN; if (-not (Test-Path -LiteralPath $klG)) { New-Item -ItemType Directory -Path $klG | Out-Null }   # telefonun biraktigi istekler
+  $metin = ConvertTo-Json -InputObject $cikti -Depth 5 -Compress
+  [System.IO.File]::WriteAllText((Join-Path $kl "assist_mobil.json"), $metin, $UTF8)
+  # Ayni icerik .txt olarak da: Power Automate "dosya icerigini al" duz metni dogrudan verir (json'u base64 sarar)
+  [System.IO.File]::WriteAllText((Join-Path $kl "assist_mobil.txt"), $metin, $UTF8)
+  $script:mobilAnahtar = $an
+}
+# Bu Windows oturumunun kurumsal e-postasi (kucuk harf, onbellekli): once etki alani, olmazsa Outlook.
+$script:benEposta = $null
+function Ben-Eposta {
+  if ($null -ne $script:benEposta) { return $script:benEposta }
+  $e = ""
+  try { Add-Type -AssemblyName System.DirectoryServices.AccountManagement; $e = [string][System.DirectoryServices.AccountManagement.UserPrincipal]::Current.EmailAddress } catch {}
+  if (-not $e) { try { $e = [string](Ns).CurrentUser.AddressEntry.GetExchangeUser().PrimarySmtpAddress } catch {} }
+  $script:benEposta = $e.Trim().ToLowerInvariant()
+  return $script:benEposta
+}
+
+
 function Gelen-Talep-Kontrol {
   $gk = (Ns).GetDefaultFolder(6)
   $bulunan = @(); foreach ($it in $gk.Items.Restrict("[MessageClass] = '$GELEN_SINIF'")) { $bulunan += $it }   # tasirken koleksiyon degismesin
@@ -437,6 +489,49 @@ try {
   $script:bildirimHazir = $true
 } catch { Write-Host ("  Windows bildirimi kullanilamiyor: " + $_.Exception.Message) -ForegroundColor Yellow }
 
+# "assist:<hedef>" adresi Sunucu\pencere.ps1'i calistirir (kullanici kaydi, yonetici gerekmez).
+# Duz PowerShell (gizli): konsolu "headless" acan komutu kurumsal guvenlik yazilimi zararli sayiyor (15.10.2026).
+$script:assistAdres = $false
+try {
+  $rk = "HKCU:\Software\Classes\assist"
+  $komut = 'powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + (Join-Path $betikKok "pencere.ps1") + '" -Port ' + $port + ' -Url "%1"'
+  if (-not (Test-Path "$rk\shell\open\command")) { New-Item -Path "$rk\shell\open\command" -Force | Out-Null }
+  Set-ItemProperty -Path $rk -Name "(default)" -Value "URL:Assist"
+  Set-ItemProperty -Path $rk -Name "URL Protocol" -Value ""
+  Set-ItemProperty -Path "$rk\shell\open\command" -Name "(default)" -Value $komut
+  $script:assistAdres = $true
+} catch { Write-Host ("  assist: adresi kaydedilemedi: " + $_.Exception.Message) -ForegroundColor Yellow }
+
+# Acilis ekrani bekler: Outlook / MiCollab KULLANILABILIR mi? (15.10.2026 olcumu: Outlook ~6, MiCollab ~5 sn)
+#  - Outlook: Windows "Application" gunlugune eklentiler yuklenince Outlook olay 45 yazar.
+#  - MiCollab: uca.log'a oturum acilinca LoginViewModel satirlari yazilir.
+#  Yuklu degilse beklenmez; 40 sn'den uzun suredir calisiyorsa hazir sayilir.
+function Uygulama-Hazir([string]$ad) {
+  if ($ad -eq "outlook") {
+    if (-not (Test-Path -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\OUTLOOK.EXE")) { return $true }
+    $p = @(Get-Process -Name OUTLOOK -ErrorAction SilentlyContinue) | Select-Object -First 1
+  } else {
+    if (-not (Test-Path -LiteralPath (Join-Path $env:APPDATA "Mitel\UC"))) { return $true }
+    $p = @(Get-Process -Name UCA -ErrorAction SilentlyContinue) | Select-Object -First 1
+  }
+  if (-not $p) { return $false }
+  $bas = $null; try { $bas = $p.StartTime } catch {}
+  if (-not $bas -or ((Get-Date) - $bas).TotalSeconds -ge 40) { return $true }
+  if ($ad -eq "outlook") {
+    $ev = Get-WinEvent -FilterHashtable @{ LogName = "Application"; ProviderName = "Outlook"; Id = 45; StartTime = $bas } -MaxEvents 1 -ErrorAction SilentlyContinue
+    return [bool]$ev
+  }
+  try {
+    $fs = [System.IO.File]::Open((Join-Path $env:APPDATA "Mitel\UC\uca.log"), "Open", "Read", "ReadWrite")
+    try { if ($fs.Length -gt 300000) { [void]$fs.Seek(-300000, "End") }; $son = (New-Object System.IO.StreamReader($fs)).ReadToEnd() } finally { $fs.Close() }
+    foreach ($m in [regex]::Matches($son, '(?m)^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})\.\d+ \S+\s+\[[^\]]*\] Mitel\.Communicator\.Views\.ViewModels\.LoginViewModel - (OfficeIntegration|Finished operation)')) {
+      # tarih metin olarak KARSILASTIRILMAZ: "/" Turkce bolge ayarinda "." olur (15.10.2026 hatasi)
+      if ([datetime]::ParseExact($m.Groups[1].Value, "yyyy/MM/dd HH:mm:ss", [Globalization.CultureInfo]::InvariantCulture) -ge $bas.AddSeconds(-1)) { return $true }
+    }
+  } catch { return $true }
+  return $false
+}
+
 function Xml-Kacis([string]$s) { return [System.Security.SecurityElement]::Escape($s) }
 # Gosterilen her bildirim bir gecmise de yazilir (Windows bildirimi kaybolunca tepsi simgesinden
 # "Bildirimler" ile yeniden gorulur). Metinlerde is adi yok (yalniz sayi/saat), dosya sifresiz;
@@ -456,7 +551,7 @@ function Bildirim-Kaydet([string]$metin, [string]$hedef) {
 function Bildirim-Goster([string]$baslik, [string]$metin, [string]$hedef) {
   Bildirim-Kaydet $metin $hedef
   if (-not $script:bildirimHazir) { return }
-  $url = "http://localhost:$port/?b=" + [DateTime]::Now.Ticks + "#" + $hedef
+  $url = if ($script:assistAdres) { "assist:" + [Uri]::EscapeDataString($hedef) } else { "http://localhost:$port/?b=" + [DateTime]::Now.Ticks + "#" + $hedef }
   $xml = '<toast activationType="protocol" launch="' + (Xml-Kacis $url) + '"><visual><binding template="ToastGeneric">' +
          '<text>' + (Xml-Kacis $baslik) + '</text><text>' + (Xml-Kacis $metin) + '</text></binding></visual></toast>'
   $d = New-Object Windows.Data.Xml.Dom.XmlDocument
@@ -731,16 +826,47 @@ function Rehber-Kur {
 # Duz metin kayitlar varsa once sifrelenir. Hata olursa sunucu acilmaz (veri korunur).
 $gocSayi = Sifre-Gocu
 Gecici-Temizle
+# Assist kisayolu (masaustu, Baslangic). DIKKAT (15.10.2026): konsolu gizli (headless) acan kisayolu
+# kurumsal guvenlik yazilimi SILIYOR (zararli yazilim kalibi); bat dogrudan acilir.
+function Assist-Kisayol([string]$lnk) {
+  $k = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+  $k.TargetPath = Join-Path $portalKok "Assist.bat"; $k.Arguments = ""
+  $k.WorkingDirectory = $portalKok; $k.WindowStyle = 7; $k.Description = "STFA Assist"
+  $k.IconLocation = (Join-Path $portalKok "Assist.ico") + ",0"
+  $k.Save()
+}
 # Ad degisikligi (Is Takip -> Assist, 13.10.2026): eski otomatik baslat kisayolu yeni bat'a tasinir.
 try {
   $eskiLnk = Join-Path ([Environment]::GetFolderPath("Startup")) "Is Takip.lnk"
   if (Test-Path -LiteralPath $eskiLnk) {
-    $k = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path ([Environment]::GetFolderPath("Startup")) "Assist.lnk"))
-    $k.TargetPath = Join-Path $portalKok "Assist.bat"; $k.WorkingDirectory = $portalKok; $k.WindowStyle = 7; $k.Description = "Assist"; $k.IconLocation = (Join-Path $portalKok "AssistLogo.ico") + ",0"; $k.Save()
+    Assist-Kisayol (Join-Path ([Environment]::GetFolderPath("Startup")) "Assist.lnk")
     Remove-Item -LiteralPath $eskiLnk -Force
   }
 } catch {}
-# Outlook/MiCollab/Teams'i bat baslatir (Sunucu\uygulamalar.ps1): sunucu zaten aciksa da calissin diye.
+# Logo degisti (15.10.2026, AssistLogo.ico -> Assist.ico; yeni ad = Windows simge onbellegi yenilenir):
+# masaustu ve Baslangic klasorundeki Assist kisayollari yeni simgeye gecirilir.
+try {
+  $yeniSimge = Join-Path $portalKok "Assist.ico"
+  if (Test-Path -LiteralPath $yeniSimge) {
+    $ws = New-Object -ComObject WScript.Shell
+    foreach ($kl in @([Environment]::GetFolderPath("Desktop"), [Environment]::GetFolderPath("Startup"))) {
+      foreach ($l in @(Get-ChildItem -LiteralPath $kl -Filter "*.lnk" -ErrorAction SilentlyContinue)) {
+        $k = $ws.CreateShortcut($l.FullName)
+        if ($k.IconLocation -match 'AssistLogo\.ico|AssistSimge\.ico') { $k.IconLocation = $yeniSimge + ",0"; $k.Save() }
+      }
+    }
+  }
+} catch {}
+# Windows acilisinda otomatik baslat VARSAYILAN ACIK (15.10.2026): ilk calismada Baslangic kisayolu konur.
+# Kullanici sonra Ayarlar'dan kapatirsa "otobaslatIlk" isareti sayesinde bir daha kendiliginden acilmaz.
+try {
+  if (-not $env:ISTAKIP_PORT -and -not $ayar.otobaslatIlk) {
+    $bLnk = Join-Path ([Environment]::GetFolderPath("Startup")) "Assist.lnk"
+    if (-not (Test-Path -LiteralPath $bLnk)) { Assist-Kisayol $bLnk }
+    $ayar | Add-Member -NotePropertyName otobaslatIlk -NotePropertyValue $true -Force
+    [System.IO.File]::WriteAllText($ayarDos, ($ayar | ConvertTo-Json -Depth 4), $UTF8)
+  }
+} catch {}# Outlook/MiCollab/Teams'i bat baslatir (Sunucu\uygulamalar.ps1): sunucu zaten aciksa da calissin diye.
 
 # --- Dinleyici -------------------------------------------------------
 $listener = New-Object System.Net.HttpListener
@@ -772,6 +898,7 @@ while ($listener.IsListening) {
       try { Bildirim-Kontrol } catch { Write-Host ("  Bildirim hatasi: " + $_.Exception.Message) -ForegroundColor Yellow }
       if (-not $env:ISTAKIP_PORT) { try { Gelen-Talep-Kontrol } catch { Write-Host ("  Gelen talep hatasi: " + $_.Exception.Message) -ForegroundColor Yellow } }
       try { Gecici-Temizle } catch {}
+      try { Mobil-Disa-Aktar } catch { Write-Host ("  Mobil disa aktarma hatasi: " + $_.Exception.Message) -ForegroundColor Yellow }
     }
     try { $z = (Get-Item -LiteralPath $PSCommandPath).LastWriteTimeUtc.Ticks } catch { $z = $BETIK_ZAMAN }
     if ($z -ne $BETIK_ZAMAN) { $yenidenYukle = $true; break }
@@ -796,7 +923,7 @@ while ($listener.IsListening) {
 
     if ($yol.StartsWith("/api/")) {
       # Istek kaydi: sunucu bir istekte takilirsa kayittaki SON satir hangisi oldugunu gosterir.
-      Write-Host ("  > " + (Get-Date).ToString("HH:mm:ss") + " " + $metod + " " + $yol + $(if ($yol -ne "/api/kisi/coz") { $ctx.Request.Url.Query }))   # kisi adi kayda yazilmaz
+      if (($yol -ne "/api/pencere/hedef" -or $metod -ne "GET") -and $yol -ne "/api/acilis/durum") { Write-Host ("  > " + (Get-Date).ToString("HH:mm:ss") + " " + $metod + " " + $yol + $(if ($yol -ne "/api/kisi/coz") { $ctx.Request.Url.Query })) }   # kisi adi kayda yazilmaz; pencerenin 2 sn yoklamasi yazilmaz
       # Baska bir sayfadan gelen istek ozel basligi gonderemez (CORS izni yok).
       $koken = [string]$ctx.Request.Headers["Origin"]
       $kokenOk = (-not $koken) -or ($koken -eq "http://localhost:$port") -or ($koken -eq "http://127.0.0.1:$port")
@@ -862,6 +989,85 @@ while ($listener.IsListening) {
         }
       }
 
+      # ---------- telefondan (Power Apps) gelen istekler ----------
+      # Telefon OneDrive\Assist\mobil_gelen\<kimlik>.json birakir: islem = not | aksiyon | tamamla.
+      # GET: bekleyen dosyalar; postasi olanlarda posta Outlook'ta internetMessageId ile bulunup Assist'in
+      # posta bilgisine (EntryID, depo) cevrilir. Sayfa kaydi olusturur, sonra POST .../sil ile dosyalari siler.
+      elseif ($yol -eq "/api/mobil/gelen") {
+        $L = @()
+        $kl = Join-Path $env:OneDriveCommercial $MOBIL_GELEN
+        if ($env:OneDriveCommercial -and (Test-Path -LiteralPath $kl)) {
+          foreach ($f in @(Get-ChildItem -LiteralPath $kl -Filter "*.json" -File | Sort-Object LastWriteTime | Select-Object -First 30)) {
+            $v = $null; try { $v = [System.IO.File]::ReadAllText($f.FullName, $UTF8) | ConvertFrom-Json } catch {}
+            $po = $null
+            if ($v -and $v.posta -and $v.posta.internetMessageId) {
+              try {
+                $mid = ([string]$v.posta.internetMessageId).Replace("'", "''")
+                $it = $null
+                foreach ($it2 in (Ns).GetDefaultFolder(6).Items.Restrict("@SQL=""" + $PR_MSGID + """ = '" + $mid + "'")) { $it = $it2; break }
+                if ($it) {
+                  $ep = ""; try { $ep = [string]$it.Sender.GetExchangeUser().PrimarySmtpAddress } catch {}; if (-not $ep) { $ep = [string]$it.SenderEmailAddress }
+                  $po = @{ id = [string]$it.EntryID; store = [string]$it.Parent.StoreID; msgId = [string]$v.posta.internetMessageId; konu = [string]$it.Subject
+                           kimden = [string]$it.SenderName; eposta = $ep; tarih = ([datetime]$it.ReceivedTime).ToString("yyyy-MM-ddTHH:mm") }
+                }
+              } catch {}
+            }
+            $L += @{ dosya = $f.Name; veri = $v; posta = $po }
+          }
+        }
+        Yaz-Json $ctx @{ ok = $true; gelen = @($L) }
+      }
+      elseif ($yol -eq "/api/mobil/gelen/sil" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json; $n = 0
+        $kl = Join-Path $env:OneDriveCommercial $MOBIL_GELEN
+        foreach ($ad in @($g.dosyalar | ForEach-Object { [string]$_ })) {
+          if ($ad -notmatch '^[A-Za-z0-9_.-]+\.json$') { continue }   # yalniz bu klasordeki dosya adi
+          $p = Join-Path $kl $ad; if (Test-Path -LiteralPath $p) { try { Remove-Item -LiteralPath $p -Force; $n++ } catch {} }
+        }
+        Yaz-Json $ctx @{ ok = $true; silinen = $n }
+      }
+
+      # ---------- kisiye ozel ad gorunumu ("Hos Geldin <ad>") ----------
+      # Paylasilan klasorde IsTakip\kisi_stilleri.json (OneDrive ile herkese gider; GitHub'a GITMEZ).
+      # Her Assist yalniz KENDI e-postasina ait stili uygular. Dosyayi yalniz "yonetici" degistirir:
+      # yonetici dosyada yazilidir ve ilk kaydeden kisidir (kodda kimse adiyla yazili degil).
+      elseif ($yol -eq "/api/kisi-stil") {
+        $stilDos = Join-Path $portalKok "kisi_stilleri.json"
+        $ben = Ben-Eposta
+        $d = $null; if (Test-Path -LiteralPath $stilDos) { try { $d = [System.IO.File]::ReadAllText($stilDos, $UTF8) | ConvertFrom-Json } catch {} }
+        $yon = if ($d -and $d.yonetici) { ([string]$d.yonetici).ToLowerInvariant() } else { "" }
+        # Yonetici dosyada yaziliysa yalniz o kisi. Dosya yoksa (ilk kurulum / silinmis) bolum yalniz
+        # ?yonetici=1 ile acilan sayfada gorunur: kisayoldan acan kullanicilar hic gormez.
+        $yetkili = $ben -and (($yon -and $yon -eq $ben) -or (-not $yon -and (Sorgu $ctx "yonetici") -eq "1"))
+        if ($metod -eq "POST") {
+          if (-not $yetkili) { Yaz-Hata $ctx "Bu ayari yalniz yonetici degistirebilir." 403 }
+          else {
+            $g = (Govde-Oku $ctx) | ConvertFrom-Json
+            $L = @()
+            foreach ($k in @($g.kisiler | ForEach-Object { $_ })) {
+              $ep = ([string]$k.eposta).Trim().ToLowerInvariant()
+              if ($ep -notmatch '^[^@\s]+@[^@\s]+\.[a-z]{2,}$') { continue }
+              $yt = [string]$k.yaziTipi; if ($yt -notin @("duz", "el", "genis", "serif")) { $yt = "duz" }
+              $rk = [string]$k.renk; if ($rk -notmatch '^#[0-9A-Fa-f]{6}$') { $rk = "" }
+              $by = [int]$k.boyut; if ($by -lt 16 -or $by -gt 44) { $by = 0 }
+              # Tek seferlik mesaj: metin degisince yeni kimlik alir (kisinin Assist'i bu kimligi bir kez gosterir)
+              $ms = ([string]$k.mesaj).Trim(); if ($ms.Length -gt 600) { $ms = $ms.Substring(0, 600) }
+              $eski = if ($d) { @($d.kisiler | ForEach-Object { $_ }) | Where-Object { ([string]$_.eposta).ToLowerInvariant() -eq $ep } | Select-Object -First 1 } else { $null }
+              $mid = if (-not $ms) { "" } elseif ($eski -and [string]$eski.mesaj -eq $ms -and $eski.mesajId) { [string]$eski.mesajId } else { [string][DateTime]::Now.Ticks }
+              $L += [ordered]@{ eposta = $ep; yaziTipi = $yt; renk = $rk; kalin = [bool]$k.kalin; italik = [bool]$k.italik; boyut = $by; mesaj = $ms; mesajId = $mid }
+            }
+            $yeni = [ordered]@{ yonetici = $(if ($yon) { $yon } else { $ben }); kisiler = @($L) }
+            [System.IO.File]::WriteAllText($stilDos, (ConvertTo-Json -InputObject $yeni -Depth 4), $UTF8)
+            Write-Host ("  Kisi stilleri kaydedildi (" + $L.Count + " kisi)")
+            Yaz-Json $ctx @{ ok = $true; sayi = $L.Count }
+          }
+        } else {
+          $kendi = $null
+          if ($d -and $ben) { $kendi = @($d.kisiler | ForEach-Object { $_ }) | Where-Object { ([string]$_.eposta).ToLowerInvariant() -eq $ben } | Select-Object -First 1 }
+          Yaz-Json $ctx @{ ok = $true; stil = $kendi; yetkili = [bool]$yetkili; kisiler = $(if ($yetkili -and $d) { @($d.kisiler | ForEach-Object { $_ }) } else { @() }) }
+        }
+      }
+
       # ---------- kullanicinin adi (ana ekran "Hos Geldin") ----------
       # Once kurumsal hesap (etki alani) gorunen adi, olmazsa Outlook, olmazsa Windows kullanici adi.
       elseif ($yol -eq "/api/kullanici") {
@@ -919,6 +1125,106 @@ while ($listener.IsListening) {
         Yaz-Json $ctx @{ ok = $true; okunmamis = $okunmamis; cevapsiz = $cev }
       }
 
+      # ---------- rehberi Outlook kisilerine yaz (iPhone'da gelen aramada isim icin) ----------
+      # Sirket rehberindeki numarali kisiler Outlook "Kisiler" klasorune "Assist Rehber" kategorisiyle
+      # yazilir; Outlook mobil "Kisileri Kaydet" / Exchange esitlemesi bunlari telefona tasir.
+      # Dahili (3-5 hane) mobil kuralla: onek + dahili (1 + 646 = 1646, is telefonu). Uzun numara +90'li
+      # cep olarak. YALNIZ bu kategorideki kisiler eklenir/guncellenir/silinir; kullanicinin kendi
+      # eklediklerine dokunulmaz (ayni e-postali kendi kisisi varsa o kisi atlanir).
+      # deneme=true: hicbir sey yazmadan sayilari dondurur. kaldir=true: kategorideki kisilerin hepsini siler.
+      elseif ($yol -eq "/api/rehber/telefona" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json
+        $onek = ([string]$g.onek) -replace '[^\d+]', ''
+        $KAT = "Assist Rehber"
+        $f = (Ns).GetDefaultFolder(10)   # olFolderContacts
+        $bizim = @{}; $kendi = @{}
+        foreach ($it in $f.Items) {
+          if ($it.Class -ne 40) { continue }   # olContact
+          $ep = ([string]$it.Email1Address).ToLowerInvariant()
+          if (([string]$it.Categories) -match [regex]::Escape($KAT)) { $bizim[$(if ($ep) { $ep } else { "ad:" + [string]$it.FullName })] = $it }
+          elseif ($ep) { $kendi[$ep] = $true }
+        }
+        if ($g.kaldir) {
+          $n = 0
+          if (-not $g.deneme) { foreach ($it in @($bizim.Values)) { try { $it.Delete(); $n++ } catch {} } } else { $n = $bizim.Count }
+          Write-Host ("  Telefon rehberi: " + $n + " Assist kisisi Outlook'tan " + $(if ($g.deneme) { "silinecek" } else { "silindi" }))
+          Yaz-Json $ctx @{ ok = $true; silinen = $n; deneme = [bool]$g.deneme }
+        } else {
+          $ben = ""; try { $ben = ([string](Ns).CurrentUser.AddressEntry.GetExchangeUser().PrimarySmtpAddress).ToLowerInvariant() } catch {}
+          $kisiler = @(); try { $kisiler = @(((Sifreli-Oku $rehberDos) | ConvertFrom-Json).kisiler | ForEach-Object { $_ }) } catch {}
+          $ekle = 0; $guncel = 0; $atla = 0; $ayni = 0; $yeniAnahtar = @{}
+          foreach ($k in $kisiler) {
+            $ad = [string]$k.ad; $ep = ([string]$k.eposta).ToLowerInvariant(); $ham = ([string]$k.tel) -replace '\D', ''
+            if (-not $ham -or -not $ad) { continue }
+            if ($ad -match '(?i)(c|\u00E7)ay ocag|ocag\u0131|toplant(\u0131|i) odas|\bt\.\s*odas|meeting room') { continue }   # kisi olmayan kayitlar
+            if ($ep -and $ep -eq $ben) { continue }
+            if ($ep -and $kendi.ContainsKey($ep)) { $atla++; continue }
+            $isTel = ""; $cep = ""
+            if ($ham.Length -le 5) { $isTel = $onek + $ham }
+            else {
+              $c = $ham -replace '^00', ''; if ($c.StartsWith("0")) { $c = "90" + $c.Substring(1) }; if ($c.Length -eq 10) { $c = "90" + $c }
+              $cep = "+" + $c
+            }
+            $an = if ($ep) { $ep } else { "ad:" + $ad }
+            if ($yeniAnahtar.ContainsKey($an)) { continue }
+            $yeniAnahtar[$an] = $true
+            if ($g.deneme) { if ($bizim.ContainsKey($an)) { $guncel++ } else { $ekle++ }; continue }
+            $it = $bizim[$an]; $yeni = -not $it
+            if ($yeni) { $it = $f.Items.Add(2) }   # olContactItem
+            $deg = $yeni -or [string]$it.FullName -ne $ad -or [string]$it.BusinessTelephoneNumber -ne $isTel -or [string]$it.MobileTelephoneNumber -ne $cep
+            if (-not $deg) { $ayni++; continue }
+            $it.FullName = $ad; if ($ep) { $it.Email1Address = $ep }
+            $it.BusinessTelephoneNumber = $isTel; $it.MobileTelephoneNumber = $cep
+            $it.CompanyName = "STFA"; $it.Categories = $KAT
+            try { $it.Save(); if ($yeni) { $ekle++ } else { $guncel++ } } catch {}
+          }
+          $sil = 0
+          foreach ($an in @($bizim.Keys)) { if (-not $yeniAnahtar.ContainsKey($an)) { if (-not $g.deneme) { try { $bizim[$an].Delete() } catch {} }; $sil++ } }
+          Write-Host ("  Telefon rehberi: +" + $ekle + " ~" + $guncel + " -" + $sil + " (atlanan " + $atla + ")" + $(if ($g.deneme) { " DENEME" } else { "" }))
+          Yaz-Json $ctx @{ ok = $true; deneme = [bool]$g.deneme; eklenen = $ekle; guncellenen = $guncel; ayni = $ayni; silinen = $sil; atlanan = $atla; toplam = $yeniAnahtar.Count }
+        }
+      }
+
+      # ---------- telefon rehberi: .vcf (kurum politikasi Outlook'tan kisi aktarmayi kapattiysa) ----------
+      # "Assist Rehber" kategorisindeki Outlook kisileri tek vCard dosyasi olur. GET: indir;
+      # POST {eposta:true}: dosya ekli e-posta KULLANICININ KENDISINE gonderilir (telefonda acip
+      # "Tum kisileri ekle"). Baska alici kabul edilmez.
+      elseif ($yol -eq "/api/rehber/vcf") {
+        $kac = { param([string]$s) $s.Replace('\', '\\').Replace(',', '\,').Replace(';', '\;') }
+        $sb = New-Object System.Text.StringBuilder; $n = 0
+        foreach ($it in (Ns).GetDefaultFolder(10).Items.Restrict("[Categories] = 'Assist Rehber'")) {
+          $fn = [string]$it.FullName; if (-not $fn) { continue }
+          [void]$sb.Append("BEGIN:VCARD`r`nVERSION:3.0`r`n")
+          [void]$sb.Append("N:" + (& $kac ([string]$it.LastName)) + ";" + (& $kac ([string]$it.FirstName)) + ";;;`r`nFN:" + (& $kac $fn) + "`r`nORG:STFA`r`n")
+          if ($it.BusinessTelephoneNumber) { [void]$sb.Append("TEL;TYPE=WORK,VOICE:" + $it.BusinessTelephoneNumber + "`r`n") }
+          if ($it.MobileTelephoneNumber) { [void]$sb.Append("TEL;TYPE=CELL:" + $it.MobileTelephoneNumber + "`r`n") }
+          if ($it.Email1Address) { [void]$sb.Append("EMAIL;TYPE=INTERNET,WORK:" + $it.Email1Address + "`r`n") }
+          [void]$sb.Append("CATEGORIES:Assist Rehber`r`nEND:VCARD`r`n"); $n++
+        }
+        if (-not $n) { Yaz-Hata $ctx "Once 'Rehberi Outlook kisilerine yaz' ile kisileri olusturun." 404 }
+        elseif ($metod -eq "POST") {
+          $dos = Join-Path $env:TEMP "STFA Rehber.vcf"
+          [System.IO.File]::WriteAllText($dos, $sb.ToString(), $UTF8)
+          $ben = ""; try { $ben = [string](Ns).CurrentUser.AddressEntry.GetExchangeUser().PrimarySmtpAddress } catch {}
+          if (-not $ben) { Yaz-Hata $ctx "Kendi e-posta adresiniz bulunamadi." 500 }
+          else {
+            $m = (Outlook).CreateItem(0)
+            $m.To = $ben; $m.Subject = "STFA Rehber (" + $n + " kisi) - telefona ekle"
+            $m.Body = (U "Telefonda bu postay{0131} a{00E7}{0131}p ekteki 'STFA Rehber.vcf' dosyas{0131}na dokunun, 'T{00FC}m ki{015F}ileri ekle' deyin.`r`nDahili numaralar mobil {00F6}nekiyle yaz{0131}ld{0131} (646 -> 1646).")
+            [void]$m.Attachments.Add($dos)
+            $m.Send()
+            Remove-Item -LiteralPath $dos -Force -ErrorAction SilentlyContinue
+            Write-Host ("  Telefon rehberi: " + $n + " kisilik vcf kullanicinin kendisine gonderildi")
+            Yaz-Json $ctx @{ ok = $true; sayi = $n; eposta = $ben }
+          }
+        } else {
+          $b = $UTF8.GetBytes($sb.ToString())
+          $ctx.Response.AddHeader("Content-Disposition", "attachment; filename=""STFA Rehber.vcf""")
+          $ctx.Response.ContentType = "text/vcard; charset=utf-8"; $ctx.Response.ContentLength64 = $b.Length
+          $ctx.Response.OutputStream.Write($b, 0, $b.Length)
+        }
+      }
+
       # ---------- tepsi simgesi: bildirim ozeti ----------
       # Son 48 saatin bildirimleri (gecmisten) + cevapsiz aramalar, yeniden eskiye en cok 15 oge.
       # yeni: tepside son "goruldu"dan (ve cevapsizlarda Assist'te gorulmeden) sonra gelenler.
@@ -960,8 +1266,27 @@ while ($listener.IsListening) {
           }
           $gor2 = @($script:gorTmp | Sort-Object { $_.termin })
         } catch {}
-        Yaz-Json $ctx @{ ok = $true; yeni = @($og | Where-Object { $_.yeni }).Count; ogeler = $cikti;
-          cevapsiz = @($cikti | Where-Object { $_.hedef -eq "kisiler" }); gorevSay = $gor2.Count; gorevler = @($gor2 | Select-Object -First 5) }
+        # E-postalar: Gelen Kutusu'ndaki okunmamislar (son 48 saat, en yeni 8). Tepsi menusu son acildiktan
+        # sonra gelenler "yeni" sayilir ve simgedeki sayiya eklenir. Tiklayinca Outlook'ta acilir (/api/posta/ac).
+        $posta = @(); $postaSay = 0
+        try {
+          $gk = (Ns).GetDefaultFolder(6); $postaSay = [int]$gk.UnReadItemCount
+          $its = $gk.Items.Restrict("[UnRead] = True"); $its.Sort("[ReceivedTime]", $true)
+          $it = $its.GetFirst(); $n = 0
+          while ($it -and $n -lt 8) {
+            $rt = $null; try { $rt = [datetime]$it.ReceivedTime } catch {}
+            if ($rt -and $rt -lt $sinir) { break }
+            if ($it.Class -eq 43) {
+              $posta += @{ saat = $(if ($rt) { & $saatYaz $rt } else { "" }); kimden = [string]$it.SenderName; konu = [string]$it.Subject
+                           id = [string]$it.EntryID; store = [string]$it.Parent.StoreID; yeni = [bool]($rt -and $rt -gt $gor) }
+              $n++
+            }
+            $it = $its.GetNext()
+          }
+        } catch {}
+        Yaz-Json $ctx @{ ok = $true; yeni = @($og | Where-Object { $_.yeni }).Count + @($posta | Where-Object { $_.yeni }).Count; ogeler = $cikti;
+          cevapsiz = @($cikti | Where-Object { $_.hedef -eq "kisiler" }); gorevSay = $gor2.Count; gorevler = @($gor2 | Select-Object -First 5);
+          postaSay = $postaSay; postalar = @($posta) }
       }
       elseif ($yol -eq "/api/tepsi/goruldu" -and $metod -eq "POST") {
         try { [System.IO.File]::WriteAllText($tepsiDos, (@{ gorulme = (Get-Date).ToString("o") } | ConvertTo-Json), $UTF8) } catch {}
@@ -1003,6 +1328,28 @@ while ($listener.IsListening) {
         }
       }
 
+      # ---------- acilis ekrani: Outlook / MiCollab hazir mi? (Ayarlar'da kapali olan beklenmez) ----------
+      elseif ($yol -eq "/api/acilis/durum") {
+        $L = [ordered]@{}
+        foreach ($ad in "outlook", "micollab") {
+          $istendi = if ($ayar.baslat -and $null -ne $ayar.baslat.$ad) { [bool]$ayar.baslat.$ad } else { $true }
+          $L[$ad] = @{ istendi = $istendi; hazir = $(if ($istendi) { Uygulama-Hazir $ad } else { $true }) }
+        }
+        Yaz-Json $ctx @{ ok = $true; uygulamalar = $L }
+      }
+
+      # ---------- uygulama penceresi (Sunucu\pencere.ps1) ----------      # Tepsi / bildirim acik pencereyi one getirirken gidilecek yeri buraya birakir; sayfa
+      # odaklaninca alir (GET bir kez verir, sonra siler). Cikis dugmesi pencereyi kapatir;
+      # sunucu ve tepsi simgesi calismaya devam eder.
+      elseif ($yol -eq "/api/pencere/hedef") {
+        if ($metod -eq "POST") { $script:pencereHedef = [string]((Govde-Oku $ctx) | ConvertFrom-Json).hedef; Yaz-Json $ctx @{ ok = $true } }
+        else { $h = [string]$script:pencereHedef; $script:pencereHedef = ""; Yaz-Json $ctx @{ ok = $true; hedef = $h } }
+      }
+      elseif ($yol -eq "/api/pencere/kapat" -and $metod -eq "POST") {
+        & (Join-Path $betikKok "pencere.ps1") -Kapat
+        Yaz-Json $ctx @{ ok = $true }
+      }
+
       # ---------- Windows acilisinda otomatik baslat ----------
       # Kullanicinin Baslangic klasorune bat dosyasinin kisayolu konur / kaldirilir.
       # Bat sunucuyu ve tarayiciyi acar; sunucu tarayicidan bagimsiz calisir.
@@ -1010,16 +1357,8 @@ while ($listener.IsListening) {
         $lnk = Join-Path ([Environment]::GetFolderPath("Startup")) "Assist.lnk"
         if ($metod -eq "POST") {
           $g = (Govde-Oku $ctx) | ConvertFrom-Json
-          if ($g.ac) {
-            $ws = New-Object -ComObject WScript.Shell
-            $k = $ws.CreateShortcut($lnk)
-            $k.TargetPath = Join-Path $portalKok "Assist.bat"
-            $k.WorkingDirectory = $portalKok
-            $k.WindowStyle = 7   # simge durumunda
-            $k.Description = "Assist"
-            $k.IconLocation = (Join-Path $portalKok "AssistLogo.ico") + ",0"   # Assist logosu (ad degisirse Windows simge onbellegi yenilenir; ayni adla resim degisince eski gorunur)
-            $k.Save()
-          } elseif (Test-Path -LiteralPath $lnk) { Remove-Item -LiteralPath $lnk -Force }
+          if ($g.ac) { Assist-Kisayol $lnk }   # penceresiz bat + Assist logosu
+          elseif (Test-Path -LiteralPath $lnk) { Remove-Item -LiteralPath $lnk -Force }
         }
         Yaz-Json $ctx @{ ok = $true; acik = (Test-Path -LiteralPath $lnk) }
       }
@@ -1043,8 +1382,18 @@ while ($listener.IsListening) {
           try {
             $s = [datetime]$it.Start; $e = [datetime]$it.End
             if ($s -lt $bit -and $e -gt $bas) {
-              [void]$L.Add(@{ id = [string]$it.EntryID; baslik = [string]$it.Subject; bas = $s.ToString("yyyy-MM-ddTHH:mm"); bit = $e.ToString("yyyy-MM-ddTHH:mm");
-                tumGun = [bool]$it.AllDayEvent; yer = [string]$it.Location; durum = [int]$it.BusyStatus; toplanti = ([int]$it.MeetingStatus -ne 0) })
+              $o = @{ id = [string]$it.EntryID; baslik = [string]$it.Subject; bas = $s.ToString("yyyy-MM-ddTHH:mm"); bit = $e.ToString("yyyy-MM-ddTHH:mm");
+                tumGun = [bool]$it.AllDayEvent; yer = [string]$it.Location; durum = [int]$it.BusyStatus; toplanti = ([int]$it.MeetingStatus -ne 0) }
+              # Kisa araliklarda (anasayfa Toplanti penceresi) ayrintilar da: duzenleyen, katilimci sayisi, Teams baglantisi
+              if ($n -le 7) {
+                try { $o.duzenleyen = [string]$it.Organizer } catch {}
+                try { $o.katilimci = [int]$it.Recipients.Count } catch {}
+                $tl = ""
+                try { $tl = [string]$it.PropertyAccessor.GetProperty("http://schemas.microsoft.com/mapi/string/{00020329-0000-0000-C000-000000000046}/SkypeTeamsMeetingUrl") } catch {}
+                if (-not $tl) { try { $m = [regex]::Match([string]$it.Body, 'https://teams\.microsoft\.com/l/meetup-join/[^\s>"]+'); if ($m.Success) { $tl = $m.Value } } catch {} }
+                $o.teams = $tl
+              }
+              [void]$L.Add($o)
             }
           } catch {}
           $it = $suz.GetNext()
@@ -1363,7 +1712,8 @@ while ($listener.IsListening) {
     # ---------- statik dosyalar ----------
     if ($yol -eq "/") { $yol = "/is_takip.html" }
     $tam = [System.IO.Path]::GetFullPath((Join-Path $webKok $yol.TrimStart('/')))
-    if (-not $tam.StartsWith($webKok, [StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $tam -PathType Leaf)) {
+    if ($yol -eq "/favicon.ico") { $tam = Join-Path $portalKok "Assist.ico" }   # uygulama penceresinin gorev cubugu simgesi
+    if (-not ($tam.StartsWith($webKok, [StringComparison]::OrdinalIgnoreCase) -or $yol -eq "/favicon.ico") -or -not (Test-Path -LiteralPath $tam -PathType Leaf)) {
       Yaz-Cevap $ctx "Bulunamadi" "text/plain; charset=utf-8" 404
     } else {
       $b = [System.IO.File]::ReadAllBytes($tam)

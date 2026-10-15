@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>STFA Assist</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="/favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Lexend+Exa:wght@300&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -37,7 +37,7 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .topbar{background:var(--s-ink);color:#fff;padding:0 22px;height:56px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:40}
 .topbar::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--s-red)}
 /* Logodaki STFA yazisinin stili: genis geometrik harf, logo grisi (kenar cubugundaki logo gibi parlatilmis) */
-/* Geniş geometrik harf, ince ve büyük (Lexend Exa 300, 21px — kullanıcı istedi). */
+/* Geniş geometrik harf, ince (Lexend Exa 300, 21px): logodaki A ile aynı kalınlık (kullanıcı 300'ü seçti, 15.10.2026). */
 .tb-brand{font-family:'Lexend Exa','Bahnschrift',var(--font-display);font-weight:300;font-size:21px;letter-spacing:.04em;text-transform:uppercase;color:#C3C5C8}   /* lang=en: Turkce buyuk harf 'ASSİST' yapmasin */
 .tb-spacer{flex:1}
 .tb-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#E6EAF0;
@@ -59,15 +59,41 @@ a.tb-btn{text-decoration:none}
 /* GECE MODU: sayfa tek filtreyle koyulaşır (açık renkler tersine döner, renk tonları korunur);
    zaten koyu olan üst bar, kenar menü, balonlar ve görseller geri çevrilip aslına döner. */
 html[data-tema="koyu"]{filter:invert(1) hue-rotate(180deg);background:#fff}
-html[data-tema="koyu"] :is(.topbar,.tabs,.kisi-balon,.toast,.arama-pencere),
+html[data-tema="koyu"] :is(.topbar,.tabs,.kisi-balon,.toast,.arama-pencere,.acilis),
 html[data-tema="koyu"] img:not(.tabs img):not(.topbar img){filter:invert(1) hue-rotate(180deg)}
+/* Üst bardaki açılır menüler (bildirimler, dil) beyaz zeminli: üst bar geri çevrildiği için bunlar bir kez daha çevrilir, sayfa gibi koyu görünür */
+html[data-tema="koyu"] .topbar :is(.bld-menu,.dil-menu){filter:invert(1) hue-rotate(180deg)}
 .tb-btn svg.i{width:15px;height:15px}
 .tb-ikon{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:34px;background:rgba(255,255,255,.08);
          border:1px solid rgba(255,255,255,.16);color:#E6EAF0;border-radius:8px;cursor:pointer;padding:0}
 .tb-ikon:hover{background:rgba(255,255,255,.16)}
 .tb-ikon.acik{background:var(--s-red);border-color:var(--s-red)}
+/* Açılış ekranı: koyu zemin, yuvarlak Assist logosu, etrafında dönen bordo halka, altında ASSIST */
+.acilis{position:fixed;inset:0;z-index:9999;background:var(--s-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+  transition:opacity .45s ease,visibility .45s}
+.acilis.bitti{opacity:0;visibility:hidden}
+.acilis-logo{position:relative;width:236px;height:236px;display:grid;place-items:center}
+.acilis-daire{width:200px;height:200px;border-radius:50%;display:grid;place-items:center;box-shadow:0 10px 34px rgba(0,0,0,.4);
+  animation:acilisNabiz 1.8s ease-in-out infinite}
+.acilis-daire img{width:100%;height:100%;display:block}
+.acilis-halka{position:absolute;inset:0;border-radius:50%;border:5px solid rgba(255,255,255,.1);border-top-color:var(--s-red);border-right-color:var(--s-red);
+  animation:acilisDon 1s linear infinite}
+.acilis-ad{font-family:'Lexend Exa','Bahnschrift',var(--font-display);font-weight:300;font-size:36px;letter-spacing:.16em;text-transform:uppercase;color:#C3C5C8}
+.acilis-durum{min-height:18px;margin-top:-8px;font:500 13px var(--font);color:#8B93A0;letter-spacing:.02em}
+html:has(#acilis:not(.bitti)){overflow:hidden;scrollbar-gutter:auto}   /* açılışta kaydırma çubuğu görünmesin */
+@keyframes acilisDon{to{transform:rotate(360deg)}}
+@keyframes acilisNabiz{50%{transform:scale(.96)}}
+@media (prefers-reduced-motion:reduce){.acilis-halka{animation-duration:2.5s}.acilis-daire{animation:none}}
+/* Uygulama penceresi düğmeleri (geri/ileri solda, tam ekran/çıkış sağda) */
+.tb-gez{display:flex;gap:6px}
+.tb-gez[hidden]{display:none}
+#tbGez{margin-right:8px}
+#tbPencere{margin-left:6px;padding-left:12px;border-left:1px solid rgba(255,255,255,.18)}
+.tb-ikon:disabled{opacity:.35;cursor:default;background:rgba(255,255,255,.08)}
+.tb-cikis:hover{background:var(--s-red);border-color:var(--s-red)}
+/* Bildirim sayıları (zil, kenar menü, balonlar, bildirim listesi) aynı ince kalınlıkta: 500 (15.10.2026) */
 .tb-say{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--s-red);color:#fff;
-        font-size:10.5px;font-weight:800;display:none;align-items:center;justify-content:center;border:2px solid var(--s-ink)}
+        font-size:10.5px;font-weight:500;display:none;align-items:center;justify-content:center;border:2px solid var(--s-ink)}   /* ince rakam (kullanıcı istedi, 15.10.2026; önceden 800) */
 .tb-say.var{display:inline-flex}
 .tb-bld{position:relative}
 .bld-menu{position:absolute;top:calc(100% + 8px);right:0;background:#fff;color:var(--s-inktext);border:1px solid var(--s-line);border-radius:10px;
@@ -75,7 +101,7 @@ html[data-tema="koyu"] img:not(.tabs img):not(.topbar img){filter:invert(1) hue-
 .bld-menu.acik{display:block}
 .bld-menu-h{padding:10px 14px;border-bottom:1px solid var(--s-line);font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px}
 .bld-menu-h .sp{flex:1}
-.bld-yeni-say{background:var(--s-red);color:#fff;border-radius:99px;padding:1px 8px;font-size:11px;font-weight:800}
+.bld-yeni-say{background:var(--s-red);color:#fff;border-radius:99px;padding:1px 8px;font-size:11px;font-weight:500}
 .bld-okundu{border:1px solid var(--s-line);background:#fff;border-radius:7px;padding:4px 9px;font-size:11.5px;font-weight:700;cursor:pointer;color:var(--s-ink)}
 .bld-okundu:hover{border-color:var(--s-ink)}
 .bld-oge.yeni{background:#FFF7F7}
@@ -97,9 +123,14 @@ html[data-tema="koyu"] img:not(.tabs img):not(.topbar img){filter:invert(1) hue-
 /* Logo satırı HSE/Hukuk portallarıyla birebir: kapalı rayda yalnız soldaki bayrak
    işareti (logonun ilk ~40 px'i), ray açılınca tam logo. */
 .sb-logo-row{display:flex;align-items:center;height:56px;box-sizing:border-box;padding:0 12px;flex-shrink:0;border-bottom:1px solid #2E3742;white-space:nowrap;overflow:hidden}
-.sb-logo-row img{height:24px;width:auto;flex-shrink:0;display:block;filter:brightness(1.25)}
-.sb-logo-kutu{display:block;width:40px;overflow:hidden;transition:width .18s ease}
-.tabs:hover .sb-logo-kutu{width:140px}
+/* Kenar menü logosu: yuvarlak Assist logosu A harfidir; menü açılınca yanında "SSIST" belirir (Ⓐ + SSIST = ASSIST) */
+.sb-logo-kutu{display:flex;align-items:center;gap:3px;width:40px;overflow:hidden;transition:width .18s ease}
+.sb-logo-simge{width:38px;height:38px;flex-shrink:0;display:block}
+.sb-logo-simge svg{display:block}
+.sb-logo-yazi{font-family:'Lexend Exa','Bahnschrift',var(--font-display);font-weight:300;font-size:25px;line-height:1;letter-spacing:.04em;text-transform:uppercase;color:#C3C5C8;
+  opacity:0;transition:opacity .18s ease;transform:translateY(1px)}
+.tabs:hover .sb-logo-yazi{opacity:1}
+.tabs:hover .sb-logo-kutu{width:180px}
 .sn-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:10px 0}
 .sn-item{position:relative;display:flex;align-items:center;gap:12px;width:100%;height:42px;padding:0 22px;margin-top:2px;background:none;border:none;
          color:#C4CBD6;cursor:pointer;white-space:nowrap;font-size:13px;font-weight:600;text-align:left;transition:background .12s,color .12s}
@@ -109,7 +140,7 @@ html[data-tema="koyu"] img:not(.tabs img):not(.topbar img){filter:invert(1) hue-
 .sn-item:hover{background:linear-gradient(90deg,rgba(216,35,42,.18),transparent);color:#fff}
 .sn-item.active{color:#fff;background:linear-gradient(90deg,rgba(216,35,42,.28),transparent)}
 .sn-item:hover::before,.sn-item.active::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;background:var(--s-red);border-radius:0 3px 3px 0}
-.sn-say{margin-left:auto;font-size:11px;font-weight:800;min-width:20px;height:19px;padding:0 6px;border-radius:99px;background:var(--s-red);color:#fff;
+.sn-say{margin-left:auto;font-size:11px;font-weight:500;min-width:20px;height:19px;padding:0 6px;border-radius:99px;background:var(--s-red);color:#fff;
         display:inline-flex;align-items:center;justify-content:center}
 .sn-say:empty{display:none}
 /* Ray kapalıyken sayaç simgenin köşesine biner */
@@ -120,6 +151,8 @@ html[data-tema="koyu"] img:not(.tabs img):not(.topbar img){filter:invert(1) hue-
 .view.active{display:block}
 .vhead{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .vhead h1{font-size:21px}
+/* Anasayfa selamı: "Hoş Geldin" küçük, ad eski boyutunda (kullanıcı istedi, 15.10.2026); kişiye özel ad stili span'e satır içi uygulanır */
+.vhead h1#anaHosgeldin{font-size:16px} #hosgeldinAd{font-size:21px}
 /* Talepler: gelen / giden işareti */
 .yon{display:inline-block;width:18px;font-weight:800;margin-right:2px} .yon.giden{color:var(--s-blue)} .yon.gelen{color:var(--s-green)}
 #talepYon{margin-left:8px}
@@ -223,7 +256,9 @@ html[data-tema="koyu"] img:not(.tabs img):not(.topbar img){filter:invert(1) hue-
 .ana-ust .hava{grid-column:2;grid-row:1 / 3;align-self:end;margin-left:0}
 .ana-ust .hava[hidden]{display:none}
 /* Kartlar hava kutusunun yanına sığmazsa alt satıra düşmez, biraz daralır (hava kutusu aşağı kaymasın) */
-.ana-ust .kpis{flex-wrap:nowrap} .ana-ust .kpis .kpi{flex:0 1 180px;min-width:118px;width:auto}
+.ana-ust .kpis{flex-wrap:nowrap} .ana-ust .kpis .kpi{flex:0 1 140px;min-width:104px;width:auto;padding:8px 12px}
+/* Dar kart (kullanıcı istedi, 15.10.2026): sığmayan etiket alt satıra iner; kartlar aynı yükseklikte kalır */
+.ana-ust .kpis .kpi .k-l{line-height:1.25}
 @media (max-width:1100px){ .ana-ust .kpis{flex-wrap:wrap} }
 .hava-simdi{display:flex;align-items:center;gap:8px}
 .hava-simdi svg{width:30px;height:30px}
@@ -240,7 +275,7 @@ html[data-tema="koyu"] img:not(.tabs img):not(.topbar img){filter:invert(1) hue-
 .card{background:var(--s-cloud);border:1px solid var(--s-line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px}
 .card-h{padding:12px 18px;border-bottom:1px solid var(--s-line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:54px}
 .card-h h3{font-size:14.5px}
-.card-h .say{font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--s-concrete);color:var(--s-graphite)}
+.card-h .say{font-size:12px;font-weight:600;color:var(--s-graphite)} .card-h .say:empty{display:none}
 .sp{flex:1}
 .card-b{padding:18px}
 .card-b.tight{padding:0}
@@ -284,20 +319,25 @@ table.tbl tr.soluk td{color:var(--s-graphite2)}
 table.tbl tr.okunmadi td.konu b{font-weight:800}
 .bos{padding:34px 18px;text-align:center;color:var(--s-graphite2);font-size:13px}
 /* Kalan gün de Durum gibi balon (kullanıcı istedi) */
-.kalan{display:inline-block;white-space:nowrap;font-weight:700;font-size:11px;padding:2px 9px;border-radius:99px}
-.kalan.gecti{color:var(--s-red-deep);background:var(--s-red-bg)} .kalan.yakin{color:#8A5C12;background:var(--s-amber-bg)} .kalan.normal{color:var(--s-graphite);background:var(--s-concrete)}
-td.tarih.kalan{display:table-cell;background:none;padding:inherit;border-radius:0;font-size:inherit}
+/* Termin durumu: balon yok, yalnız renkli yazı (kullanıcı istedi, 15.10.2026) */
+.kalan{display:inline-block;white-space:nowrap;font-weight:600;font-size:12px}
+.kalan.gecti{color:var(--s-red-deep)} .kalan.yakin{color:#B26B00} .kalan.normal{color:var(--s-graphite)}
+td.tarih.kalan{display:table-cell;font-size:inherit}   /* tablo hücresi kendi iç boşluğunu korur (padding:inherit tarihi yukarı kaydırıyordu) */
 .oncelik{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--s-red);margin:0 4px 0 7px;vertical-align:middle;position:relative;cursor:help}
 .oncelik::before{content:'';position:absolute;inset:-6px}   /* küçük noktanın üzerine gelmek kolay olsun */
 /* Hızlı ipucu (data-ipucu): tarayıcı title'ından hemen açılır, çok satır olabilir */
 .ipucu-kutu{position:fixed;z-index:450;background:#1F2328;color:#fff;font-size:12px;line-height:1.45;padding:6px 9px;border-radius:4px;max-width:360px;white-space:pre-line;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.2)}
 .ipucu-kutu[hidden]{display:none}
-.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
-.badge.gray{background:var(--s-concrete);color:var(--s-graphite)}
-.badge.green{background:var(--s-green-bg);color:#1B6A46}
-.badge.amber{background:var(--s-amber-bg);color:#8A5C12}
-.badge.red{background:var(--s-red-bg);color:var(--s-red-deep)}
-.badge.blue{background:var(--s-blue-bg);color:#2A5A96}
+/* Etiketler balonsuz: yalnız renkli yazı (kullanıcı istedi, 15.10.2026) */
+.badge{display:inline-block;padding:0;border-radius:0;background:none;font-size:12px;font-weight:600;white-space:nowrap}
+.badge.gray{color:var(--s-graphite)}
+.badge.mor{color:#3C3489}
+/* Teams "Katıl": STFA bordosu; üzerine gelince renk değişmez, hafif kabarır */
+.btn.teams-katil{background:var(--s-red-deep);color:#fff;border-color:var(--s-red-deep)}
+.badge.green{color:#1B6A46}
+.badge.amber{color:#B26B00}
+.badge.red{color:var(--s-red-deep)}
+.badge.blue{color:#2A5A96}
 .ikon-btn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:24px;border:1px solid transparent;background:none;border-radius:6px;
           color:var(--s-graphite);cursor:pointer;vertical-align:middle;margin-left:6px}
 .ikon-btn:hover{background:var(--s-blue-bg);color:var(--s-blue);border-color:#CFE0F3}
@@ -374,9 +414,13 @@ table.tbl td.konu b{display:block;overflow:hidden;text-overflow:ellipsis;font-we
      font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap}
 .btn:hover{background:var(--s-concrete)}
 .btn.primary{background:var(--s-ink);border-color:var(--s-ink);color:#fff}
-.btn.primary:hover{background:var(--s-slate)}
+.btn.primary:hover{background:var(--s-ink)}
+/* Dolgulu düğmeler: üzerine gelince renk aynı kalır (genel .btn:hover açık zemini beyaz yazıyı siliyordu), hafif kabarır */
+.btn:is(.primary,.danger,.teams-katil){transition:transform .12s ease,box-shadow .12s ease}
+.btn:is(.primary,.danger,.teams-katil):hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(20,24,31,.22)}
+.btn.teams-katil:hover{background:var(--s-red-deep)}
 .btn.danger{background:var(--s-red);border-color:var(--s-red);color:#fff}
-.btn.danger:hover{background:var(--s-red-deep)}
+.btn.danger:hover{background:var(--s-red)}
 .btn.hayalet-kirmizi{color:var(--s-red-deep);border-color:#F1C6C8;background:#fff}
 .btn.hayalet-kirmizi:hover{background:var(--s-red-bg)}
 .btn.sm{padding:5px 10px;font-size:12px}
@@ -436,6 +480,23 @@ table.tbl td.konu b{display:block;overflow:hidden;text-overflow:ellipsis;font-we
 .ayar-ozet{font-size:13px;margin:0 0 10px}
 .ayar-grup .gun-sec{margin-bottom:14px}
 .ayar-sonuc.ok{color:#1B6A46} .ayar-sonuc.hata{color:var(--s-red-deep)}
+/* Bugünkü İşler penceresi: gün seçici (‹ tarih ›) */
+.gun-secici{position:sticky;left:0;top:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--s-line);background:var(--s-concrete)}
+.gun-secici .ikon-btn{width:38px;height:38px;font-size:24px;line-height:1;border-radius:50%;background:#fff;border:1px solid var(--s-line)}
+.gs-tarih{display:flex;flex-direction:column;align-items:center;width:230px}   /* sabit genişlik: oklar yerinden oynamasın */
+.gun-secici .btn{position:absolute;right:16px;top:50%;transform:translateY(-50%)}   /* "Bugün" düğmesi ortadaki düzeni kaydırmaz */
+.gs-tarih b{font-size:16px} .gs-tarih span{font-size:12px;color:var(--s-graphite)}
+.kst-satir{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--s-line)}
+.kst-satir input[type=color]{width:38px;height:32px;padding:2px;border:1px solid var(--s-line);border-radius:6px;background:#fff}
+.kst-onay{display:inline-flex;align-items:center;gap:4px;font-size:12.5px}
+.kst-onizleme{flex-basis:100%;font-size:21px;font-weight:700;color:var(--s-ink);padding:4px 2px}
+.kst-satir textarea{border:1px solid var(--s-line);border-radius:6px;padding:7px 9px;font:inherit;font-size:13px;resize:vertical}
+/* Tek seferlik kişi mesajı (yöneticinin yazdığı) */
+.kisi-mesaj-bg{position:fixed;inset:0;z-index:500;background:rgba(15,18,24,.45);display:grid;place-items:center;padding:20px}
+.kisi-mesaj{background:#fff;border-radius:14px;max-width:440px;width:100%;box-shadow:0 18px 50px rgba(0,0,0,.25);overflow:hidden;border-top:4px solid var(--s-red-deep)}
+.km-h{display:flex;align-items:center;gap:8px;padding:16px 20px 6px;font-size:15px;color:var(--s-red-deep)} .km-h svg.i{width:20px;height:20px}
+.km-metin{padding:6px 20px 14px;font-size:15px;line-height:1.55;white-space:pre-line;color:var(--s-ink)}
+.km-alt{display:flex;justify-content:flex-end;padding:10px 16px 16px}
 @media (max-width:900px){.ayar-duzen{grid-template-columns:1fr}.ayar-nav{position:static;flex-direction:row;flex-wrap:wrap}}
 
 /* ── MODAL ── */
@@ -618,7 +679,7 @@ table.aks tr.vurgu td{background:var(--s-amber-bg)}
 /* Balon yığını (alttan yukarı): Portal, Rezervasyon, Kişiler; ad üzerine gelince solda görünür */
 /* Balonlar: sayfalarda sağ altta; anasayfada adın sağında yan yana (balonYerlestir) */
 .balon-say{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--s-red);color:#fff;
-  font-size:10.5px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px #fff;pointer-events:none}
+  font-size:10.5px;font-weight:500;line-height:18px;text-align:center;box-shadow:0 0 0 2px #fff;pointer-events:none}
 .balon-say:empty{display:none}
 body[data-gorunum="ana"] .kisi-balon.hava-alti{position:absolute;bottom:auto;right:auto;width:38px;height:38px}
 body[data-gorunum="ana"] .kisi-balon.hava-alti svg.i{width:19px;height:19px}
@@ -683,6 +744,8 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
 </style>
 </head>
 <body>
+<!-- AÇILIŞ EKRANI: yuvarlak Assist logosu (IsTakip\Assist.svg ile ayni; ozel id onekleri al-), etrafında dönen halka, altında Assist. Veri yüklenince solarak kaybolur (acilisBitir). -->
+<div class="acilis" id="acilis" aria-hidden="true"><div class="acilis-logo"><span class="acilis-halka"></span><span class="acilis-daire"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 124" width="100%" height="100%" aria-hidden="true"><defs><linearGradient id="al-kirmizi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#DC4A34"/><stop offset=".55" stop-color="#D23626"/><stop offset="1" stop-color="#BF271F"/></linearGradient><linearGradient id="al-kirmizi2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D52526"/><stop offset=".6" stop-color="#C82225"/><stop offset="1" stop-color="#B51E21"/></linearGradient><linearGradient id="al-gri" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEEEED"/><stop offset=".5" stop-color="#F6F6F6"/><stop offset="1" stop-color="#F2F2F1"/></linearGradient><linearGradient id="al-gri2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E5E4E4"/><stop offset=".5" stop-color="#D9D9D9"/><stop offset="1" stop-color="#CDCDCD"/></linearGradient><linearGradient id="al-parlak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient><linearGradient id="al-harf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D8DADC"/><stop offset=".5" stop-color="#C3C5C8"/><stop offset="1" stop-color="#ACAFB3"/></linearGradient><linearGradient id="al-kenar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".08"/></linearGradient><linearGradient id="al-pah" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".45" stop-color="#fff" stop-opacity=".15"/><stop offset=".6" stop-color="#000" stop-opacity=".05"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></linearGradient><filter id="al-golge" x="-20%" y="-20%" width="150%" height="150%"><feDropShadow dx="1.8" dy="2.8" stdDeviation="2.2" flood-color="#14181F" flood-opacity=".35"/></filter><clipPath id="al-disk"><circle cx="62" cy="62" r="60"/></clipPath></defs><g clip-path="url(#al-disk)"><rect x="0" y="0" width="62" height="62" fill="url(#al-kirmizi)"/><rect x="62" y="0" width="62" height="62" fill="url(#al-gri)"/><rect x="62" y="62" width="62" height="62" fill="url(#al-kirmizi2)"/><rect x="0" y="62" width="62" height="62" fill="url(#al-gri2)"/><circle cx="62" cy="62" r="60" fill="url(#al-kenar)"/><ellipse cx="62" cy="34" rx="46" ry="30" fill="url(#al-parlak)"/></g><circle cx="62" cy="62" r="57.6" fill="none" stroke="url(#al-pah)" stroke-width="3.2"/><circle cx="62" cy="62" r="59.4" fill="none" stroke="#14181F" stroke-opacity=".22" stroke-width="1.2"/><path filter="url(#al-golge)" fill-rule="evenodd" d="M28.88 97 L57.52 29 L66.68 29 L95.12 97 L87.13 97 L79.34 78.88 L44.07 78.88 L36.48 97 Z M47.39 71.09 L76.03 71.09 L61.81 36.4 Z" fill="url(#al-harf)" stroke="#5A6472" stroke-width="1.5" stroke-linejoin="round"/></svg></span></div><div class="acilis-ad" lang="en">Assist</div></div>
 
 <!-- SVG simge kümesi -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -706,13 +769,18 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
   <symbol id="ic-bayrak" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h11l-2.5 4.5L16 13H5"/></symbol>
   <symbol id="ic-arti" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="ic-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+  <symbol id="ic-geri" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="ic-ileri" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="ic-tamekran" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+  <symbol id="ic-tamekran-cik" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></symbol>
+  <symbol id="ic-cikis" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/></symbol>
   <symbol id="ic-genislet" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></symbol>
   <symbol id="ic-yenile" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></symbol>
   <symbol id="ic-cop" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></symbol>
 </svg>
 
 <nav class="tabs" aria-label="Menü">
-  <div class="sb-logo-row"><span class="sb-logo-kutu"><img src="data:image/png;base64,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" alt="STFA"></span></div>
+  <div class="sb-logo-row"><span class="sb-logo-kutu" title="Assist"><span class="sb-logo-simge"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 124" width="100%" height="100%" aria-hidden="true"><defs><linearGradient id="sb-kirmizi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#DC4A34"/><stop offset=".55" stop-color="#D23626"/><stop offset="1" stop-color="#BF271F"/></linearGradient><linearGradient id="sb-kirmizi2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D52526"/><stop offset=".6" stop-color="#C82225"/><stop offset="1" stop-color="#B51E21"/></linearGradient><linearGradient id="sb-gri" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEEEED"/><stop offset=".5" stop-color="#F6F6F6"/><stop offset="1" stop-color="#F2F2F1"/></linearGradient><linearGradient id="sb-gri2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E5E4E4"/><stop offset=".5" stop-color="#D9D9D9"/><stop offset="1" stop-color="#CDCDCD"/></linearGradient><linearGradient id="sb-parlak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient><linearGradient id="sb-harf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D8DADC"/><stop offset=".5" stop-color="#C3C5C8"/><stop offset="1" stop-color="#ACAFB3"/></linearGradient><linearGradient id="sb-kenar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".08"/></linearGradient><linearGradient id="sb-pah" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".45" stop-color="#fff" stop-opacity=".15"/><stop offset=".6" stop-color="#000" stop-opacity=".05"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></linearGradient><filter id="sb-golge" x="-20%" y="-20%" width="150%" height="150%"><feDropShadow dx="1.8" dy="2.8" stdDeviation="2.2" flood-color="#14181F" flood-opacity=".35"/></filter><clipPath id="sb-disk"><circle cx="62" cy="62" r="60"/></clipPath></defs><g clip-path="url(#sb-disk)"><rect x="0" y="0" width="62" height="62" fill="url(#sb-kirmizi)"/><rect x="62" y="0" width="62" height="62" fill="url(#sb-gri)"/><rect x="62" y="62" width="62" height="62" fill="url(#sb-kirmizi2)"/><rect x="0" y="62" width="62" height="62" fill="url(#sb-gri2)"/><circle cx="62" cy="62" r="60" fill="url(#sb-kenar)"/><ellipse cx="62" cy="34" rx="46" ry="30" fill="url(#sb-parlak)"/></g><circle cx="62" cy="62" r="57.6" fill="none" stroke="url(#sb-pah)" stroke-width="3.2"/><circle cx="62" cy="62" r="59.4" fill="none" stroke="#14181F" stroke-opacity=".22" stroke-width="1.2"/><path filter="url(#sb-golge)" fill-rule="evenodd" d="M28.88 97 L57.52 29 L66.68 29 L95.12 97 L87.13 97 L79.34 78.88 L44.07 78.88 L36.48 97 Z M47.39 71.09 L76.03 71.09 L61.81 36.4 Z" fill="url(#sb-harf)" stroke="#5A6472" stroke-width="1.5" stroke-linejoin="round"/></svg></span><span class="sb-logo-yazi" lang="en">ssist</span></span></div>
   <div class="sn-nav">
     <button class="sn-item" data-v="ana"><svg class="i"><use href="#ic-ana"/></svg><span>Anasayfa</span></button>
     <button class="sn-item" data-v="posta"><svg class="i"><use href="#ic-posta"/></svg><span>Posta Kutusu</span><b class="sn-say" id="snPostaSay"></b></button>
@@ -725,7 +793,11 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
 </nav>
 
 <header class="topbar">
-  <div class="tb-brand" lang="en">Assist</div>
+  <!-- Uygulama penceresinde (adres çubuğu yok) geri / ileri; normal tarayıcı sekmesinde gizli -->
+  <div class="tb-gez" id="tbGez" hidden>
+    <button class="tb-ikon" id="tbGeri" data-ipucu="Geri"><svg class="i"><use href="#ic-geri"/></svg></button>
+    <button class="tb-ikon" id="tbIleri" data-ipucu="İleri"><svg class="i"><use href="#ic-ileri"/></svg></button>
+  </div>
   <div class="tb-spacer"></div>
   <span class="tb-chip ogr" id="ogrChip" hidden title="Kapanan işlerden öğreniyor"><span class="nabiz"></span>Öğreniyor</span>
   <!-- Sıra (kullanıcı istedi): baş harfler, bildirim, ayarlar, gece/gündüz, dil -->
@@ -739,6 +811,11 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
   <div class="tb-dil-sar">
     <button class="tb-ikon tb-dil" id="dilBtn" title="Dil / Language" aria-haspopup="true"><span id="dilKod">TR</span><svg class="ok" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="dil-menu" id="dilMenu" hidden><button data-dil="tr">Türkçe <small>TR</small></button><button data-dil="en">English <small>EN</small></button></div>
+  </div>
+  <!-- Uygulama penceresi: tam ekran ve çıkış (pencere kapanır; Assist saatin yanında çalışmaya devam eder) -->
+  <div class="tb-gez" id="tbPencere" hidden>
+    <button class="tb-ikon" id="tbTamEkran" data-ipucu="Tam ekran"><svg class="i"><use href="#ic-tamekran" id="tbTamEkranSimge"/></svg></button>
+    <button class="tb-ikon tb-cikis" id="tbCikis" data-ipucu="Çıkış (Assist arka planda çalışmaya devam eder)"><svg class="i"><use href="#ic-cikis"/></svg></button>
   </div>
 </header>
 
@@ -1395,7 +1472,7 @@ addEventListener('scroll', () => { const b = $('#ipucuKutu'); if (b) b.hidden = 
    GEZİNME
    ═══════════════════════════════════════════════════════════════ */
 const GORUNUMLER = ['ana', 'talep', 'not', 'aksiyon', 'posta', 'plan', 'hat', 'ayar'];
-let aktif = 'ana';
+let aktif = 'ana', GIT_ILK = true;   // GIT_ILK: ilk sayfa geçmişe eklenmez
 // Anasayfada balonlar "Hoş Geldin <ad>" yazısının sağında, biraz boşlukla yan yana (sayfayla birlikte kayar).
 // Diğer sayfalarda sağ altta sabit yerlerinde. Dar ekranda hava kutusuna çarpacaksa da sağ altta kalır.
 function balonYerlestir() {
@@ -1425,7 +1502,13 @@ function git(v) {
   $$('.view').forEach(e => e.classList.toggle('active', e.id === 'v-' + v));
   $$('.sn-item').forEach(e => e.classList.toggle('active', e.dataset.v === v));
   $('#ayarBtn').classList.toggle('acik', v === 'ayar');
-  if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v);
+  // Tarayıcı ileri/geri: her sayfa geçişi geçmişe yazılır (geri tuşu hashchange ile hashIsle'ye döner).
+  // İlk açılış ve tepsi/bildirim bağlantıları (#ac=, #hat=, #kisiler, #zil) geçmişe eklenmez, yerine yazılır.
+  if (location.hash !== '#' + v) {
+    const ozel = GIT_ILK || /^#(ac=|hat=|kisiler$|zil$)/.test(decodeURIComponent(location.hash));
+    history[ozel ? 'replaceState' : 'pushState'](null, '', '#' + v);
+  }
+  GIT_ILK = false;
   ciz(v);
   window.scrollTo(0, 0);
   balonYerlestir();
@@ -1448,8 +1531,77 @@ function ciz(v = aktif) {
 }
 // Ana ekran başlığı: Ayarlar'daki ad > kurumsal hesap / Outlook adı
 let KULLANICI_AD = '';
+/* Kişiye özel ad görünümü: paylaşılan IsTakip\kisi_stilleri.json'dan yalnız bu kullanıcının stili (KISI_STIL).
+   Yönetici (dosyayı ilk kaydeden) Ayarlar › Genel'den e-posta ile kişi ekleyip stilini seçer. */
+let KISI_STIL = null, KISI_YETKI = false, KISI_STILLER = [];
+const AD_YAZI_TIPI = { duz: '', el: "'Segoe Script','Lucida Handwriting','Brush Script MT',cursive", genis: "'Lexend Exa','Bahnschrift',var(--font-display)", serif: "Georgia,'Times New Roman',serif" };
+function adStilUygula(el, st) {
+  Object.assign(el.style, { fontFamily: '', color: '', fontWeight: '', fontStyle: '', fontSize: '', textTransform: '', letterSpacing: '' });
+  if (!st) return;
+  el.style.fontFamily = AD_YAZI_TIPI[st.yaziTipi] || '';
+  if (st.renk) el.style.color = st.renk;
+  el.style.fontWeight = st.kalin ? '700' : (st.yaziTipi === 'genis' ? '300' : (st.yaziTipi === 'el' ? '400' : ''));
+  if (st.italik) el.style.fontStyle = 'italic';
+  if (st.boyut) el.style.fontSize = st.boyut + 'px';
+  if (st.yaziTipi === 'genis') { el.style.textTransform = 'uppercase'; el.style.letterSpacing = '.04em'; }
+}
+function kisiStilYukle() {
+  return apiJson('/api/kisi-stil' + (/[?&]yonetici=1/.test(location.search) ? '?yonetici=1' : '')).then(j => {
+    KISI_STIL = j.stil || null; KISI_YETKI = !!j.yetkili;
+    KISI_STILLER = Array.isArray(j.kisiler) ? j.kisiler : (j.kisiler && j.kisiler.eposta ? [j.kisiler] : []);   // PS boş diziyi {}, tek ögeyi nesne yollayabiliyor
+    hosgeldinYaz(); kisiMesajGoster();
+  }).catch(() => {});
+}
+// Tek seferlik mesaj: kimliği bu kullanıcının (şifreli) verisinde "görüldü" olarak tutulur; bir daha gösterilmez
+function kisiMesajGoster() {
+  const s = KISI_STIL; if (!s || !s.mesaj || !s.mesajId || $('#kisiMesaj')) return;
+  if ((V.gorulenMesaj || []).includes(s.mesajId)) return;
+  const d = document.createElement('div'); d.id = 'kisiMesaj'; d.className = 'kisi-mesaj-bg';
+  d.innerHTML = `<div class="kisi-mesaj" role="dialog" aria-modal="true"><div class="km-h">${svg('zil')}<b>Size bir mesaj var</b></div>
+    <div class="km-metin"></div><div class="km-alt"><button class="btn primary" id="kisiMesajTamam">Tamam</button></div></div>`;
+  d.querySelector('.km-metin').textContent = s.mesaj;
+  document.body.appendChild(d);
+  $('#kisiMesajTamam').addEventListener('click', () => {
+    V.gorulenMesaj = (V.gorulenMesaj || []).concat(s.mesajId).slice(-30); kaydet(); d.remove();
+  });
+}
+const epostaAd = e => String(e || '').split('@')[0].split(/[._-]+/).filter(Boolean).map(p => p[0].toLocaleUpperCase('tr') + p.slice(1)).join(' ') || 'Ad Soyad';
+function kstCiz() {
+  const k = $('#kstListe'); if (!k) return;
+  k.innerHTML = KISI_STILLER.length ? KISI_STILLER.map((s, i) => `<div class="kst-satir" data-i="${i}">
+      <input data-kst="eposta" value="${esc(s.eposta || '')}" placeholder="ad.soyad@stfa.com" style="min-width:220px">
+      <select data-kst="yaziTipi">${[['duz', 'Düz'], ['el', 'El yazısı'], ['genis', 'İnce geniş'], ['serif', 'Klasik']].map(([d, a]) => `<option value="${d}" ${s.yaziTipi === d ? 'selected' : ''}>${a}</option>`).join('')}</select>
+      <input type="color" data-kst="renk" value="${esc(s.renk || '#1C2430')}" aria-label="Renk">
+      <input type="number" data-kst="boyut" min="16" max="44" value="${s.boyut || ''}" placeholder="21" style="width:64px" aria-label="Büyüklük">
+      <label class="kst-onay"><input type="checkbox" data-kst="kalin" ${s.kalin ? 'checked' : ''}>Kalın</label>
+      <label class="kst-onay"><input type="checkbox" data-kst="italik" ${s.italik ? 'checked' : ''}>İtalik</label>
+      <button class="btn sm" data-kst-sil="${i}">Sil</button>
+      <div class="kst-onizleme">Hoş Geldin<span style="margin-left:.28em">${esc(epostaAd(s.eposta))}</span></div>
+      <textarea data-kst="mesaj" rows="2" maxlength="600" placeholder="Tek seferlik mesaj (isteğe bağlı): kişi Assist'i açınca bir kez görür" style="flex-basis:100%">${esc(s.mesaj || '')}</textarea></div>`).join('')
+    : '<div class="ayar-not">Henüz kişi eklenmedi.</div>';
+  k.querySelectorAll('.kst-satir').forEach(r => adStilUygula(r.querySelector('.kst-onizleme span'), KISI_STILLER[+r.dataset.i]));
+}
+document.addEventListener('input', e => {
+  const t = e.target.closest('[data-kst]'); if (!t) return;
+  const r = t.closest('.kst-satir'), s = KISI_STILLER[+r.dataset.i], a = t.dataset.kst;
+  s[a] = t.type === 'checkbox' ? t.checked : t.type === 'number' ? (+t.value || 0) : t.value.trim();
+  const on = r.querySelector('.kst-onizleme span'); on.textContent = epostaAd(s.eposta); adStilUygula(on, s);
+});
+document.addEventListener('change', e => { if (e.target.closest('[data-kst]')) e.target.dispatchEvent(new Event('input', { bubbles: true })); });
+document.addEventListener('click', e => {
+  if (e.target.closest('#kstEkle')) { KISI_STILLER.push({ eposta: '', yaziTipi: 'el', renk: '#A81A20', kalin: false, italik: false, boyut: 26 }); kstCiz(); const s = $$('#kstListe [data-kst="eposta"]'); if (s.length) s[s.length - 1].focus(); }
+  const x = e.target.closest('[data-kst-sil]'); if (x) { KISI_STILLER.splice(+x.dataset.kstSil, 1); kstCiz(); }
+  if (e.target.closest('#kstKaydet')) {
+    const so = $('#kstSonuc'); so.className = 'ayar-sonuc'; so.textContent = 'Kaydediliyor…';
+    apiJson('/api/kisi-stil', { method: 'POST', body: JSON.stringify({ kisiler: KISI_STILLER }) })
+      .then(j => { so.className = 'ayar-sonuc ok'; so.textContent = `Kaydedildi (${j.sayi} kişi). Kişinin Assist'i bir sonraki açılışta yeni görünümü alır.`; kisiStilYukle().then(kstCiz); })
+      .catch(er => { so.className = 'ayar-sonuc hata'; so.textContent = er.message; });
+  }
+});
 function hosgeldinYaz() {
-  const ad = V.ayar.adSoyad || KULLANICI_AD; $('#anaHosgeldin').textContent = ad ? `Hoş Geldin ${ad}` : 'Hoş Geldin';
+  const ad = V.ayar.adSoyad || KULLANICI_AD, h = $('#anaHosgeldin');
+  h.textContent = 'Hoş Geldin';   // ad ayrı span: kişiye özel görünüm (kisi_stilleri.json) yalnız ada uygulanır
+  if (ad) { const s = document.createElement('span'); s.id = 'hosgeldinAd'; s.textContent = ad; s.style.marginLeft = '.28em'; adStilUygula(s, KISI_STIL); h.appendChild(s); }
   // Üst bardaki yuvarlak: adın ve soyadın baş harfleri (Türkçe büyük harf)
   const p = ad.trim().split(/\s+/).filter(Boolean), bh = p.length ? (p[0][0] + (p.length > 1 ? p[p.length - 1][0] : '')).toLocaleUpperCase('tr') : '?';
   const k = $('#kisiBasHarf'); k.textContent = bh; k.title = ad ? `${ad} · Ayarlar` : 'Ayarlar';
@@ -1880,7 +2032,10 @@ const DIL_EN = {
   'Talebi ilet': 'Forward request', 'Kişi': 'Person', 'E-posta': 'Email', 'Başka bir adres…': 'Another address…', 'Eklemek istediğin not': 'Note to add',
   'Sorumlu olarak ata': 'Assign as owner', 'Alınacak aksiyon': 'Action to take', 'Alınan aksiyon': 'Action taken', 'Aksiyonu kapat': 'Close action',
   'Notu kapat': 'Close note', 'Notu sil': 'Delete note', 'Öncelik': 'Priority', 'Önem': 'Importance', 'Normal': 'Normal', 'Yüksek': 'High',
-  'Yüksek öncelik': 'High priority', 'Kayıt': 'Record', 'Tür': 'Type', 'Teams toplantısı': 'Teams meeting', 'Toplantıyı oluştur ve davet gönder': 'Create meeting and send invites',
+  'Yüksek öncelik': 'High priority', 'Kayıt': 'Record', 'Tür': 'Type', 'Toplantılar': 'Meetings', 'Düzenleyen': 'Organizer', 'Katıl': 'Join', 'Randevu': 'Appointment', 'Tüm gün': 'All day', 'Bu gün toplantı yok.': 'No meetings on this day.', 'Gelen talepler': 'Incoming requests', 'Giden talepler': 'Outgoing requests', 'Bana gelen': 'Sent to me', 'Başkasına ilettiğim': 'Forwarded by me', 'Bu gün termini olan açık iş yok.': 'No open tasks due on this day.', 'Dün': 'Yesterday', 'Bugünkü İşler': "Today's Tasks", 'Toplantı': 'Meetings', 'Bekleyen İşler': 'Pending Tasks', 'Bekleyen Talepler': 'Pending Requests',
+  'Bugün toplantı yok.': 'No meetings today.', 'Outlook takvimi okunuyor…': 'Reading Outlook calendar…', 'Kişiye özel ad görünümü': 'Personal name style', 'Size bir mesaj var': 'You have a message', '+ Kişi ekle': '+ Add person', 'Stilleri kaydet': 'Save styles',
+  'Düz': 'Plain', 'El yazısı': 'Handwriting', 'İnce geniş': 'Light wide', 'Klasik': 'Classic', 'Kalın': 'Bold', 'İtalik': 'Italic', 'Henüz kişi eklenmedi.': 'No people added yet.', 'Telefon rehberi (iPhone / Android)': 'Phone directory (iPhone / Android)', 'Mobilden dahili arama öneki': 'Mobile prefix for extensions',
+  'Rehberi Outlook kişilerine yaz / güncelle': 'Write / update directory in Outlook contacts', 'Assist kişilerini kaldır': 'Remove Assist contacts', 'Teams toplantısı': 'Teams meeting', 'Toplantıyı oluştur ve davet gönder': 'Create meeting and send invites',
   'Başlangıç': 'Start', 'Bitiş': 'End', 'Katılımcılar': 'Attendees', 'Açıklama (isteğe bağlı)': 'Description (optional)', 'Konu yazın.': 'Enter a subject.',
   'En az bir katılımcı ekleyin.': 'Add at least one attendee.', 'Oluşturuluyor…': 'Creating…', 'Ad ya da e-posta yazın, listeden seçin': 'Type a name or email, pick from the list', 'Teams\'te ara': 'Call in Teams', 'MiCollab ile ara': 'Call with MiCollab', 'Üste sabitle': 'Pin to top', 'Sabitlemeyi kaldır': 'Unpin', 'Okunmamış posta yoktu.': 'There were no unread emails.', 'Cevapsız aramalar': 'Missed calls', 'Bu listeyi temizle': 'Clear this list', 'Tüm listeyi aç': 'Open full list', 'Talep': 'Request', 'Tahmini süre (saat)': 'Estimated time (hours)', 'Harcanan süre (saat)': 'Time spent (hours)',
   'Sekteye uğradıysa neden': 'Reason if delayed', 'Açıklama': 'Description', 'Bağlı talep (isteğe bağlı)': 'Linked request (optional)',
@@ -1901,6 +2056,7 @@ const DIL_EN = {
   'Veri klasörü': 'Data folder', 'Kapanan işler ve notlar silinsin': 'Delete closed items and notes', 'Yedek indir (şifresiz)': 'Download backup (unencrypted)',
   'Yedekten yükle': 'Restore from backup', 'Silinmesin': 'Never', 'Windows açılınca Assist\'i başlat': 'Start Assist when Windows starts',
   'Ekranın köşesinde bildirim göster': 'Show notification in the screen corner', 'Termini geçen işleri her gün hatırlat': 'Remind overdue items every day',
+  'Geri': 'Back', 'İleri': 'Forward', 'Tam ekran': 'Full screen', 'Tam ekrandan çık': 'Exit full screen', 'Çıkış (Assist arka planda çalışmaya devam eder)': 'Exit (Assist keeps running in the background)',
   'Termin günü': 'Due date', 'Gece modu': 'Dark mode', 'Gündüz modu': 'Light mode', 'Dil / Language': 'Language / Dil', 'Gelen Kutusu · ': 'Inbox · ',
   'Pazar': 'Sunday', 'Pazartesi': 'Monday', 'Salı': 'Tuesday', 'Çarşamba': 'Wednesday', 'Perşembe': 'Thursday', 'Cuma': 'Friday', 'Cumartesi': 'Saturday',
   'Pzt': 'Mon', 'Sal': 'Tue', 'Çar': 'Wed', 'Per': 'Thu', 'Cum': 'Fri', 'Cmt': 'Sat', 'Paz': 'Sun',
@@ -2070,22 +2226,22 @@ function anaCiz() {
   const L = isler(), say = { gecmis: 0, bugun: 0, yaklasan: 0 };
   L.forEach(i => { const k = kova(i.termin); if (k in say) say[k]++; });
   const kap = kapananlar();
+  // Anasayfa kartları: Bugünkü İşler · Toplantı (bugün, Outlook) · Bekleyen İşler (tüm açık not + aksiyon) · Bekleyen Talepler
+  if (ANA_TOPLANTI === null || Date.now() - ANA_TOPLANTI_ZAMAN > 10 * 60000) anaToplantiYukle();
+  const bekleyen = V.kayitlar.filter(k => k.tur === 'not' && acikMi(k)).length + L.filter(i => i.a).length;
+  const talepSay = V.kayitlar.filter(k => k.tur === 'talep' && acikMi(k)).length;
   const K = [
-    ['gecmis', 'Termini Geçen', say.gecmis, 'red'],
-    ['bugun', 'Bugün', say.bugun, 'amber'],
-    ['yaklasan', 'Yaklaşan', say.yaklasan, 'blue'],
-    ['acik', 'Açık İşler', L.length, ''],
-    ['kapanan', 'Bu Ay Kapanan', kap.length, 'green']
+    ['bugun', 'Bugünkü İşler', say.bugun, 'amber'],
+    ['toplanti', 'Toplantı', ANA_TOPLANTI === null ? '–' : ANA_TOPLANTI.length, ''],
+    ['bekleyen', 'Bekleyen İşler', bekleyen, ''],
+    ['talep', 'Bekleyen Talepler', talepSay, 'blue']
   ];
-  // Yaklaşan'ın üzerine gelince: kaç iş kaç gün kaldı (gün gün)
-  const kalanGun = {};
-  L.filter(i => kova(i.termin) === 'yaklasan').forEach(i => { const g = Math.round((new Date(i.termin + 'T00:00') - new Date(bugun() + 'T00:00')) / 864e5); kalanGun[g] = (kalanGun[g] || 0) + 1; });
-  const yaklasanIpucu = Object.keys(kalanGun).length
-    ? '<div class="kpi-ipucu">' + Object.keys(kalanGun).map(Number).sort((a, b) => a - b)
-        .map(g => `<div><b>${kalanGun[g]}</b> iş <span>${g === 1 ? 'yarın' : g + ' gün kaldı'}</span></div>`).join('') + '</div>'
-    : `<div class="kpi-ipucu"><div>Önümüzdeki ${V.ayar.yaklasanGun} günde termin yok.</div></div>`;
+  // Toplantı kartının üzerine gelince bugünün toplantıları (saat · konu)
+  const topIpucu = '<div class="kpi-ipucu">' + (ANA_TOPLANTI && ANA_TOPLANTI.length
+    ? ANA_TOPLANTI.map(o => `<div><b>${o.tumGun ? 'Tüm gün' : esc(o.bas.slice(11, 16))}</b> <span>${esc(o.baslik || '(konusuz)')}</span></div>`).join('')
+    : `<div>${ANA_TOPLANTI === null ? 'Outlook takvimi okunuyor…' : 'Bugün toplantı yok.'}</div>`) + '</div>';
   $('#anaKpi').innerHTML = K.map(([f, l, n, r]) =>
-    `<button class="kpi ${r}" data-f="${f}"><div class="k-l">${l}</div><div class="k-v">${n}</div>${f === 'yaklasan' ? yaklasanIpucu : ''}</button>`).join('');
+    `<button class="kpi ${r}" data-f="${f}"><div class="k-l">${l}</div><div class="k-v">${n}</div>${f === 'toplanti' ? topIpucu : ''}</button>`).join('');
   if ($('#mListe').classList.contains('show')) anaListePencere(ANA_LISTE_F);   // kayıt değişince açık liste tazelensin
 
   let satirlar = '', n = 0;
@@ -2094,7 +2250,7 @@ function anaCiz() {
     n = kap.length;
     satirlar = kap.map(i => isSatir(i, true)).join('');
   } else {
-    $('#anaBaslik').textContent = (K.find(x => x[0] === anaFiltre) || K[3])[1];
+    $('#anaBaslik').textContent = anaFiltre === 'acik' ? 'Açık İşler' : ((K.find(x => x[0] === anaFiltre) || [, 'Açık İşler'])[1]);
     const gruplar = anaFiltre === 'acik' ? GRUPLAR : GRUPLAR.filter(g => g[0] === anaFiltre);
     for (const [g, ad] of gruplar) {
       const G = L.filter(i => kova(i.termin) === g).sort(terminSira);
@@ -2116,30 +2272,117 @@ function anaCiz() {
 /* Kartlara tıklayınca liste açılır pencerede (kullanıcı istedi): Termini Geçen / Bugün / Yaklaşan /
    Açık İşler (gruplu) / Bu Ay Kapanan. Satıra tıklayınca kayıt bu pencerenin üstünde açılır. */
 let ANA_LISTE_F = '';
+// Bugünün Outlook toplantıları (Toplantı kartı); 10 dakikada bir tazelenir
+let ANA_TOPLANTI = null, ANA_TOPLANTI_ZAMAN = 0, ANA_TOPLANTI_YUK = false;
+async function anaToplantiYukle() {
+  if (ANA_TOPLANTI_YUK) return; ANA_TOPLANTI_YUK = true; ANA_TOPLANTI_ZAMAN = Date.now();
+  try { const j = await apiJson(`/api/takvim?bas=${bugun()}&gunSayi=1`); ANA_TOPLANTI = [].concat(j.olaylar || []).sort((a, b) => (a.bas || '').localeCompare(b.bas || '')); }
+  catch (e) { if (ANA_TOPLANTI === null) ANA_TOPLANTI = []; }
+  ANA_TOPLANTI_YUK = false;
+  if (aktif === 'ana') anaCiz();
+}
+// Bugünkü İşler penceresindeki gün (yyyy-aa-gg); kart her açıldığında bugüne döner
+let ANA_GUN = '', ANA_TALEP_YON = 'gelen';   // Bekleyen Talepler penceresi: gelen | giden
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-talep-kay]')) { ANA_TALEP_YON = ANA_TALEP_YON === 'gelen' ? 'giden' : 'gelen'; return anaListePencere('talep'); }
+  const b = e.target.closest('[data-gun-kay]'); if (!b) return;
+  const n = +b.dataset.gunKay, d = new Date((ANA_GUN || bugun()) + 'T00:00');
+  ANA_GUN = n === 0 ? bugun() : yerelTarih(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
+  anaListePencere(ANA_LISTE_F === 'toplanti' ? 'toplanti' : 'bugun');
+});
+// Gün seçici (‹ tarih ›, Bugün): Bugünkü İşler ve Toplantı pencereleri
+function gunSeciciHtml() {
+  const d = new Date(ANA_GUN + 'T00:00'), fark = Math.round((d - new Date(bugun() + 'T00:00')) / 864e5);
+  const etiket = fark === 0 ? 'Bugün' : fark === 1 ? 'Yarın' : fark === -1 ? 'Dün' : '';
+  return `<div class="gun-secici"><button class="ikon-btn" data-gun-kay="-1" aria-label="Önceki gün">‹</button>
+    <div class="gs-tarih"><b>${d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</b><span>${d.toLocaleDateString('tr-TR', { weekday: 'long' })}${etiket ? ' · ' + etiket : ''}</span></div>
+    <button class="ikon-btn" data-gun-kay="1" aria-label="Sonraki gün">›</button>${fark ? '<button class="btn sm" data-gun-kay="0">Bugün</button>' : ''}</div>`;
+}
+/* Toplantı penceresi: seçilen günün Outlook takvimi — saat, konu, tür (Teams / toplantı / randevu), yer, düzenleyen.
+   Teams toplantısında "Katıl"; satıra tıklayınca Outlook'ta açılır. Gün başına önbellek. */
+const TOP_GUN = {};
+async function anaToplantiPencere() {
+  if (ANA_LISTE_F !== 'toplanti') { LF.ml = {}; LS.ml = {}; }
+  ANA_LISTE_F = 'toplanti'; if (!ANA_GUN) ANA_GUN = bugun();
+  const gun = ANA_GUN;
+  $('#mlBaslik').textContent = 'Toplantılar';
+  const ciz = L => {
+    if (ANA_LISTE_F !== 'toplanti' || ANA_GUN !== gun) return;
+    $('#mlSay').textContent = L ? L.length : '';
+    const tur = o => o.teams ? 'Teams' : o.tumGun ? 'Tüm gün' : o.toplanti ? 'Toplantı' : 'Randevu';
+    $('#mlGovde').innerHTML = gunSeciciHtml() + (L === null ? '<div class="yukleniyor">Outlook takvimi okunuyor…</div>'
+      : L.length ? `<table class="tbl"><thead><tr><th>Saat</th><th>Konu</th><th>Tür</th><th>Yer</th><th>Düzenleyen</th><th></th></tr></thead><tbody>${L.map(o =>
+        `<tr class="clickable" data-ol="${esc(o.id)}"><td class="tarih">${o.tumGun ? 'Tüm gün' : esc(o.bas.slice(11, 16) + ' – ' + o.bit.slice(11, 16))}</td>` +
+        `<td class="is-ad"><b>${esc(o.baslik || '(konusuz)')}</b>${o.durum === 1 ? ' <span class="badge gray">belirsiz</span>' : ''}</td>` +
+        `<td class="dar"><span class="badge ${o.teams ? 'mor' : 'gray'}">${tur(o)}</span></td><td>${esc(o.yer || '')}</td>` +
+        `<td class="dar">${esc(o.duzenleyen || '')}${o.katilimci > 1 ? `<span class="alt">${o.katilimci} kişi</span>` : ''}</td>` +
+        `<td class="dar">${o.teams ? `<button class="btn sm teams-katil" data-teams-katil="${esc(o.teams)}">Katıl</button>` : ''}</td></tr>`).join('')}</tbody></table>`
+      : '<div class="bos">Bu gün toplantı yok.</div>');
+  };
+  $('#mListe').classList.add('show');
+  ciz(TOP_GUN[gun] || null);
+  try { const j = await apiJson(`/api/takvim?bas=${gun}&gunSayi=1`); TOP_GUN[gun] = [].concat(j.olaylar || []).sort((a, b) => (a.bas || '').localeCompare(b.bas || '')); }
+  catch (er) { TOP_GUN[gun] = TOP_GUN[gun] || []; toast(er.message, true); }
+  ciz(TOP_GUN[gun]);
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-teams-katil]'); if (!b) return;
+  e.stopPropagation(); window.open(b.dataset.teamsKatil, '_blank', 'noopener');
+}, true);
 function anaListePencere(f) {
+  if (f === 'toplanti') return anaToplantiPencere();   // Toplantı kartı: günün toplantıları (gün seçicili)
+  if (f !== ANA_LISTE_F) { LF.ml = {}; LS.ml = {}; LF.mlp = {}; LS.mlp = {}; }   // başka liste açılınca başlık süzgeçleri sıfırlanır
   ANA_LISTE_F = f;
-  const ad = { gecmis: 'Termini Geçen', bugun: 'Bugün', yaklasan: 'Yaklaşan', acik: 'Açık İşler', kapanan: 'Bu Ay Kapanan',
-    not: 'Notlarım', aksiyon: 'Aksiyonlarım', posta: 'Takipteki Postalar' }[f];
+  const ad = { gecmis: 'Termini Geçen', bugun: 'Bugünkü İşler', yaklasan: 'Yaklaşan', acik: 'Açık İşler', kapanan: 'Bu Ay Kapanan',
+    not: 'Notlarım', aksiyon: 'Aksiyonlarım', posta: 'Takipteki Postalar', bekleyen: 'Bekleyen İşler', talep: 'Bekleyen Talepler' }[f];
   // Takipteki postalar: anasayfa kartındaki tablonun tamamı (satır tıklamaları #mlPosta içinde de çalışır)
   if (f === 'posta') {
     $('#mlBaslik').textContent = ad; $('#mlSay').textContent = ANA_POSTA.length;
-    $('#mlGovde').innerHTML = `<div id="mlPosta">${anaPostaTablo()}</div>`;
+    $('#mlGovde').innerHTML = `<div id="mlPosta">${anaPostaTablo('mlp')}</div>`;
     return $('#mListe').classList.add('show');
   }
   // Notlarım / Aksiyonlarım: anasayfada yalnız geciken + yaklaşanlar; burada açık olanların tümü (termini olmayan ve ileri tarihliler dahil)
-  const L = f === 'not'
-    ? V.kayitlar.filter(k => k.tur === 'not' && acikMi(k)).map(k => ({ k, a: null, id: k.id, baslik: k.baslik, sorumlu: k.sorumlu, termin: k.termin, durum: k.durum }))
-    : f === 'aksiyon' ? isler().filter(i => i.a) : isler();
-  const hepsi = f === 'acik' || f === 'not' || f === 'aksiyon';
+  const kayitSatir = k => ({ k, a: null, id: k.id, baslik: k.baslik, sorumlu: k.sorumlu, termin: k.termin, durum: k.durum });
+  const notlar = () => V.kayitlar.filter(k => k.tur === 'not' && acikMi(k)).map(kayitSatir);
+  const L = f === 'not' ? notlar()
+    : f === 'aksiyon' ? isler().filter(i => i.a)
+    : f === 'bekleyen' ? notlar().concat(isler().filter(i => i.a))   // tüm açık notlar (termini olmayanlar dahil) + açık aksiyonlar
+    : f === 'talep' ? V.kayitlar.filter(k => k.tur === 'talep' && acikMi(k) && (k.yon || 'gelen') === ANA_TALEP_YON).map(kayitSatir)
+    : isler();
+  const hepsi = ['acik', 'not', 'aksiyon', 'bekleyen', 'talep'].includes(f);
   let satirlar = '', n = 0;
-  // Grup başlığı yok: kalan gün her satırda yazıyor; tek liste, termine göre (termini olmayanlar sonda)
-  const G = f === 'kapanan' ? kapananlar() : (hepsi ? L : L.filter(i => kova(i.termin) === f)).sort(terminSira);
-  n = G.length; satirlar = G.map(i => isSatir(i, f === 'kapanan')).join('');
-  $('#mlBaslik').textContent = ad; $('#mlSay').textContent = n;
-  $('#mlGovde').innerHTML = n
-    ? `<table class="tbl"><thead><tr><th>No</th><th>İş</th><th>Tür</th><th>Kimden</th><th>Sorumlu</th><th>Termin</th><th>${f === 'kapanan' ? 'Kapanış' : 'Kalan'}</th><th>Durum</th></tr></thead><tbody>${satirlar}</tbody></table>`
-    : `<div class="bos">${hepsi ? 'Açık iş yok.' : 'Bu grupta iş yok.'}</div>`;
+  // Bugünkü İşler: üstte gün seçici (‹ tarih ›); seçilen günün termini olan açık işler
+  if (f === 'bugun' && !ANA_GUN) ANA_GUN = bugun();
+  // Bekleyen Talepler: üstte Gelen ⇄ Giden seçici (gün seçici gibi oklarla)
+  const talepSecici = f === 'talep' ? (() => {
+    const say = y => V.kayitlar.filter(k => k.tur === 'talep' && acikMi(k) && (k.yon || 'gelen') === y).length;
+    const gelen = ANA_TALEP_YON === 'gelen';
+    return `<div class="gun-secici"><button class="ikon-btn" data-talep-kay aria-label="Değiştir">‹</button>
+      <div class="gs-tarih"><b>${gelen ? 'Gelen talepler' : 'Giden talepler'}</b><span>${gelen ? 'Bana gelen' : 'Başkasına ilettiğim'} · ${say(ANA_TALEP_YON)} açık</span></div>
+      <button class="ikon-btn" data-talep-kay aria-label="Değiştir">›</button></div>`;
+  })() : '';
+  const gunSecici = f === 'talep' ? talepSecici : f === 'bugun' ? gunSeciciHtml() : '';
+  const G = f === 'kapanan' ? kapananlar() : (hepsi ? L : f === 'bugun' ? L.filter(i => i.termin === ANA_GUN) : L.filter(i => kova(i.termin) === f)).sort(terminSira);
+  const GS = mlSuzSirala(G);   // başlık okları: sütun süzgeçleri ve sıralama
+  n = GS.length; satirlar = GS.map(i => isSatir(i, f === 'kapanan')).join('');
+  $('#mlBaslik').textContent = f === 'bugun' ? 'İşler' : ad; $('#mlSay').textContent = n;
+  $('#mlGovde').innerHTML = gunSecici + (n
+    ? `<table class="tbl"><thead><tr>${thBas('ml', 'no', 'No', 'metin')}${thBas('ml', 'is', 'İş', 'metin')}${thBas('ml', 'tur', 'Tür', 'metin')}${thBas('ml', 'kimden', 'Kimden', 'metin')}${thBas('ml', 'sorumlu', 'Sorumlu', 'metin')}${thBas('ml', 'termin', 'Termin', 'termin')}${thBas('ml', 'termin', f === 'kapanan' ? 'Kapanış' : 'Kalan', '')}${thBas('ml', 'durum', 'Durum', 'metin')}</tr></thead><tbody>${satirlar}</tbody></table>`
+    : `<div class="bos">${hepsi ? 'Açık iş yok.' : f === 'bugun' ? 'Bu gün termini olan açık iş yok.' : 'Bu grupta iş yok.'}</div>`);
   $('#mListe').classList.add('show');
+}
+// Açılır iş listelerinin başlık okları ('ml'): sütun değerleri isSatir'deki gösterimle aynı
+function mlDeger(i, alan) {
+  const k = i.k, a = i.a;
+  return { no: a ? a.no : k.no, is: i.baslik, tur: a ? 'Aksiyon' : (TUR_AD[k.tur] || 'Talep'), kimden: k.kimden, sorumlu: i.sorumlu,
+    termin: i.termin, durum: a ? (a.durum === 'tamam' ? 'Kapandı' : 'Açık') : (DURUM[i.durum] || i.durum) }[alan] || '';
+}
+function mlSuzSirala(G) {
+  const f = LF.ml || {}, S = LS.ml || {};
+  let L = G.filter(i => Object.entries(f).every(([alan, d]) => !d || d === 'hepsi' ||
+    (alan === 'termin' ? kova(i.termin) === d : trK(mlDeger(i, alan)).includes(trK(d)))));
+  if (S.alan) L = L.slice().sort((x, y) => S.yon * siraKarsilastir(mlDeger(x, S.alan), mlDeger(y, S.alan), S.alan === 'termin'));
+  return L;
 }
 function isSatir(i, kapanan) {
   const k = i.k, a = i.a;
@@ -2384,6 +2627,10 @@ function aksiyonYeni() {
   $('#maBaslik').textContent = 'Yeni Aksiyon';
   $('#maDurum').innerHTML = '';
   $('#maGovde').innerHTML = `
+    <div class="doldur"><span>E-postadan doldur</span>
+      <button class="btn sm" id="maSecili">${svg('posta')}Outlook'ta seçili posta</button>
+      <button class="btn sm" id="maListe">Listeden seç</button></div>
+    <div id="maPosta"></div>
     <div class="field"><label>Alınacak aksiyon</label><textarea id="maMetin" rows="2"></textarea></div>
     <div class="grid2">
       <div class="field"><label>Sorumlu</label><input id="maSorumlu" data-kisi-sec autocomplete="off" value="${esc(a.sorumlu)}"></div>
@@ -2397,6 +2644,32 @@ function aksiyonYeni() {
   $('#mAks').classList.add('show');
   setTimeout(() => $('#maMetin').focus(), 30);
 }
+/* Yeni aksiyonda "E-postadan doldur": posta aksiyona (taşıyıcı kayda) bağlanır; yalnız BOŞ alanlar doldurulur.
+   .msg kopyası / Outlook kategorisi "Kaydet"te işlenir (notlardaki gibi). */
+function aksPostadanDoldur(p) {
+  if (!AK || !AK.yeni) return;
+  AK.posta = { id: p.id, store: p.store, msgId: p.msgId, konu: p.konu, kimden: p.kimden, eposta: p.eposta, tarih: p.tarih, msg: '' };
+  if (!$('#maMetin').value.trim()) $('#maMetin').value = konuTemizle(p.konu);
+  if (!$('#maTermin').value) {
+    const tb = p.bayrakTermin ? { tarih: p.bayrakTermin } : terminBul(p.konu + '\n' + govdeTemizle(p.govde || ''), p.tarih);
+    if (tb) $('#maTermin').value = tb.tarih;
+  }
+  if (/(acil|ivedi|urgent|önemli)/.test(trK(p.konu))) $('#maOnem').value = 'yuksek';
+  aksPostaCiz(); toast('Postadan dolduruldu.');
+}
+function aksPostaCiz() {
+  const el = $('#maPosta'); if (!el) return; const p = AK && AK.posta;
+  el.innerHTML = p ? `<div class="posta-satir" style="margin:0 0 12px">${svg('posta')}<span class="ps-konu" title="${esc(p.konu)}">${esc(p.konu || '(konusuz)')}</span>` +
+    `<span class="ps-ek">${esc(p.kimden || '')} · ${trTarihSaat(p.tarih)}</span><button class="ikon-btn" id="maPostaSil" title="Bağlantıyı kaldır">${svg('x')}</button></div>` : '';
+}
+document.addEventListener('click', async e => {
+  if (e.target.closest('#maPostaSil')) { if (AK) AK.posta = null; return aksPostaCiz(); }
+  if (e.target.closest('#maListe')) { SEC_HEDEF = 'aks'; return secAc(); }
+  const b = e.target.closest('#maSecili'); if (!b) return;
+  b.disabled = true;
+  try { aksPostadanDoldur(await apiJson('/api/posta/secili')); } catch (er) { toast(er.message, true); }
+  finally { b.disabled = false; }
+});
 function aksiyonFormOku() {
   const { k, a } = AK, z = simdi();
   const deger = id => $(id) ? $(id).value : '';
@@ -2417,14 +2690,31 @@ function aksiyonFormOku() {
 // Satır/bildirim tıklaması: aksiyonsa aksiyon penceresi, değilse kayıt penceresi
 function kaydiAc(kid, aid) { if (aid) aksiyonAc(kid, aid); else kayitAc(kid); }
 function aksiyonPencereKapat() { $('#mAks').classList.remove('show'); AK = null; }
-function aksiyonKaydet() {
+async function aksiyonKaydet() {
   if (!aksiyonFormOku()) return;
   if (AK.yeni) {
     let { k, a } = AK;
     const z = simdi(), hedef = $('#maHedef') && $('#maHedef').value ? kayitBul($('#maHedef').value) : null;
+    // Postadan doldurulduysa: posta daha önce bir kayda bağlıysa o bağlantı (ve .msg kopyası), değilse sunucuda bağlanır.
+    // Taşıyıcı: seçilen talep, yoksa postanın bağlı olduğu kayıt, yoksa postanın kendi kaydı (masaüstündeki postadan aksiyon gibi).
+    let posta = null;
+    if (AK.posta) {
+      $('#maKaydet').disabled = true;
+      const once = V.kayitlar.find(x => x.postalar.some(p => p.id === AK.posta.id));
+      posta = once ? Object.assign({}, once.postalar.find(p => p.id === AK.posta.id)) : (await postaBaglaSunucu(AK.posta)).posta;
+      $('#maKaydet').disabled = false;
+      if (!AK) return;   // beklerken pencere kapatıldı
+    }
     a.no = numaraVer('aksiyon');
+    const postaKaydi = posta && !hedef ? V.kayitlar.find(x => x.tur !== 'not' && x.postalar.some(p => p.id === posta.id)) : null;
     if (hedef) k = hedef;
-    else { k.baslik = ''; V.kayitlar.push(k); }
+    else if (postaKaydi) k = postaKaydi;
+    else {
+      k.baslik = posta ? (konuTemizle(posta.konu) || '(konusuz)') : '';
+      if (posta) { k.kimden = posta.kimden || ''; k.kimdenEposta = posta.eposta || ''; k.gecmis.push({ t: z, m: 'Postadan oluşturuldu' }); }
+      V.kayitlar.push(k);
+    }
+    if (posta && !k.postalar.some(p => p.id === posta.id)) k.postalar.push(posta);
     k.aksiyonlar.push(a);
     k.gecmis.push({ t: z, m: `${a.no} eklendi: ${a.metin}` });
     k.guncelleme = z;
@@ -2495,7 +2785,8 @@ function kayitPencere(vurgu) {
     <div class="grid2">
       <div class="field tam"><label>${not ? 'Konu' : 'Başlık'}</label><input id="kBaslik" value="${esc(k.baslik)}"></div>
       ${talep || (not && k.kimden) ? `<div class="field"><label>Kimden</label><input id="kKimden" value="${esc(k.kimden)}"></div>` : ''}
-      ${not ? `<div class="field"><label>Termin (isteğe bağlı)</label><input type="date" id="kTermin" value="${esc(k.termin)}"></div>` : `<div class="field"><label>Sorumlu</label><input id="kSorumlu" data-kisi-sec autocomplete="off" value="${esc(k.sorumlu)}"></div>
+      ${not ? `<div class="field"><label>Termin (isteğe bağlı)</label><input type="date" id="kTermin" value="${esc(k.termin)}"></div>
+      <div class="field"><label>Öncelik</label><select id="kOncelik"><option value="normal">Normal</option><option value="yuksek">Yüksek</option></select></div>` : `<div class="field"><label>Sorumlu</label><input id="kSorumlu" data-kisi-sec autocomplete="off" value="${esc(k.sorumlu)}"></div>
       <div class="field"><label>Termin</label><input type="date" id="kTermin" value="${esc(k.termin)}">${TERMIN_IPUCU ? `<div class="ipucu">${TERMIN_IPUCU}</div>` : ''}</div>
       <div class="field"><label>Öncelik</label><select id="kOncelik"><option value="normal">Normal</option><option value="yuksek">Yüksek</option></select></div>
       <div class="field"><label>Durum</label><select id="kDurum">${Object.entries(DURUM).map(([d, a]) => `<option value="${d}">${a}</option>`).join('')}</select></div>
@@ -2569,7 +2860,7 @@ async function secSec(i) {
   try {
     const j = await apiJson('/api/posta/oku?id=' + encodeURIComponent(p.id) + '&store=' + encodeURIComponent(p.store));
     $('#mSec').classList.remove('show');
-    if (SEC_HEDEF === 'hat') hatEkPosta(j); else postadanDoldur(j);
+    if (SEC_HEDEF === 'hat') hatEkPosta(j); else if (SEC_HEDEF === 'aks') aksPostadanDoldur(j); else postadanDoldur(j);
   } catch (e) { toast(e.message, true); secCiz(); }
 }
 function kPostaCiz() {
@@ -2753,6 +3044,69 @@ async function gelenTalepAl() {
   GELEN_ALINIYOR = false;
 }
 setInterval(gelenTalepAl, 60000);
+/* Telefondan (Power Apps "Assist Mobil") gelen istekler: OneDrive\Assist\mobil_gelen\*.json
+   islem: 'not' | 'aksiyon' (isteğe bağlı posta ile; posta Outlook'ta bulunursa kayda bağlanır) | 'tamamla' (kid, aid).
+   Her istek kimliği (veri.id) kayıtta saklanır; dosya silinemese bile ikinci kez işlenmez. */
+let MOBIL_ALINIYOR = false;
+async function mobilGelenAl() {
+  if (MOBIL_ALINIYOR || K) return;
+  MOBIL_ALINIYOR = true;
+  try {
+    const j = await apiJson('/api/mobil/gelen');
+    const L = [].concat(j.gelen || []).filter(Boolean);
+    if (!L.length) { MOBIL_ALINIYOR = false; return; }
+    const z = simdi(), islenen = [], ozet = [];
+    const islendiMi = id => id && V.kayitlar.some(k => k.mobilId === id || k.aksiyonlar.some(a => a.mobilId === id) || (k.mobilIslemler || []).includes(id));
+    for (const g of L) {
+      const v = g.veri || {}, mid = String(v.id || g.dosya);
+      islenen.push(g.dosya);
+      if (islendiMi(mid)) continue;
+      const islem = String(v.islem || '').toLowerCase();
+      if (islem === 'tamamla') {
+        const k = kayitBul(v.kid); if (!k) continue;
+        const a = v.aid ? k.aksiyonlar.find(x => x.id === v.aid) : null;
+        if (a) { if (a.durum !== 'tamam') { a.durum = 'tamam'; a.tamamTarih = z; k.gecmis.push({ t: z, m: `${a.no} telefondan tamamlandı` }); ozet.push(`${a.no} tamamlandı`); } }
+        else if (acikMi(k)) { k.durum = 'tamam'; k.kapanis = z; k.gecmis.push({ t: z, m: 'Telefondan tamamlandı' }); ozet.push(`${k.no} tamamlandı`); }
+        k.mobilIslemler = (k.mobilIslemler || []).concat(mid).slice(-20); k.guncelleme = z;
+        continue;
+      }
+      if (islem !== 'not' && islem !== 'aksiyon') continue;
+      // Posta: Outlook'ta bulunduysa masaüstündeki gibi bağlanır (kopya / kategori ayarlara göre)
+      let posta = null;
+      if (g.posta && g.posta.id) {
+        const once = V.kayitlar.find(k => k.postalar.some(p => p.id === g.posta.id));
+        posta = once ? Object.assign({}, once.postalar.find(p => p.id === g.posta.id)) : (await postaBaglaSunucu(g.posta)).posta;
+      }
+      const konu = konuTemizle((posta && posta.konu) || v.baslik || '') || '(konusuz)';
+      const kimden = posta ? posta.kimden : '', kimdenEposta = posta ? (posta.eposta || '') : '';
+      if (islem === 'not') {
+        const no = numaraVer('not');
+        V.kayitlar.push({ id: uid(), tur: 'not', no, mobilId: mid, baslik: String(v.baslik || konu), ozet: String(v.metin || ''), kimden, kimdenEposta, sorumlu: '',
+          termin: /^\d{4}-\d\d-\d\d$/.test(v.termin || '') ? v.termin : '', oncelik: 'normal', kategori: '', durum: 'acik', postalar: posta ? [posta] : [], aksiyonlar: [],
+          gecmis: [{ t: z, m: posta ? 'Telefondan, postadan oluşturuldu' : 'Telefondan oluşturuldu' }], olusturma: z, guncelleme: z, kapanis: '' });
+        ozet.push(`${no} not`);
+      } else {
+        let k = posta ? V.kayitlar.find(x => x.tur !== 'not' && x.postalar.some(p => p.id === posta.id)) : null;
+        if (!k) {
+          k = { id: uid(), tur: posta ? 'posta' : 'talep', no: posta ? '' : numaraVer('talep'), baslik: konu, ozet: '', kimden, kimdenEposta, sorumlu: '', termin: '',
+            oncelik: 'normal', kategori: '', durum: 'acik', postalar: posta ? [posta] : [], aksiyonlar: [], gecmis: [{ t: z, m: 'Telefondan oluşturuldu' }],
+            olusturma: z, guncelleme: z, kapanis: '' };
+          V.kayitlar.push(k);
+        }
+        const no = numaraVer('aksiyon'), metin = String(v.metin || v.baslik || konu);
+        k.aksiyonlar.push({ id: uid(), no, mobilId: mid, metin, sorumlu: String(v.sorumlu || ''), termin: /^\d{4}-\d\d-\d\d$/.test(v.termin || '') ? v.termin : '',
+          onem: v.onem === 'yuksek' ? 'yuksek' : 'normal', tahminiSaat: '', durum: 'acik', tamamTarih: '', alinan: '', alinanTarih: '', olusturma: z });
+        k.gecmis.push({ t: z, m: `${no} telefondan eklendi: ${metin}` }); k.guncelleme = z;
+        ozet.push(`${no} aksiyon`);
+      }
+    }
+    if (ozet.length) { await kaydet(); hepsiniCiz(); toast('Telefondan: ' + ozet.join(', ')); }
+    await apiJson('/api/mobil/gelen/sil', { method: 'POST', body: JSON.stringify({ dosyalar: islenen }) });
+  } catch (e) { /* sunucu meşgul / OneDrive yok: sonraki turda tekrar */ }
+  MOBIL_ALINIYOR = false;
+}
+setInterval(mobilGelenAl, 60000);
+setTimeout(mobilGelenAl, 8000);
 function kayitSil() {
   if (!confirm(`${K.no} silinsin mi? Bu işlem geri alınamaz.`)) return;
   V.kayitlar = V.kayitlar.filter(k => k.id !== K.id);
@@ -2872,7 +3226,7 @@ function thBas(v, alan, ad, tur) {
   return `<th><span class="th-ic"><button class="th-sirala" data-ls="${alan}" data-lv="${v}">${ad}<span class="th-ok">${ok}</span></button>` +
     (tur ? `<button class="th-filtre${etkin}" data-lfm="${alan}" data-lv="${v}" data-lt="${tur}" title="Sırala / süz">${svg('suzgec')}</button>` : '') + `</span></th>`;
 }
-function listeYenile(v) { if (v === 'posta') postaListeCiz(); else listeCiz2(v); }
+function listeYenile(v) { if (v === 'ml' || v === 'mlp') anaListePencere(ANA_LISTE_F); else if (v === 'posta') postaListeCiz(); else listeCiz2(v); }   // ml/mlp: anasayfadaki açılır listeler
 function thMenuAc(v, alan, tur, dugme) {
   const m = $('#thMenu'), r = dugme.getBoundingClientRect(), sec = TH_SECENEK[tur];
   const zaman = tur === 'tarih' ? ['Eskiden yeniye', 'Yeniden eskiye'] : tur === 'termin' ? ['Yakın tarih önce', 'Uzak tarih önce'] : ['A → Z', 'Z → A'];
@@ -2950,9 +3304,22 @@ function bayrakliCiz() {
   if (ANA_LISTE_F === 'posta' && $('#mListe').classList.contains('show')) anaListePencere('posta');   // açık pencere de tazelensin
 }
 // Takipteki postalar tablosu: anasayfa kartı ve "tüm liste" penceresi aynı satırları kullanır
-function anaPostaTablo() {
-  return ANA_POSTA.length ? `<table class="tbl"><thead><tr><th>Tarih</th><th>Kimden</th><th>Konu</th><th></th></tr></thead><tbody>${
-    ANA_POSTA.map((p, i) => `<tr class="clickable${p.okunmadi ? ' okunmadi' : ''}" data-p="${i}">` +
+// v verilirse (açılır pencere: 'mlp') başlıklar oklu: sıralama + sütun süzgeci. Satır numarası (data-p) ANA_POSTA'daki yer kalır.
+function anaPostaTablo(v) {
+  let L = ANA_POSTA.map((p, i) => ({ p, i }));
+  if (v) {
+    const f = LF[v] || {}, S = LS[v] || {}, dg = (p, a) => a === 'tarih' ? p.tarih : a === 'kimden' ? p.kimden : (p.konu || '') + ' ' + (p.on || '');
+    L = L.filter(({ p }) => Object.entries(f).every(([a, d]) => {
+      if (!d) return true;
+      if (a !== 'tarih') return trK(dg(p, a)).includes(trK(d));
+      const once = -gunFark(yerelTarih(new Date(p.tarih))); return d === 'bugun' ? once === 0 : once < +d;
+    }));
+    if (S.alan) L.sort((x, y) => S.yon * siraKarsilastir(dg(x.p, S.alan), dg(y.p, S.alan), S.alan === 'tarih'));
+  }
+  const bas = v ? thBas(v, 'tarih', 'Tarih', 'tarih') + thBas(v, 'kimden', 'Kimden', 'metin') + thBas(v, 'konu', 'Konu', 'metin') + '<th></th>'
+    : '<th>Tarih</th><th>Kimden</th><th>Konu</th><th></th>';
+  return ANA_POSTA.length ? `<table class="tbl"><thead><tr>${bas}</tr></thead><tbody>${
+    L.map(({ p, i }) => `<tr class="clickable${p.okunmadi ? ' okunmadi' : ''}" data-p="${i}">` +
       `<td class="tarih">${kisaTarih(p.tarih)}</td><td class="dar">${esc(p.kimden)}</td>` +
       `<td class="konu"><b>${esc(p.konu || '(konusuz)')}</b>${p.on ? `<span class="konu-on">${esc(p.on)}</span>` : ''}</td>` +
       postaIkonlar(p, i, postaOzet(p.id)) + '</tr>').join('')
@@ -4002,6 +4369,40 @@ function anahtarHtml(id, etiket, acik) {
   return `<label class="anahtar"><input type="checkbox" id="${id}" ${acik ? 'checked' : ''}><span class="ray"></span>${etiket}</label>`;
 }
 // Ayar grubu: küçük başlık + içerik (bölümler bu gruplardan oluşur)
+// Telefon rehberi: önce deneme (sayılar), onaydan sonra Outlook'a yazılır / kaldırılır
+async function telRehberYaz(kaldir) {
+  const s = $('#aTelSonuc'), onek = $('#aTelOnek').value.replace(/[^\d+]/g, '');
+  V.ayar.telOnek = onek; kaydet();
+  const istek = deneme => apiJson('/api/rehber/telefona', { method: 'POST', body: JSON.stringify({ onek, kaldir, deneme }) });
+  s.className = 'ayar-sonuc'; s.textContent = 'Hesaplanıyor…';
+  try {
+    const d = await istek(true);
+    const soru = kaldir ? `Outlook kişilerinizden ${d.silinen} "Assist Rehber" kişisi silinsin mi?`
+      : `Outlook kişilerinize yazılacak: ${d.eklenen} yeni, ${d.guncellenen} güncellenecek, ${d.silinen} silinecek` +
+        (d.atlanan ? ` (${d.atlanan} kişi sizin kendi kişinizde zaten var, atlanır)` : '') + `. Dahililer "${onek}" önekiyle yazılır. Devam edilsin mi?`;
+    if (!confirm(soru)) { s.textContent = ''; return; }
+    s.textContent = 'Outlook\'a yazılıyor…';
+    const j = await istek(false);
+    s.className = 'ayar-sonuc ok';
+    s.textContent = kaldir ? `${j.silinen} kişi kaldırıldı.` : `Tamam: ${j.eklenen} eklendi, ${j.guncellenen} güncellendi, ${j.silinen} silindi (${j.toplam} kişi).`;
+  } catch (er) { s.className = 'ayar-sonuc hata'; s.textContent = er.message; }
+}
+// .vcf: indir (sunucu özel başlık istediği için fetch + blob) ya da kullanıcının kendisine e-postayla
+async function telVcf(posta) {
+  const s = $('#aTelVcfSonuc'); s.className = 'ayar-sonuc'; s.textContent = posta ? 'Gönderiliyor…' : 'Hazırlanıyor…';
+  try {
+    if (posta) {
+      const j = await apiJson('/api/rehber/vcf', { method: 'POST', body: '{}' });
+      s.className = 'ayar-sonuc ok'; s.textContent = `${j.sayi} kişilik dosya ${j.eposta} adresine gönderildi. Telefonda postayı açıp eke dokunun.`;
+    } else {
+      const r = await api('/api/rehber/vcf');
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).hata || 'İndirilemedi.');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob()); a.download = 'STFA Rehber.vcf';
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      s.className = 'ayar-sonuc ok'; s.textContent = 'İndirildi.';
+    }
+  } catch (er) { s.className = 'ayar-sonuc hata'; s.textContent = er.message; }
+}
 const ayarGrup = (baslik, ic, not) => `<div class="ayar-grup"><h4>${baslik}</h4>${not ? `<p class="ayar-not">${not}</p>` : ''}${ic}</div>`;
 function ayarCiz() {
   const A = V.ayar, P_ = A.posta;
@@ -4019,7 +4420,10 @@ function ayarCiz() {
         <label class="anahtar"><input type="checkbox" data-baslat="outlook"><span class="ray"></span>Outlook</label>
         <label class="anahtar"><input type="checkbox" data-baslat="micollab"><span class="ray"></span>MiCollab</label>
         <label class="anahtar"><input type="checkbox" data-baslat="teams"><span class="ray"></span>Teams</label></div>`,
-        'Kapalıysa Assist açılırken başlatılır; açık olana dokunulmaz.')),
+        'Kapalıysa Assist açılırken başlatılır; açık olana dokunulmaz.') +
+      (KISI_YETKI ? ayarGrup('Kişiye özel ad görünümü', `<div id="kstListe"></div>
+        <div class="ayar-satir"><button class="btn sm" id="kstEkle">+ Kişi ekle</button><button class="btn sm primary" id="kstKaydet">Stilleri kaydet</button><span class="ayar-sonuc" id="kstSonuc"></span></div>`,
+        'E-posta adresini yazdığınız kişinin anasayfasındaki "Hoş Geldin" satırında adı seçtiğiniz görünümde çıkar. Ayar paylaşılan klasörde durur; yalnız siz değiştirebilirsiniz.') : '')),
     bildirim: kart('Bildirimler',
       ayarGrup('Termin hatırlatması', `<div class="gun-sec">${[[7, '7 gün önce'], [5, '5 gün önce'], [3, '3 gün önce'], [2, '2 gün önce'], [1, '1 gün önce'], [0, 'Termin günü']]
         .map(([g, a]) => `<label><input type="checkbox" data-hg="${g}" ${A.hatirlatGun.includes(g) ? 'checked' : ''}>${a}</label>`).join('')}</div>
@@ -4039,7 +4443,19 @@ function ayarCiz() {
         <div class="ayar-satir"><button class="btn sm" id="aDene">Bağlantıyı dene</button><span class="ayar-sonuc" id="aDeneSonuc"></span></div>`,
         'Bayraklı ya da kategorili postalar kayda eklenene kadar zilde hatırlatılır.') +
       ayarGrup('Kayda eklenen postalar', `${anahtarHtml('aMsg', 'Postanın kopyasını sakla (Outlook\'tan silinse de açılır)', P_.msgSakla)}
-        ${anahtarHtml('aKatAta', 'Postaya Outlook\'ta kategoriyi işle', P_.kategoriAta)}`)),
+        ${anahtarHtml('aKatAta', 'Postaya Outlook\'ta kategoriyi işle', P_.kategoriAta)}`) +
+      // Telefon rehberi: şirket rehberi Outlook kişilerine (iPhone/Android'de gelen aramada isim)
+      ayarGrup('Telefon rehberi (iPhone / Android)', `<div class="grid2"><div class="field"><label>Mobilden dahili arama öneki</label>
+        <input id="aTelOnek" value="${esc(A.telOnek ?? '1')}" maxlength="4" style="max-width:90px"></div></div>
+        <div class="ayar-satir"><button class="btn sm primary" id="aTelYaz">Rehberi Outlook kişilerine yaz / güncelle</button>
+        <button class="btn sm" id="aTelKaldir">Assist kişilerini kaldır</button><span class="ayar-sonuc" id="aTelSonuc"></span></div>
+        <p class="ayar-not" style="margin-top:10px">Telefondaki Outlook'ta "Kişileri Kaydet" yoksa (şirket politikası kapatmış olabilir): kişileri tek dosyayla aktarın.
+        Postayı telefonda açıp ekteki dosyaya dokunun, "Tüm kişileri ekle" deyin. Rehber değişince yeniden gönderin.</p>
+        <div class="ayar-satir"><button class="btn sm" id="aTelVcfPosta">Kişi dosyasını (.vcf) kendime e-postayla gönder</button>
+        <button class="btn sm" id="aTelVcf">.vcf indir</button><span class="ayar-sonuc" id="aTelVcfSonuc"></span></div>`,
+        'Şirket rehberindeki numaralı kişiler Outlook kişilerinize "Assist Rehber" kategorisiyle yazılır: dahili öneki ile (646 → 1646), cep numarası +90 ile. ' +
+        'Telefondaki Outlook uygulamasında Ayarlar › hesabınız › "Kişileri Kaydet" açılınca kişiler telefona geçer ve gelen aramada isim görünür. ' +
+        'Yalnız bu kategorideki kişiler eklenir/güncellenir/silinir; sizin eklediğiniz kişilere dokunulmaz.')),
     liste: kart('Talep Kategorileri',
       ayarGrup('Talep kategorileri', `<div class="field"><label>Her satıra bir kategori</label><textarea id="aKategoriler" rows="6">${esc(A.kategoriler.join('\n'))}</textarea></div>`)),
     plan: kart('Haftalık Plan',
@@ -4060,6 +4476,7 @@ function ayarCiz() {
         'İndirilen yedek şifresizdir; güvenli bir yerde saklayın.'))
   };
   $('#ayarGovde').innerHTML = B[ayarBolum];
+  kstCiz();   // kişiye özel ad görünümü satırları (yalnız yöneticide görünür)
   if ($('#aKaynak')) $('#aKaynak').value = P_.kaynak;
   if ($('#aSaklama')) $('#aSaklama').value = String(A.saklamaAy || 0);
   if ($('#aOtoBaslat')) apiJson('/api/otobaslat').then(j => { if ($('#aOtoBaslat')) $('#aOtoBaslat').checked = j.acik; }).catch(() => {});
@@ -4112,6 +4529,7 @@ function ayarKaydet() {
     Object.assign(A.posta, { kaynak: $('#aKaynak').value, kategori: $('#aKategori').value.trim(), klasor: $('#aKlasor').value.trim(),
       gun: sayi('#aGun', 1, 365, 14), msgSakla: $('#aMsg').checked, kategoriAta: $('#aKatAta').checked });
     A.kontrolDk = sayi('#aKontrol', 5, 240, 15);
+    if ($('#aTelOnek')) A.telOnek = $('#aTelOnek').value.replace(/[^\d+]/g, '');
     postaZamanlayici();
     POSTALAR = null; POSTA_KAYNAK = null; POSTA_HATA = ''; BAYRAKLI_ZAMAN = 0;
     postaArkaPlanKontrol();
@@ -4177,7 +4595,7 @@ document.addEventListener('click', e => {
   if ((x = c('.bld-oge'))) { const b = ZIL[+x.dataset.b]; zilOkundu(b); zilAcKapa(false); if (b.k) kaydiAc(b.k, b.a); else if (b.hat) { git('hat'); hatAc(b.hat); } else if (b.hedef) git(b.hedef); return; }
   if (!c('.tb-bld') && $('#zilMenu').classList.contains('acik')) zilAcKapa(false);
   if ((x = c('[data-yeni]'))) return kayitYeni(x.dataset.yeni);
-  if ((x = c('.kpi[data-f]'))) return anaListePencere(x.dataset.f);
+  if ((x = c('.kpi[data-f]'))) { ANA_GUN = ''; ANA_TALEP_YON = 'gelen'; return anaListePencere(x.dataset.f); }   // seçiciler başa döner
   if (c('#mListe [data-kapat]') || t.id === 'mListe') return $('#mListe').classList.remove('show');
   if (c('#mTeams [data-kapat]') || t.id === 'mTeams') return $('#mTeams').classList.remove('show');
   if ((x = c('[data-posta-ac]'))) { e.stopPropagation(); const k = kayitBul(x.dataset.postaAc); return postaAc(k.postalar[k.postalar.length - 1]); }
@@ -4275,6 +4693,9 @@ document.addEventListener('click', e => {
   if (c('[data-ayar-kaydet]')) return ayarKaydet();
   if (c('#aDene')) return baglantiDene();
   if (c('#aBldDene')) return bildirimDene();
+  if (c('#aTelYaz')) return telRehberYaz(false);
+  if (c('#aTelKaldir')) return telRehberYaz(true);
+  if (c('#aTelVcf') || c('#aTelVcfPosta')) return telVcf(!!c('#aTelVcfPosta'));
   if (c('#aYedekAl')) return yedekIndir();
   // Liste satırı → kayıt
   // Haftalık plan / hatırlatıcılar
@@ -4354,6 +4775,39 @@ document.addEventListener('input', e => {
   KISI_ZAMAN = setTimeout(() => { KISI_Q = e.target.value.trim(); kisilerCiz(); }, 120);
 });
 window.addEventListener('hashchange', hashIsle);
+// UYGULAMA PENCERESİ: Sunucu\pencere.ps1 Assist'i adres çubuğu olmayan Edge/Chrome penceresinde (?app=1) açar.
+// Tarayıcının kendi düğmeleri olmadığı için geri / ileri, tam ekran ve çıkış üst barda gösterilir.
+// Tepsi ya da Windows bildirimi açık pencereyi öne getirince gidilecek yer sunucuda bekler; odaklanınca alınır.
+const UYG_PENCERE = new URLSearchParams(location.search).has('app') || sessionStorage.getItem('uygPencere') === '1';
+if (UYG_PENCERE) {
+  sessionStorage.setItem('uygPencere', '1');
+  $('#tbGez').hidden = $('#tbPencere').hidden = false;
+  const gezDurum = () => {
+    if (!window.navigation) return;   // Navigation API yoksa düğmeler hep etkin
+    $('#tbGeri').disabled = !navigation.canGoBack; $('#tbIleri').disabled = !navigation.canGoForward;
+  };
+  if (window.navigation) navigation.addEventListener('currententrychange', gezDurum);
+  gezDurum();
+  $('#tbGeri').onclick = () => history.back();
+  $('#tbIleri').onclick = () => history.forward();
+  const tamEkranDurum = () => {
+    const tam = !!document.fullscreenElement;
+    $('#tbTamEkranSimge').setAttribute('href', tam ? '#ic-tamekran-cik' : '#ic-tamekran');
+    $('#tbTamEkran').dataset.ipucu = tam ? 'Tam ekrandan çık' : 'Tam ekran';
+  };
+  document.addEventListener('fullscreenchange', tamEkranDurum);
+  $('#tbTamEkran').onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {});
+  $('#tbCikis').onclick = () => apiJson('/api/pencere/kapat', { method: 'POST', body: '{}' }).catch(() => window.close());
+  const bekleyenHedef = async () => {
+    try {
+      const j = await apiJson('/api/pencere/hedef');
+      if (j.hedef) { history.replaceState(null, '', '#' + encodeURIComponent(j.hedef)); hashIsle(); }
+    } catch { }
+  };
+  window.addEventListener('focus', bekleyenHedef);
+  // Pencere zaten öndeyse odak olayı gelmez: görünürken 2 sn'de bir de bakılır (yerel, hafif istek)
+  setInterval(() => { if (!document.hidden) bekleyenHedef(); }, 2000);
+}
 // Başka pencerede yapılan değişiklikler: pencereye dönünce tazele
 window.addEventListener('focus', async () => {
   if (K || P) return;
@@ -4369,13 +4823,42 @@ function postaZamanlayici() {
 /* ═══════════════════════════════════════════════════════════════
    BAŞLAT
    ═══════════════════════════════════════════════════════════════ */
+// Açılış ekranı en az 0,9 sn görünür (anında kaybolup göz kırpmasın), sonra solar ve kaldırılır
+const ACILIS_T0 = performance.now();
+function acilisBitir() {
+  const a = $('#acilis'); if (!a) return;
+  // İzleme modu (?acilis=1): açılış ekranı tıklanana kadar kalır (tasarımı incelemek için)
+  if (new URLSearchParams(location.search).has('acilis')) { a.style.cursor = 'pointer'; a.title = 'Kapatmak için tıklayın'; a.onclick = () => { a.classList.add('bitti'); setTimeout(() => a.remove(), 500); }; return; }
+  const kapat = () => setTimeout(() => { a.classList.add('bitti'); setTimeout(() => a.remove(), 500); }, Math.max(0, 900 - (performance.now() - ACILIS_T0)));
+  // İlk açılış (Assist.bat, ?ilk=1): logo, Outlook ve MiCollab kullanılabilir olana kadar döner (sunucu
+  // uygulamaların kendi kayıtlarından anlar). Ayarlar'da kapalı / yüklü olmayan beklenmez; en çok 30 sn.
+  // Adres düzeltilir: sayfa yenilenince yeniden beklemesin.
+  if (!new URLSearchParams(location.search).has('ilk')) return kapat();
+  const u = new URL(location.href); u.searchParams.delete('ilk'); history.replaceState(history.state, '', u);
+  const yazi = document.createElement('div'); yazi.className = 'acilis-durum'; a.appendChild(yazi);
+  const ad = { outlook: 'Outlook', micollab: 'MiCollab' }, en = DIL === 'en';
+  const bak = async () => {
+    try {
+      const j = await apiJson('/api/acilis/durum');
+      const bekleyen = Object.entries(j.uygulamalar).filter(([, v]) => !v.hazir).map(([k]) => ad[k] || k);
+      if (!bekleyen.length) return kapat();
+      yazi.textContent = en ? `Waiting for ${bekleyen.join(' and ')}…` : `${bekleyen.join(' ve ')} açılıyor…`;
+    } catch { }
+    if (performance.now() - ACILIS_T0 > 30000) return kapat();
+    setTimeout(bak, 700);
+  };
+  bak();
+}
 (async function basla() {
+  setTimeout(() => { const a = document.getElementById('acilis'); if (a) { a.classList.add('bitti'); setTimeout(() => a.remove(), 500); } }, 32000);   // ne olursa olsun takılı kalmasın
   if (location.protocol === 'file:') {
+    acilisBitir();
     document.querySelector('main').innerHTML = '<div class="view active"><div class="note warn">Bu sayfa doğrudan açılmaz. Klasördeki <b>Assist.bat</b> dosyasını çalıştırın.</div></div>';
     return;
   }
   try { await yukle(); }
   catch (e) {
+    acilisBitir();
     document.querySelector('main').innerHTML = `<div class="view active"><div class="note warn">Sunucuya ulaşılamadı: ${esc(e.message)}<br>Klasördeki <b>Assist.bat</b> dosyasını çalıştırın.</div></div>`;
     return;
   }
@@ -4390,7 +4873,9 @@ function postaZamanlayici() {
   sayacYukle();   // balon sayaçları: okunmamış posta, cevapsız arama
   gelenTalepAl();
   apiJson('/api/kullanici').then(j => { KULLANICI_AD = j.ad || ''; hosgeldinYaz(); }).catch(() => {});
+  kisiStilYukle();   // kişiye özel ad görünümü (paylaşılan dosyadan)
   hashIsle();
+  acilisBitir();
   bildirimKontrol();
   setInterval(() => { bildirimKontrol(); if (aktif === 'ana') anaCiz(); }, 60000);
   postaZamanlayici();

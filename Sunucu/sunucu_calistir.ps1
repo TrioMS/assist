@@ -2,10 +2,11 @@
 #  IS TAKIP - SUNUCUYU KAYITLA CALISTIR
 #  ---------------------------------------------------------------
 #  Sunucu penceresiz calistigi icin ciktisi ve hatalari ekrana degil
-#  kayit dosyasina yazilir: Sunucu\_baslangic_<BILGISAYAR>.log
+#  kayit dosyasina yazilir: %LOCALAPPDATA%\Assist\_baslangic_<BILGISAYAR>.log
 #  (tepsi menusu: "Sunucu kaydini goster"). Kayit UTF-8 yazilir.
 # =====================================================================
-$log = Join-Path $PSScriptRoot ("_baslangic_" + $env:COMPUTERNAME + ".log")
+$yerel = Join-Path $env:LOCALAPPDATA "Assist"; if (-not (Test-Path -LiteralPath $yerel)) { New-Item -ItemType Directory -Path $yerel -Force | Out-Null }   # yazilan dosyalar BILGISAYARDA (paylasilan klasor salt okunur olabilir)
+$log = Join-Path $yerel ("_baslangic_" + $env:COMPUTERNAME + ".log")
 if ($env:ISTAKIP_LOG) { $log = $env:ISTAKIP_LOG }   # test: gercek kaydin uzerine yazilmasin
 "" | Out-File -LiteralPath $log -Encoding utf8
 try {
