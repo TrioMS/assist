@@ -89,9 +89,23 @@ table.tbl tr.yeni td{font-weight:700;color:var(--s-inktext)}   /* görülmemiş 
 .ty-bilgi{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px 18px;margin-bottom:12px}
 .ty-s{display:flex;flex-direction:column;font-size:13px} .ty-s span{font-size:11.5px;color:var(--s-graphite);text-transform:uppercase;letter-spacing:.3px;font-weight:600} .ty-s b{font-weight:500}
 .ty-metin{white-space:pre-wrap;font-size:13.5px;background:var(--s-concrete);border-radius:8px;padding:9px 12px}
-.ty-defter{padding:2px 0;max-height:280px;min-height:0}
+.ty-defter{padding:2px 0;max-height:280px;min-height:0} .od-defter.ty-defter.sohbet{max-height:340px;min-height:90px;padding:12px 10px}
 .ty-dugmeler{display:flex;gap:8px;align-items:center;margin-top:8px}
 /* ORTAK İŞLER */
+/* Ortak iş yazışması: sohbet görünümü */
+.od-defter.sohbet{list-style:none;margin:0;padding:12px 10px;background:#F4F5F7;border-radius:14px;max-height:56vh;min-height:140px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.sohbet .sb-gun,.sohbet .sb-sistem{align-self:center;text-align:center;border:none;padding:0}
+.sohbet .sb-gun span{display:inline-block;background:#E3E6EB;color:#5A5F68;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;margin:4px 0}
+.sohbet .sb-sistem span{display:inline-block;color:#6B7079;font-size:11.5px;font-style:italic;padding:2px 8px}
+.sohbet .sb-mesaj{display:flex;border:none;padding:0}
+.sohbet .sb-mesaj.ben{justify-content:flex-end}
+.sohbet .sb-balon{max-width:74%;padding:6px 10px 4px;border-radius:14px;border-top-left-radius:4px;box-shadow:0 1px 1px rgba(20,24,31,.08);position:relative}
+.sohbet .ben .sb-balon{border-top-left-radius:14px;border-top-right-radius:4px}
+.sohbet .sb-ad{display:block;font-size:12px;margin-bottom:1px}
+.sohbet .sb-metin{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13.5px;line-height:1.45;color:#1B1F27}
+.sohbet .sb-saat{display:block;text-align:right;font-size:10.5px;color:#7A808A;margin-top:1px}
+.od-defter.sohbet li.yeni{background:none;margin:0;padding:0}   /* defterin eski 'yeni' şeridi sohbette yok */
+.sohbet .yeni .sb-balon{box-shadow:0 0 0 2px rgba(122,20,24,.35),0 1px 1px rgba(20,24,31,.08)}
 .od-pencere{max-height:360px} .od-pencere li.yeni{margin:0;padding:9px 10px}
 .oo-say{background:var(--s-red);color:#fff;border-radius:99px;font-size:11px;font-weight:500;min-width:18px;height:18px;padding:0 6px;display:inline-grid;place-items:center}
 .od-kisiler{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
@@ -369,6 +383,26 @@ td.tarih.kalan{display:table-cell;font-size:inherit}   /* tablo hücresi kendi i
 .p-ikonlar{white-space:nowrap}
 .p-ikonlar .ikon-btn{margin-left:2px;width:30px;height:28px}
 .p-ikonlar .ikon-btn svg.i{width:16px;height:16px}
+.p-ikonlar .p-sil:hover{color:var(--s-red)}
+/* Posta listesi işaretleri (yazışma / ek) ve posta penceresinin üstündeki simge düğmeleri + ek listesi */
+.p-isaret{display:inline-flex;gap:4px;margin-right:6px;vertical-align:-2px;color:var(--s-graphite2)} .p-isaret svg.i{width:13px;height:13px}
+.pm-ust-ikonlar{display:inline-flex;align-items:center;gap:10px;margin-left:10px;vertical-align:middle}
+.pm-ikon{height:30px;min-width:28px;border:0;background:none;display:inline-flex;align-items:center;justify-content:center;gap:3px;
+  padding:0 2px;cursor:pointer;font:inherit;line-height:1;color:#1F3A63;transition:transform .15s ease-out,color .15s}   /* çerçevesiz; üzerine gelince kabarır */
+.pm-ikon:hover,.pm-ikon.acik{transform:scale(1.18);color:#7A1418} .pm-ikon svg.i{width:21px;height:21px} .pm-ikon b{font-size:12.5px}
+.pm-ek-sar{position:relative;display:inline-flex}
+.pm-ek-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:30;background:#fff;border:1px solid var(--s-line);border-radius:12px;box-shadow:0 10px 28px rgba(20,24,31,.18);
+  padding:6px;min-width:280px;max-width:440px;max-height:320px;overflow:auto;animation:kGel .18s ease-out}
+.pm-ek-oge{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:7px 9px;border-radius:8px;cursor:pointer;font:inherit;font-size:13px;text-align:left;color:var(--s-inktext)}
+.pm-ek-oge:hover{background:var(--s-concrete)} .pm-ek-oge.pasif{cursor:default;opacity:.7}
+.pm-ek-oge .em{font-size:17px;width:22px;text-align:center;display:inline-flex;justify-content:center} .pm-ek-oge .em img{width:20px;height:20px} .pm-ek-oge .ad{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pm-ek-oge .tur{font-size:11px;color:var(--s-graphite2);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.pm-ek-menu{animation:none}.pm-ikon:hover,.pm-ikon.acik{transform:none}}
+.ek-satir{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+.ek-satir > svg.i{width:15px;height:15px;color:var(--s-graphite)}
+.ek-cip{font:inherit;font-size:12.5px;padding:3px 10px;border:1px solid var(--s-line);border-radius:99px;background:#fff;color:var(--s-ink,#141414);cursor:pointer;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ek-cip:hover{border-color:var(--s-red);color:var(--s-red)}
+.ek-cip.pasif{cursor:default;color:var(--s-graphite)}.ek-cip.pasif:hover{border-color:var(--s-line);color:var(--s-graphite)}
 .ikon-btn.bayrakli{color:var(--s-red)}
 .ikon-btn.bayrakli svg.i{fill:currentColor}
 /* Aksiyon / not alınmış postanın simgesi: bayrakla aynı kırmızı, içi açık ton */
@@ -400,11 +434,31 @@ table.tbl td.not-metin{white-space:pre-line;max-width:520px}
 /* Konu sütunu esnek: max-width:0 tablonun kalan genişliği almasını sağlar, dar ekranda
    önizleme "…" ile kısalır; yoksa önizleme tabloyu genişletip simgeleri kart dışına itiyordu */
 table.tbl td.konu{max-width:0;width:100%}
-table.tbl td.konu b{display:block;overflow:hidden;text-overflow:ellipsis;font-weight:400;color:#111}   /* okunmuş: ince siyah; okunmamış kalın (yukarıda) */
+table.tbl td.konu b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;color:#111}
+/* Kimden / Kime: çok alıcılı satır sütunu genişletip konuyu ezmesin; tamamı üzerine gelince (title) */
+table.tbl td.kisi-hucre{max-width:220px;overflow:hidden;text-overflow:ellipsis}   /* okunmuş: ince siyah; okunmamış kalın (yukarıda) */
 
 /* ── FİLTRE PANELİ + LİSTE (diğer portallardaki düzen) ── */
 .ara-duzen{display:flex;gap:18px;align-items:flex-start}
 .ara-panel{width:250px;flex-shrink:0;padding:14px;position:sticky;top:56px}   /* sağdaki yapışkan araç çubuğuyla aynı hizada */
+/* Posta Kutusu sol bölmesi: Outlook klasör bölmesi gibi (16.10.2026) */
+.ara-panel.posta-bolme{width:270px;padding:8px 6px 10px;max-height:calc(100vh - 80px);overflow:auto}
+.pa-ara-bas{display:flex;align-items:center;gap:8px;width:100%;border:1px solid var(--s-line);background:var(--s-concrete);border-radius:8px;padding:8px 10px;font:inherit;font-weight:600;color:inherit;cursor:pointer}
+.pa-ara-bas:hover{border-color:#C9CCD1} .pa-ara-bas .i{width:16px;height:16px}
+.pa-ara-bas[aria-expanded="true"] .pa-ok-i{transform:rotate(90deg)} .pa-ok-i{font-size:11px;color:var(--s-graphite);transition:transform .15s}
+.pa-etkin{width:7px;height:7px;border-radius:50%;background:var(--s-red);display:none} .pa-etkin.var{display:inline-block}
+.pa-ara{padding:10px 6px 4px;border-bottom:1px solid var(--s-line);margin-bottom:6px}
+.pa-agac{margin-top:8px;font-size:13px}
+.pa-grup{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--s-graphite);padding:10px 8px 4px}
+.pa-depo{display:flex;align-items:center;gap:4px;font-weight:700;padding:8px 6px 4px;cursor:pointer;user-select:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pa-oge{display:flex;align-items:center;gap:6px;padding:5px 8px 5px 0;border-radius:6px;cursor:pointer;user-select:none;white-space:nowrap}
+.pa-oge:hover{background:var(--s-concrete)} .pa-oge.sec{background:#ECEEF2;box-shadow:inset 3px 0 0 var(--s-red-deep);font-weight:600}
+.pa-oge .i{width:15px;height:15px;flex:none;color:var(--s-graphite)} .pa-oge.sec .i{color:var(--s-red-deep)}
+.pa-ok{width:16px;flex:none;text-align:center;font-size:10px;color:var(--s-graphite);border:none;background:none;padding:0;cursor:pointer}
+.pa-ad{overflow:hidden;text-overflow:ellipsis;flex:1}
+.pa-oge.okunmamis .pa-ad{font-weight:700}
+.pa-say{color:var(--s-red-deep);font-weight:700;font-size:12px}
+.pa-klasor-ad{font-family:var(--font-display);font-size:15px}
 .ara-baslik{font-size:11px;font-weight:700;color:var(--s-graphite2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
 .ara-panel .field{margin-bottom:10px}
 .ara-panel .field label{font-size:11px;margin-bottom:4px}
@@ -428,6 +482,13 @@ table.tbl td.konu b{display:block;overflow:hidden;text-overflow:ellipsis;font-we
   .ara-panel .ara-dugmeler{margin-top:0;padding-bottom:2px}
   table.tbl th,table.tbl td{padding-left:9px;padding-right:9px}
 }
+/* Posta Kutusu klasör bölmesi dar ekranda da solda kalır (Outlook gibi); yalnız çok darda üste geçer */
+@media (max-width:1300px) and (min-width:861px){
+  #v-posta .ara-duzen{flex-direction:row;align-items:flex-start}
+  #v-posta .ara-panel.posta-bolme{width:230px;position:sticky;display:block;padding:8px 6px 10px}
+  #v-posta .pa-ara .field{margin-bottom:8px}
+}
+@media (max-width:860px){ #v-posta .ara-panel.posta-bolme{display:block;max-height:none} }
 /* İçerik (en çok 1420px) balon sütununa yetişiyorsa sağda balon payı bırakılır: simgeler balonların altında kalmasın */
 @media (max-width:1620px){ .view{padding-right:88px} }
 /* Çok dar ekran: sütunlar hiçbir şekilde sığmıyorsa tablo kart içinde yatay kaydırılır (kesilmez) */
@@ -459,6 +520,34 @@ table.tbl td.konu b{display:block;overflow:hidden;text-overflow:ellipsis;font-we
 .field .ipucu q{font-style:italic}
 .grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0 16px}
 .grid2 .tam{grid-column:1 / -1}
+/* BALON FORM (Hukuk Portalı ile aynı dil, 16.10.2026): açılan pencerelerde her alan sade bir balon; etiket içte küçük,
+   değer kalın; balona tıklanınca alan seçilir (açılır listede liste açılır); seçili balon beyaz + lacivert kenar */
+.modal .grid2{gap:0 8px}
+.modal .field{background:var(--s-concrete);border:1px solid transparent;border-radius:12px;padding:7px 12px 8px;margin-bottom:8px;cursor:text;
+  transition:border-color .15s,box-shadow .15s,background .15s}
+.modal .field:hover{border-color:var(--s-line)}
+.modal .field:focus-within{background:#fff;border-color:#1F3A63;box-shadow:0 0 0 3px rgba(31,58,99,.10)}
+.modal .field > label{font-size:11.5px;margin-bottom:2px;cursor:pointer}
+.modal .field input:not([type=checkbox]):not([type=radio]),.modal .field select,.modal .field textarea{background:transparent;border:0;border-radius:0;padding:2px 0;
+  font-size:13.5px;font-weight:700;color:var(--s-inktext);box-shadow:none}
+.modal .field textarea{font-weight:500;min-height:60px}
+.modal .field input:focus,.modal .field select:focus,.modal .field textarea:focus{outline:none}
+.modal .field input::placeholder,.modal .field textarea::placeholder{font-weight:400;color:var(--s-graphite2)}
+.modal .field .ty-metin{background:none;border-radius:0;padding:2px 0}
+/* Aksiyon ilerlemesi: özet + (tahmin varsa) süre çubuğu + zaman çizelgesi; gri/lacivert, son kayıt lacivert nokta */
+.aks-ilr-bos{font-size:12.5px;color:var(--s-graphite2);margin:0 0 10px}
+.aks-ilr-ozet{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--s-graphite);margin:0 0 8px} .aks-ilr-ozet b{color:var(--s-inktext)}
+.aks-ilr-cubuk{height:6px;border-radius:99px;background:#E3E6EB;overflow:hidden;margin:0 0 10px}
+.aks-ilr-cubuk i{display:block;height:100%;background:#1F3A63;border-radius:99px} .aks-ilr-cubuk.asti i{background:#7A1418}
+.aks-ilerleme{list-style:none;margin:0 0 12px;padding:2px 0 2px 4px;max-height:240px;overflow:auto}
+.aks-ilerleme li{position:relative;padding:0 0 12px 20px}
+.aks-ilerleme li::before{content:"";position:absolute;left:4px;top:5px;width:9px;height:9px;border-radius:50%;background:#B8BFCA}
+.aks-ilerleme li::after{content:"";position:absolute;left:8px;top:16px;bottom:-2px;width:1px;background:#E3E6EB}
+.aks-ilerleme li:last-child{padding-bottom:2px} .aks-ilerleme li:last-child::after{display:none}
+.aks-ilerleme li.son::before{background:#1F3A63;box-shadow:0 0 0 3px rgba(31,58,99,.15)}
+.aks-ilerleme .ai-ust{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--s-graphite)} .aks-ilerleme .ai-ust b{color:var(--s-inktext)}
+.aks-ilerleme .ai-sekte{color:#7A1418}
+.aks-ilerleme .ai-metin{font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:1px}
 .secim{display:inline-flex;gap:4px;padding:4px;background:var(--s-concrete);border-radius:10px;margin-bottom:14px}
 .secim label{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--s-graphite)}
 .secim input{display:none}
@@ -529,6 +618,14 @@ table.tbl td.konu b{display:block;overflow:hidden;text-overflow:ellipsis;font-we
 .modal-bg.show{display:block}
 .modal{background:var(--s-cloud);border-radius:var(--radius);max-width:880px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .modal.genis{max-width:1240px}
+/* yumusak acilis: arka plan solarak, pencere hafif asagidan buyuyerek gelir */
+@keyframes mbGel{from{background:rgba(20,24,31,0)}to{background:rgba(20,24,31,.55)}}
+@keyframes mGel{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes kGel{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.modal-bg.show{animation:mbGel .22s ease-out}
+.modal-bg.show>.modal{animation:mGel .26s cubic-bezier(.2,.8,.25,1)}
+.bld-menu.acik,.pm-menu:not([hidden]){animation:kGel .18s ease-out}
+@media (prefers-reduced-motion:reduce){.modal-bg.show,.modal-bg.show>.modal,.bld-menu.acik,.pm-menu:not([hidden]){animation:none}}
 .modal-h{padding:14px 20px;border-bottom:1px solid var(--s-line);display:flex;align-items:center;gap:12px}
 .modal-h h3{flex:1;font-size:15.5px;min-width:0}
 .modal-h .no{color:var(--s-graphite);font-weight:600;margin-right:8px}
@@ -562,11 +659,80 @@ table.aks tr.vurgu td{background:var(--s-amber-bg)}
 .gecmis li{padding:3px 0}
 .gecmis li span{color:var(--s-graphite2);margin-right:10px}
 /* Posta içe aktarma: solda posta, sağda form */
-.aktar{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px}
+/* Posta penceresi: posta tam genişlik (yatay kaydırma olmasın); Not/Aksiyon seçilince form sağda açılır */
+.aktar{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+.aktar.form-acik{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);align-items:stretch}
+/* Sağ bölme soldaki posta gibi alta kadar: kutular sütun, yanıt kutusu (yoksa son kutu) kalan yüksekliği doldurur */
+.aktar-form{display:flex;flex-direction:column;gap:10px;min-height:0} .aktar-form[hidden]{display:none} .aktar-form > :empty{display:none}   /* boş kutular boşluk bırakmasın: sağ bölme alta kadar */
+.aktar-form #pmAracKutu{display:flex;flex-direction:column;gap:10px} .aktar-form .pm-arac-kutu{margin:0}
+.aktar-form #pmYanitKutu:not(:empty){flex:1;display:flex} #pmYanitKutu .pm-arac-kutu{flex:1;display:flex;flex-direction:column}
+#pmYanitKutu #pmYanitMetin{flex:1;min-height:110px} #pmYanitKutu #pmYanitCeviriAlan:not([hidden]){display:flex;flex-direction:column;flex:1} #pmYanitKutu #pmYanitCeviri{flex:1;min-height:90px}
+.aktar-form:has(#pmYanitKutu:empty):not(:has(#pmAksBloklar .pm-blok)):not(:has(#pmNotMetin)) #pmAracKutu{flex:1}
+.aktar-form #pmAracKutu > .pm-arac-kutu:last-child{flex:1;display:flex;flex-direction:column}
+/* Metin kutuları yarıda kesilmez: içerik kadar aşağı açılır (bölme ve pencere kayar) */
+.aktar-form .pak-metin{max-height:none;overflow:visible;flex:1 0 auto}
+#pmYanitKutu #pmYanitMetin,#pmYanitKutu #pmYanitCeviri{flex:1 0 auto;overflow:hidden;resize:none}
+.aktar-posta{min-width:0}
+.aktar-posta .pm-onceki-kutu{margin-bottom:10px}
+#mPosta .modal{position:relative;max-height:calc(100vh - 64px);display:flex;flex-direction:column}   /* ekrana sığar: balonlar hep görünür */
+#mPosta .modal-b{overflow:auto;flex:1;min-height:0;padding-bottom:84px}   /* içerik pencere içinde kayar; altta balon payı */
+#mpAlt[hidden]{display:none}   /* .modal-f display:flex gizlemeyi eziyordu: boş çubuk ve çizgi kalıyordu */
+/* Balonlar postanın alt kenarı ile pencerenin alt kenarı arasındaki 84 px'lik boşluğun ortasında */
+#mPosta.alt-yok .pm-balonlar{bottom:20px} #mPosta.alt-yok .pm-arti-sar{bottom:15px}   /* alt çubuk gizliyken balonlar pencerenin en altında */
+/* Posta araçları: Sesli oku · Özetle · Çevir · Yanıtla */
+.pm-araclar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.pm-araclar .btn svg.i{width:15px;height:15px}
+/* Posta penceresi sağ bölme: aynı yazışmanın iletileri (sade liste, en yeni üstte; açık ileti lacivert kenarlı) */
+.aktar-form #pmYazisma:not([hidden]):not(:empty){flex:1;display:flex;min-height:0} .aktar-form #pmAracKutu:empty{display:none}   /* boş araç kutusu yer kaplamasın */
+.pm-yz{flex:1;display:flex;flex-direction:column;min-height:0;border:1px solid #ECEDEF;border-radius:16px;background:#FCFCFB;padding:12px 12px 6px}
+.pm-yz-h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#2B3038;margin:0 4px 8px} .pm-yz-h svg.i{width:15px;height:15px;color:#1F3A63}
+.pm-yz-h span{margin-left:auto;font-weight:500;font-size:12px;color:var(--s-graphite2)}
+.pm-yz ol{list-style:none;margin:0;padding:0;overflow:auto;flex:1;min-height:0;display:flex;flex-direction:column;gap:6px}
+.pm-yz li{background:var(--s-concrete);border:1px solid transparent;border-radius:12px;padding:8px 11px;cursor:pointer;transition:border-color .15s,background .15s}
+.pm-yz li:hover{border-color:var(--s-line);background:#fff}
+.pm-yz li.bu{cursor:default;background:#fff;border-color:#1F3A63;box-shadow:inset 3px 0 0 #1F3A63}
+.pm-yz-ust{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--s-graphite)} .pm-yz-ust b{color:var(--s-inktext);font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pm-yz-ust > span:last-child{margin-left:auto;white-space:nowrap;font-size:11.5px}
+.pm-yz-ek{display:inline-flex;align-items:center;gap:2px;color:#1F3A63;flex-shrink:0} .pm-yz-ek svg.i{width:14px;height:14px} .pm-yz-ek b{font-size:11.5px;font-weight:700}
+.pm-yz-metin{font-size:12.5px;line-height:1.45;color:#3A414C;margin-top:3px;white-space:pre-line;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pm-yz li.bu .pm-yz-metin{-webkit-line-clamp:2}
+.pm-arac-kutu{border:1px solid #ECEDEF;border-radius:16px;padding:14px 16px;margin:0 0 10px;background:#FCFCFB;box-shadow:0 2px 12px rgba(20,24,31,.05)}
+.pm-arac-kutu textarea{border:1px solid #E4E6E9;border-radius:12px;background:#fff;padding:10px 12px;font:inherit;font-size:13.5px;line-height:1.5;transition:border-color .15s,box-shadow .15s}
+.pm-arac-kutu textarea:focus{outline:none;border-color:rgba(160,26,32,.4);box-shadow:0 0 0 4px rgba(160,26,32,.08)}
+.pm-arac-kutu .btn,.pm-arac-kutu select.btn{border-radius:999px;border-color:#E4E6E9}
+.pak-h{color:#2B3038} .pak-h svg.i{color:rgba(160,26,32,.75)}
+.pm-imza{margin-top:10px;padding:10px 4px 0;border-top:1px dashed #E7E8EA}
+.pak-h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;margin-bottom:6px} .pak-h svg.i{width:15px;height:15px;color:var(--s-red-deep)}
+.pak-metin{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.55;max-height:30vh;overflow:auto}
+.pak-alt{font-size:11.5px;color:var(--s-graphite);margin-top:6px}
+.pak-satir{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
+.pm-cevir-grup{display:inline-flex} .pm-cevir-grup .btn:first-child{border-top-right-radius:0;border-bottom-right-radius:0} .pm-cevir-grup select{border-top-left-radius:0;border-bottom-left-radius:0;border-left:none}
+#pmYanitCeviriAlan{margin-top:8px} #pmYanitCeviri{width:100%;resize:vertical;background:#FBFBFA}
+.pm-imza-metin{white-space:pre-wrap;font-size:12px;color:var(--s-graphite);border-left:2px solid var(--s-line);padding:2px 0 2px 10px;max-height:110px;overflow:auto}
+.pm-arac-kutu textarea{width:100%;resize:vertical}
+#pmDikte.kayit{background:var(--s-red-deep);color:#fff;border-color:var(--s-red-deep);animation:kayitNabiz 1.2s infinite}
+@keyframes kayitNabiz{50%{box-shadow:0 0 0 6px rgba(160,26,32,.18)}}
+.pm-arti-sar{position:absolute;right:22px;bottom:69px;z-index:7}   /* sağ altta, soldaki araç balonlarıyla aynı hizada (orta çizgiler eşit) */
+/* Araç balonları: sağ altta yatay sıra, bordo, yarı saydam; üzerine gelince yanar */
+.pm-balonlar{position:absolute;left:22px;bottom:74px;z-index:6;display:flex;gap:10px}   /* sol altta; + sağda yerinde */
+.pm-balon{width:44px;height:44px;border-radius:50%;border:none;background:var(--s-red-deep);color:#fff;cursor:pointer;display:grid;place-items:center;opacity:.5;
+  box-shadow:0 3px 10px rgba(122,20,24,.3);transition:opacity .15s,transform .15s,box-shadow .15s}
+.pm-balon:hover,.pm-balon:focus-visible,.pm-balon.aktif{opacity:1;transform:translateY(-2px);box-shadow:0 6px 16px rgba(122,20,24,.4)}
+.pm-balon .i{width:20px;height:20px} .pm-balon:disabled{cursor:wait}
+.pm-balon.aktif{animation:kayitNabiz 1.2s infinite}
+#mPosta.pm-menu-acik iframe{pointer-events:none}
+.pm-arti{width:54px;height:54px;border-radius:50%;border:none;background:var(--s-red-deep);color:#fff;font-size:32px;line-height:1;font-weight:300;cursor:pointer;opacity:.5;
+  box-shadow:0 3px 10px rgba(122,20,24,.35);transition:transform .15s,box-shadow .15s;display:grid;place-items:center;padding-bottom:2px}
+.pm-arti:hover{opacity:1;transform:translateY(-1px);box-shadow:0 5px 14px rgba(122,20,24,.4)} .pm-arti.acik{opacity:1;transform:rotate(45deg)}
+.pm-menu{position:absolute;right:0;bottom:64px;background:var(--s-cloud);border:1px solid var(--s-line);border-radius:10px;box-shadow:0 10px 28px rgba(20,24,31,.2);padding:6px;min-width:170px;z-index:5}
+.pm-menu button{display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;padding:9px 12px;border-radius:7px;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}
+.pm-menu button:hover{background:var(--s-concrete)} .pm-menu .i{width:17px;height:17px;color:var(--s-red-deep)}
 .posta-ust{font-size:12.5px;color:var(--s-graphite);margin-bottom:10px;line-height:1.7}
 .posta-ust b{color:var(--s-inktext)}
 .posta-ust h4{font-size:15px;color:var(--s-inktext);margin-bottom:6px}
-.posta-govde{white-space:pre-wrap;font-size:12.5px;line-height:1.55;background:var(--s-concrete);border-radius:8px;padding:12px 14px;max-height:56vh;overflow:auto}
+.posta-html{width:100%;height:56vh;border:1px solid var(--s-line,#dcdfe5);border-radius:8px;background:#fff;display:block}
+.posta-html-ust{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin:0 0 6px;font-size:12px;color:var(--s-graphite,#5b6472)}
+.posta-govde{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12.5px;line-height:1.55;background:var(--s-concrete);border-radius:8px;padding:12px 14px;max-height:56vh;overflow:auto}
 @media (max-width:900px){.aktar{grid-template-columns:1fr}}
 
 /* Öğrenme rozeti (Hukuk portalıyla aynı) */
@@ -710,6 +876,9 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti{position:absolute;bottom:auto;rig
 body[data-gorunum="ana"] .kisi-balon.hava-alti svg.i{width:19px;height:19px}
 body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top:auto;bottom:-30px;transform:translateX(-50%)}
 .balon-portal{bottom:22px;text-decoration:none} .balon-oda{bottom:88px} #kisiBalon{bottom:154px} .balon-posta{bottom:220px}
+/* Anasayfa dışında sağda yalnız Kişiler balonu (16.10.2026); tek kaldığı için en alta iner */
+body:not([data-gorunum="ana"]) .kisi-balon:not(#kisiBalon){display:none}
+body:not([data-gorunum="ana"]) #kisiBalon{bottom:22px}
 .balon-ad{position:absolute;right:64px;top:50%;transform:translateY(-50%);background:var(--s-ink);color:#fff;font-size:12px;font-weight:700;
   padding:5px 10px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s}
 .kisi-balon:hover .balon-ad{opacity:1}
@@ -802,6 +971,21 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
   <symbol id="ic-genislet" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></symbol>
   <symbol id="ic-yenile" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></symbol>
   <symbol id="ic-cop" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></symbol>
+  <symbol id="ic-ara" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="ic-klasor" viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="ic-gelen" viewBox="0 0 24 24"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></symbol>
+  <symbol id="ic-gonder" viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></symbol>
+  <symbol id="ic-taslak" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></symbol>
+  <symbol id="ic-arsiv" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11h14V8M10 12h4"/></symbol>
+  <symbol id="ic-onemsiz" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></symbol>
+  <symbol id="ic-giden" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M12 16V8M8 12l4-4 4 4"/></symbol>
+  <symbol id="ic-ses" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></symbol>
+  <symbol id="ic-durdur" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></symbol>
+  <symbol id="ic-ozet" viewBox="0 0 24 24"><path d="M4 6h16M4 11h11M4 16h7"/><path d="M17 15l2 2 3-4"/></symbol>
+  <symbol id="ic-cevir" viewBox="0 0 24 24"><path d="M3 5h10M8 3v2M5 5c1 4 4 7 7 8M11 5c-1 4-4 7-7 8"/><path d="M13 21l4-9 4 9M14.5 18h5"/></symbol>
+  <symbol id="ic-yanit" viewBox="0 0 24 24"><path d="M10 7L4 12l6 5"/><path d="M4 12h10a6 6 0 0 1 6 6v1"/></symbol>
+  <symbol id="ic-mikrofon" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="ic-etiket" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="7.5" r="1.3"/></symbol>
 </svg>
 
 <nav class="tabs" aria-label="Menü">
@@ -885,8 +1069,10 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
     <div id="postaHedefNot"></div>
     <div class="ara-duzen">
       <!-- Arama paneli: yalnız "Ara" / Enter ile uygulanır (diğer listelerle aynı) -->
-      <aside class="card ara-panel" id="postaPanel">
-        <div class="ara-baslik">Ara</div>
+      <!-- Sol bölme Outlook gibi (16.10.2026): üstte açılır "Posta ara", altında görünümler ve klasör ağacı -->
+      <aside class="card ara-panel posta-bolme" id="postaPanel">
+        <button class="pa-ara-bas" id="paAraBas" aria-expanded="false"><svg class="i"><use href="#ic-ara"/></svg>Posta ara<span class="pa-etkin" id="paEtkin"></span><span class="sp"></span><span class="pa-ok-i">▸</span></button>
+        <div class="pa-ara" id="paAra" hidden>
         <div class="field"><label>Ara</label><input type="search" data-pf="q"></div>
         <div class="field"><label>Kimden</label><input type="search" data-pf="kimden"></div>
         <div class="field"><label>Konu</label><input type="search" data-pf="konu"></div>
@@ -898,10 +1084,12 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
         <label class="ara-onay"><input type="checkbox" data-pf="okunmamis">Yalnız okunmamış</label>
         <label class="ara-onay"><input type="checkbox" data-pf="bayrak">Yalnız bayraklı</label>
         <div class="ara-dugmeler"><button class="btn primary sm" id="pAra">Ara</button><button class="btn sm" id="pTemizle">Temizle</button></div>
+        </div>
+        <div class="pa-agac" id="postaAgac"></div>
       </aside>
       <div class="ara-liste"><div class="card">
         <div class="card-h">
-          <select id="postaKaynak" class="btn sm" style="font-weight:600"></select>
+          <b class="pa-klasor-ad" id="postaKlasorAd"></b>
           <button class="btn sm" id="postaYenile"><svg class="i"><use href="#ic-yenile"/></svg>Yenile</button>
           <button class="btn sm" id="postaOkundu" title="Outlook Gelen Kutusu'ndaki tüm okunmamış postaları okundu yap">Tümünü okundu yap</button>
           <span class="sp"></span>
@@ -923,6 +1111,7 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
         <button data-b="liste">Talep Kategorileri</button>
         <button data-b="plan">Haftalık Plan</button>
         <button data-b="veri">Veri ve Yedek</button>
+        <button data-b="ceviri">Çeviri ve Ses</button>
       </div>
       <div id="ayarGovde"></div>
     </div>
@@ -949,8 +1138,20 @@ body[data-gorunum="ana"] .kisi-balon.hava-alti .balon-ad{right:auto;left:50%;top
 <div class="modal-bg" id="mPosta"><div class="modal genis" role="dialog" aria-modal="true">
   <div class="modal-h"><h3>Posta</h3><button class="kapat-x" data-kapat title="Kapat"><svg class="i"><use href="#ic-x"/></svg></button></div>
   <div class="modal-b" id="mpGovde"></div>
-  <div class="modal-f"><button class="btn" id="mpYoksay">Yok say</button><span class="sp"></span>
-    <button class="btn" data-kapat>Kapat</button><button class="btn primary" id="mpKaydet">Kaydet</button></div>
+  <!-- Posta araçları: sağ altta bordo, yarı saydam balonlar (üzerine gelince yanar, açıklama ipucunda) -->
+  <div class="pm-balonlar">
+    <button class="pm-balon" id="pmOku" data-ipucu="Sesli oku — postayı dilini algılayarak okur (çevrildiyse çeviriyi)" aria-label="Sesli oku"><svg class="i"><use href="#ic-ses"/></svg></button>
+    <button class="pm-balon" id="pmOzet" data-ipucu="Özetle — öne çıkan cümleler, tarih/termin ve ekler (bu bilgisayarda)" aria-label="Özetle"><svg class="i"><use href="#ic-ozet"/></svg></button>
+    <button class="pm-balon" id="pmCevir" data-ipucu="Çevir — postanın dilini algılar: Türkçeyse İngilizceye, değilse Türkçeye çevirir" aria-label="Çevir"><svg class="i"><use href="#ic-cevir"/></svg></button>
+    <button class="pm-balon" id="pmYanit" data-ipucu="Yanıtla — yazarak ya da konuşarak; gerekirse postanın diline çevrilir" aria-label="Yanıtla"><svg class="i"><use href="#ic-yanit"/></svg></button>
+  </div>
+  <!-- + düğmesi: sağda, araç balonlarının üstünde (menü yukarı açılır) -->
+  <div class="pm-arti-sar"><button class="pm-arti" id="pmArti" title="Bu postadan not, aksiyon ya da talep oluştur" aria-label="Ekle">+</button>
+      <div class="pm-menu" id="pmMenu" hidden>
+        <button data-pm-ekle="not"><svg class="i"><use href="#ic-not"/></svg>Not</button>
+        <button data-pm-ekle="aksiyon"><svg class="i"><use href="#ic-aksiyon"/></svg>Aksiyon</button>
+        <button data-pm-ekle="talep"><svg class="i"><use href="#ic-talep"/></svg>Talep</button></div></div>
+  <div class="modal-f" id="mpAlt"><span class="sp"></span><button class="btn primary" id="mpKaydet">Kaydet</button></div>   <!-- Kapat yok: üstte ✕ var; alt çubuk yalnız form açıkken -->
 </div></div>
 
 <!-- AKSİYON -->
@@ -1170,6 +1371,15 @@ async function yukle() {
   // Aksiyon numarası sonradan geldi (A-yyyy-nnn): eski aksiyonlara bir kez verilir
   let d = false;
   V.kayitlar.forEach(k => k.aksiyonlar.forEach(a => { if (!a.no) { a.no = numaraVer('aksiyon'); d = true; } }));
+  if (V.ayar.posta.kaynak === 'kategori' || V.ayar.posta.kategoriAta) { if (V.ayar.posta.kaynak === 'kategori') V.ayar.posta.kaynak = 'gelen'; V.ayar.posta.kategoriAta = false; d = true; }   // kategori görünümü kaldırıldı (16.10.2026)
+  // Eski gelen taleplere eklenmiş taşıyıcı "[Assist] Talep:" iletileri kaldırılır; kimliği çift kayıt koruması için kalır (16.10.2026)
+  V.kayitlar.forEach(k => {
+    if (k.tur !== 'talep' || k.yon !== 'gelen') return;
+    const tas = k.postalar.filter(p => /^\[Assist\] Talep:/.test(p.konu || ''));
+    if (!tas.length) return;
+    if (!k.tasiyiciMsgId) k.tasiyiciMsgId = tas[0].msgId || '';
+    k.postalar = k.postalar.filter(p => !tas.includes(p)); d = true;
+  });
   if (d) kaydet();
 }
 let kayitZinciri = Promise.resolve();
@@ -1278,6 +1488,15 @@ function telefonAc(tel, ad) {
   });
 }
 let ARAMA_SAAT = 0;
+// Balon form: pencere içindeki alanın balonuna tıklanınca alan seçilir (öğe, bağlantı, düğmeye tıklanırsa karışılmaz)
+document.addEventListener('click', e => {
+  const f = e.target.closest && e.target.closest('.modal .field');
+  if (!f || e.target.closest('input,select,textarea,button,a,label input,[contenteditable]')) return;
+  const el = [...f.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,textarea')].find(x => x.offsetParent !== null && !x.disabled && !x.readOnly);
+  if (!el) return;
+  el.focus();
+  if (el.tagName === 'SELECT' && el.showPicker) { try { el.showPicker(); } catch (_) {} }
+});
 document.addEventListener('click', e => {
   if (e.target.closest('[data-arama-gizle]')) { ARAMA = null; return aramaPencere(); }
   if (e.target.closest('[data-arama-kapat]')) {
@@ -1398,7 +1617,7 @@ async function postaRevBak() {
     const j = await apiJson('/api/posta/rev');
     if (POSTA_REV >= 0 && j.rev !== POSTA_REV) {
       sayacYukle(); gelenTalepAl();
-      if (aktif === 'posta') postaYukle();
+      if (aktif === 'posta') { postaYukle(); klasorYukle(); }   // klasör okunmamış sayıları da tazelenir
       if (aktif === 'ana') bayrakliYukle();
       const fark = POSTA_OKUNMAMIS >= 0 ? j.okunmamis - POSTA_OKUNMAMIS : 0;
       if (fark > 0) toast(fark === 1 ? 'Yeni posta geldi.' : `${fark} yeni posta geldi.`);
@@ -2071,7 +2290,7 @@ const DIL_EN = {
   'Yeni aksiyon': 'New action', 'Kaydet': 'Save', 'Vazgeç': 'Cancel', 'Kapat': 'Close', 'Sil': 'Delete', 'Ekle': 'Add', 'Uygula': 'Apply',
   'Dene': 'Test', 'İlet': 'Forward', 'Gönder': 'Send', 'Aç': 'Open', 'Geri al': 'Undo', 'Kaldır': 'Remove', 'Oluştur': 'Create', 'Doldur': 'Fill',
   'Tarih': 'Date', 'Konu': 'Subject', 'Posta': 'Email', 'Postalar': 'Emails', 'Ekler': 'Attachments', 'Ek yok.': 'No attachments.',
-  'Gelen Kutusu': 'Inbox', 'Gelen Kutusu (tümü)': 'Inbox (all)', 'Bayraklı postalar': 'Flagged emails', 'Kategorideki postalar': 'Emails in category',
+  'Gelen Kutusu': 'Inbox', 'Gelen Kutusu (tümü)': 'Inbox (all)', 'Bayraklı postalar': 'Flagged emails',
   'Yalnız okunmamış': 'Unread only', 'Yalnız bayraklı': 'Flagged only', 'Son 3 gün': 'Last 3 days', 'Son 7 gün': 'Last 7 days',
   'Bu kaynakta posta yok.': 'No emails in this source.', 'Aramaya uyan posta yok.': 'No emails match the search.', 'Posta bulunamadı.': 'Email not found.',
   'Outlook\'tan okunuyor…': 'Reading from Outlook…', 'Posta okunuyor…': 'Reading email…', 'Postayı Outlook\'ta aç': 'Open email in Outlook',
@@ -2107,6 +2326,8 @@ const DIL_EN = {
   'Bağlı posta yok.': 'No linked email.', 'Bağlantıyı kaldır': 'Remove link', 'Bağlanacak açık iş yok.': 'No open item to link.',
   'Geçmiş': 'History', 'Gecikti': 'Overdue', 'Bekliyor': 'Waiting', 'İş': 'Work', 'Sırala / süz': 'Sort / filter', 'İçerir…': 'Contains…',
   'Genel': 'General', 'Talep Kategorileri': 'Request Categories', 'Haftalık Plan': 'Weekly Plan', 'Veri ve Yedek': 'Data and Backup',
+  'Çeviri ve Ses': 'Translation and Voice', 'Outlook\'ta çevir': 'Translate in Outlook', 'Sesli oku': 'Read aloud', 'Özetle': 'Summarize', 'Çevir': 'Translate', 'Yanıtla': 'Reply', 'Durdur': 'Stop',
+  'Konuş': 'Speak', 'Tümünü yanıtla': 'Reply all', 'Outlook\'ta yanıt aç': 'Open reply in Outlook', 'Özet': 'Summary', 'Yanıt': 'Reply', 'Posta ara': 'Search mail', 'Takip': 'Follow-up',
   'Siz': 'You', 'Açılış': 'Startup', 'Birlikte açılan uygulamalar': 'Apps opened together', 'Termin hatırlatması': 'Due-date reminder',
   'Windows bildirimi': 'Windows notification', 'Posta Kutusu\'nda görünenler': 'Shown in Mailbox', 'Kayda eklenen postalar': 'Emails added to records',
   'Sorumlu listesi': 'Owner list', 'Talep kategorileri': 'Request categories', 'Çalışma düzeni': 'Working pattern', 'Sekte nedenleri': 'Delay reasons',
@@ -2310,28 +2531,27 @@ function anaCiz() {
   if ($('#mListe').classList.contains('show')) anaListePencere(ANA_LISTE_F);   // kayıt değişince açık liste tazelensin
 
   let satirlar = '', n = 0;
+  const anaK = isKolonlar(anaFiltre === 'kapanan'), anaSuz = G => kolonSuzSirala('ana', G, anaK);   // başlık süzgeçleri
+  let tum = [];
   if (anaFiltre === 'kapanan') {
     $('#anaBaslik').textContent = 'Bu Ay Kapanan';
-    n = kap.length;
-    satirlar = kap.map(i => isSatir(i, true)).join('');
+    tum = kap;
   } else {
     $('#anaBaslik').textContent = anaFiltre === 'acik' ? 'Açık İşler' : ((K.find(x => x[0] === anaFiltre) || [, 'Açık İşler'])[1]);
     const gruplar = anaFiltre === 'acik' ? GRUPLAR : GRUPLAR.filter(g => g[0] === anaFiltre);
-    for (const [g, ad] of gruplar) {
-      const G = L.filter(i => kova(i.termin) === g).sort(terminSira);
-      if (!G.length) continue;
-      n += G.length;
-      satirlar += G.map(i => isSatir(i)).join('');
-    }
+    for (const [g] of gruplar) tum = tum.concat(L.filter(i => kova(i.termin) === g).sort(terminSira));
   }
+  const gorunen = anaSuz(tum);
+  n = gorunen.length; satirlar = gorunen.map(i => isSatir(i, anaFiltre === 'kapanan')).join('');
+  if (!n && tum.length) { n = 0; satirlar = `<tr><td colspan="${anaK.length}" class="bos">Süzgece uyan iş yok.</td></tr>`; }
   $('#anaSay').textContent = n;
   // Varsayılan (Açık İşler) görünümde kartın içi Notlarım | Aksiyonlarım; süzülünce liste
   const ikili = anaFiltre === 'acik';
   $('#anaIkili').style.display = ikili ? '' : 'none';
   $('#anaListe').style.display = ikili ? 'none' : '';
   if (ikili) $('#anaSay').textContent = '';   // bölmelerin kendi sayıları var
-  $('#anaListe').innerHTML = n
-    ? `<table class="tbl"><thead><tr><th>No</th><th>İş</th><th>Tür</th><th>Kimden</th><th>Sorumlu</th><th>Termin</th><th>${anaFiltre === 'kapanan' ? 'Kapanış' : 'Kalan'}</th><th>Durum</th></tr></thead><tbody>${satirlar}</tbody></table>`
+  $('#anaListe').innerHTML = satirlar
+    ? `<table class="tbl"><thead><tr>${kolonBas('ana', anaK)}</tr></thead><tbody>${satirlar}</tbody></table>`
     : `<div class="bos">${anaFiltre === 'acik' ? 'Açık iş yok.' : 'Bu grupta iş yok.'}</div>`;
 }
 /* Kartlara tıklayınca liste açılır pencerede (kullanıcı istedi): Termini Geçen / Bugün / Yaklaşan /
@@ -2432,26 +2652,30 @@ function anaListePencere(f) {
   })() : '';
   const gunSecici = f === 'talep' ? talepSecici : f === 'bugun' ? gunSeciciHtml() : '';
   const G = f === 'kapanan' ? kapananlar() : (hepsi ? L : f === 'bugun' ? L.filter(i => i.termin === ANA_GUN) : L.filter(i => kova(i.termin) === f)).sort(terminSira);
-  const GS = mlSuzSirala(G);   // başlık okları: sütun süzgeçleri ve sıralama
+  const K = isKolonlar(f === 'kapanan');
+  const GS = kolonSuzSirala('ml', G, K);   // başlık okları: sütun süzgeçleri ve sıralama
   n = GS.length; satirlar = GS.map(i => isSatir(i, f === 'kapanan')).join('');
   $('#mlBaslik').textContent = f === 'bugun' ? 'İşler' : ad; $('#mlSay').textContent = n;
-  $('#mlGovde').innerHTML = gunSecici + (n
-    ? `<table class="tbl"><thead><tr>${thBas('ml', 'no', 'No', 'metin')}${thBas('ml', 'is', 'İş', 'metin')}${thBas('ml', 'tur', 'Tür', 'metin')}${thBas('ml', 'kimden', 'Kimden', 'metin')}${thBas('ml', 'sorumlu', 'Sorumlu', 'metin')}${thBas('ml', 'termin', 'Termin', 'termin')}${thBas('ml', 'termin', f === 'kapanan' ? 'Kapanış' : 'Kalan', '')}${thBas('ml', 'durum', 'Durum', 'metin')}</tr></thead><tbody>${satirlar}</tbody></table>`
+  const suzulu = Object.values(LF.ml || {}).some(d => d && d !== 'hepsi');
+  $('#mlGovde').innerHTML = gunSecici + (n || (G.length && suzulu)   // süzgeç her şeyi gizlediyse başlık kalır, süzgeç geri alınabilsin
+    ? `<table class="tbl"><thead><tr>${kolonBas('ml', K)}</tr></thead><tbody>${satirlar || `<tr><td colspan="${K.length}" class="bos">Süzgece uyan iş yok.</td></tr>`}</tbody></table>`
     : `<div class="bos">${hepsi ? 'Açık iş yok.' : f === 'bugun' ? 'Bu gün termini olan açık iş yok.' : 'Bu grupta iş yok.'}</div>`);
   $('#mListe').classList.add('show');
 }
-// Açılır iş listelerinin başlık okları ('ml'): sütun değerleri isSatir'deki gösterimle aynı
-function mlDeger(i, alan) {
-  const k = i.k, a = i.a;
-  return { no: a ? a.no : k.no, is: i.baslik, tur: a ? 'Aksiyon' : (TUR_AD[k.tur] || 'Talep'), kimden: k.kimden, sorumlu: i.sorumlu,
-    termin: i.termin, durum: a ? (a.durum === 'tamam' ? 'Kapandı' : 'Açık') : (DURUM[i.durum] || i.durum) }[alan] || '';
-}
-function mlSuzSirala(G) {
-  const f = LF.ml || {}, S = LS.ml || {};
-  let L = G.filter(i => Object.entries(f).every(([alan, d]) => !d || d === 'hepsi' ||
-    (alan === 'termin' ? kova(i.termin) === d : trK(mlDeger(i, alan)).includes(trK(d)))));
-  if (S.alan) L = L.slice().sort((x, y) => S.yon * siraKarsilastir(mlDeger(x, S.alan), mlDeger(y, S.alan), S.alan === 'termin'));
-  return L;
+// İş listelerinin sütunları (anasayfa tablosu + açılır listeler): değerler isSatir'deki gösterimle aynı
+const isAcilis = i => (i.a ? i.a.olusturma : '') || i.k.olusturma || '';
+function isKolonlar(kapanan) {
+  return [
+    { a: 'no', ad: 'No', tur: 'metin', d: i => i.a ? i.a.no : i.k.no },
+    { a: 'acilis', ad: 'Açılış', tur: 'tarih', d: isAcilis },
+    { a: 'is', ad: 'İş', tur: 'metin', d: i => i.baslik },
+    { a: 'tur', ad: 'Tür', tur: 'metin', d: i => i.a ? 'Aksiyon' : (TUR_AD[i.k.tur] || 'Talep') },
+    { a: 'kimden', ad: 'Kimden', tur: 'metin', d: i => i.k.kimden },
+    { a: 'sorumlu', ad: 'Sorumlu', tur: 'metin', d: i => i.sorumlu },
+    { a: 'termin', ad: 'Termin', tur: 'termin', d: i => i.termin },
+    kapanan ? { a: 'kapanis', ad: 'Kapanış', tur: 'tarih', d: i => i.kapanis } : { a: 'kalan', ad: 'Kalan', tur: 'termin', d: i => i.termin },
+    { a: 'durum', ad: 'Durum', tur: 'metin', d: i => i.a ? (i.a.durum === 'tamam' ? 'Kapandı' : 'Açık') : (DURUM[i.durum] || i.durum) }
+  ];
 }
 function isSatir(i, kapanan) {
   const k = i.k, a = i.a;
@@ -2459,7 +2683,7 @@ function isSatir(i, kapanan) {
   const tur = a ? 'Aksiyon' : (TUR_AD[k.tur] || 'Talep');
   const ip = a ? (k.baslik && trK(k.baslik) !== trK(i.baslik) ? 'Kayıt: ' + k.baslik : '') : (k.ozet || '');
   const is = a ? esc(i.baslik) : `${esc(i.baslik)}${oncelikHtml(k)}${postaDugme(k)}`;
-  return `<tr class="clickable" data-k="${k.id}" data-a="${a ? a.id : ''}"><td class="no">${esc(a ? a.no : k.no)}</td><td class="is-ad"${ip ? ` data-ipucu="${esc(ip)}"` : ''}>${is}</td><td class="dar">${tur}</td>` +
+  return `<tr class="clickable" data-k="${k.id}" data-a="${a ? a.id : ''}"><td class="no">${esc(a ? a.no : k.no)}</td><td class="tarih">${acilisYaz(isAcilis(i))}</td><td class="is-ad"${ip ? ` data-ipucu="${esc(ip)}"` : ''}>${is}</td><td class="dar">${tur}</td>` +
     `<td>${esc(k.kimden || '')}</td><td class="dar">${esc(i.sorumlu || '')}</td><td class="tarih">${trTarih(i.termin)}</td>` +
     `<td class="dar">${kapanan ? trTarih(i.kapanis) : kalanHtml(i.termin)}</td><td class="dar">${a ? aksDurumHtml(a) : durumHtml(i.durum)}</td></tr>`;
 }
@@ -2540,22 +2764,35 @@ function listeCiz2(v) {
   // Talepler: Gelen (bana gelen; postadan/Assist'ten) / Giden (başkasına ilettiğim). Yönü olmayan eski kayıt = gelen.
   const L = V.kayitlar.filter(k => k.tur === v && (v !== 'talep' || !TALEP_YON || (k.yon || 'gelen') === TALEP_YON)).filter(k =>
     (f.durum === 'hepsi' || (f.durum === 'aciklar' ? acikMi(k) : k.durum === f.durum)) &&
-    (!f.sorumlu || k.sorumlu === f.sorumlu) && terminUygun(f, k.termin) &&
+    (!f.sorumlu || trK(k.sorumlu || (k.yon === 'giden' ? k.kime : '') || '').includes(trK(f.sorumlu))) && terminUygun(f, k.termin) &&
     (!f.kimden || trK(k.kimden).includes(trK(f.kimden))) && (!f.kategori || k.kategori === f.kategori) &&
     metinUygun(f.q, k.no, k.baslik, k.ozet, k.kimden, k.aksiyonlar.map(a => a.metin).join(' ')));
   // Açıklar terminine göre, kapalılar en son kapanana göre
   L.sort((a, b) => acikMi(a) !== acikMi(b) ? (acikMi(a) ? -1 : 1) : acikMi(a) ? terminSira(a, b) : (b.kapanis || '').localeCompare(a.kapanis || ''));
-  $('[data-say]', kok).textContent = L.length;
   const talep = v === 'talep';
-  $('[data-liste]', kok).innerHTML = L.length ? `<table class="tbl"><thead><tr><th>No</th>${talep ? '<th>Tarih</th>' : ''}<th>Başlık</th>${talep ? '<th>Kimden</th>' : ''}<th>${talep ? 'Kime' : 'Sorumlu'}</th><th>Termin</th>${talep ? '' : '<th>Kalan</th><th>Aksiyon</th>'}<th>Durum</th></tr></thead><tbody>${
-    L.map(k => {
-      const ak = k.aksiyonlar.length ? `${k.aksiyonlar.filter(a => a.durum === 'tamam').length}/${k.aksiyonlar.length}` : '';
-      return `<tr class="clickable${k.gorulmedi ? ' yeni' : ''}" data-k="${k.id}"><td class="no">${esc(k.no)}</td>${talep ? `<td class="tarih">${esc(trTarihSaat(k.iletim || k.olusturma))}</td>` : ''}<td>${esc(k.baslik)}${oncelikHtml(k)}${postaDugme(k)}${ozetHtml(k)}</td>` +
-        (talep ? (k.yon === 'giden' ? `<td>${TALEP_YON ? '' : '<span class="yon giden" title="Giden talep">→</span>'}${esc(k.kimden || V.ayar.adSoyad || KULLANICI_AD || '')}</td>`
-                                    : `<td>${TALEP_YON ? '' : '<span class="yon gelen" title="Gelen talep">←</span>'}${esc(k.kimden || '')}</td>`) : '') +
-        `<td class="dar">${esc(k.sorumlu || (k.yon === 'giden' ? k.kime : '') || '')}</td><td class="tarih">${trTarih(k.termin)}</td>${talep ? '' : `<td class="dar">${acikMi(k) ? kalanHtml(k.termin) : ''}</td><td class="dar">${ak}</td>`}` +
-        `<td class="dar">${durumHtml(k.durum)}</td></tr>`;
-    }).join('')}</tbody></table>` : '<div class="bos">Kayıt bulunamadı.</div>';
+  const kimdenAd = k => k.yon === 'giden' ? (k.kimden || V.ayar.adSoyad || KULLANICI_AD || '') : (k.kimden || '');
+  const akSay = k => k.aksiyonlar.length ? `${k.aksiyonlar.filter(a => a.durum === 'tamam').length}/${k.aksiyonlar.length}` : '';
+  const K = [
+    { a: 'no', ad: 'No', tur: 'metin', d: k => k.no },
+    { a: 'acilis', ad: 'Açılış', tur: 'tarih', d: k => k.iletim || k.olusturma },
+    talep && !TALEP_YON && { a: 'yon', ad: 'Tür', tur: 'metin', d: k => k.yon === 'giden' ? 'Giden' : 'Gelen' },   // Gelen/Giden (Tümü sekmesi)
+    { a: 'baslik', ad: 'Başlık', tur: 'metin', d: k => k.baslik },
+    talep && { a: 'kimden', ad: 'Kimden', tur: 'metin', d: kimdenAd },
+    { a: 'sorumlu', ad: talep ? 'Kime' : 'Sorumlu', tur: 'metin', d: k => k.sorumlu || (k.yon === 'giden' ? k.kime : '') || '' },
+    { a: 'termin', ad: 'Termin', tur: 'termin', d: k => k.termin },
+    !talep && { a: 'kalan', ad: 'Kalan', tur: 'termin', d: k => acikMi(k) ? k.termin : '' },
+    !talep && { a: 'aks', ad: 'Aksiyon', tur: 'metin', d: akSay },
+    { a: 'durumAd', ad: 'Durum', tur: 'metin', d: k => DURUM[k.durum] || k.durum }
+  ].filter(Boolean);
+  const R = kolonSuzSirala(v, L, K);
+  $('[data-say]', kok).textContent = R.length;
+  $('[data-liste]', kok).innerHTML = R.length ? `<table class="tbl"><thead><tr>${kolonBas(v, K)}</tr></thead><tbody>${
+    R.map(k => `<tr class="clickable${k.gorulmedi ? ' yeni' : ''}" data-k="${k.id}"><td class="no">${esc(k.no)}</td><td class="tarih">${esc(talep ? trTarihSaat(k.iletim || k.olusturma) : acilisYaz(k.olusturma))}</td>` +
+        `${talep && !TALEP_YON ? `<td class="dar">${k.yon === 'giden' ? '<span class="badge blue">Giden</span>' : '<span class="badge green">Gelen</span>'}</td>` : ''}<td>${esc(k.baslik)}${oncelikHtml(k)}${postaDugme(k)}${ozetHtml(k)}</td>` +
+        (talep ? `<td>${esc(kimdenAd(k))}</td>` : '') +
+        `<td class="dar">${esc(k.sorumlu || (k.yon === 'giden' ? k.kime : '') || '')}</td><td class="tarih">${trTarih(k.termin)}</td>${talep ? '' : `<td class="dar">${acikMi(k) ? kalanHtml(k.termin) : ''}</td><td class="dar">${akSay(k)}</td>`}` +
+        `<td class="dar">${durumHtml(k.durum)}</td></tr>`).join('')}</tbody></table>`
+    : `<table class="tbl"><thead><tr>${kolonBas(v, K)}</tr></thead><tbody><tr><td colspan="${K.length}" class="bos">Kayıt bulunamadı.</td></tr></tbody></table>`;   // başlık kalır: süzgeç geri alınabilsin
 }
 function aksiyonListeCiz() { if (!$('#v-aksiyon').innerHTML) panelKur('aksiyon'); panelSecenekleri('aksiyon'); aksiyonCiz2(); }
 // Aksiyonlar: No · İlgili posta (konu) · Kimden · Alınacak aksiyon · Sorumlu · Termin · Durum
@@ -2566,27 +2803,32 @@ function aksiyonCiz2() {
     if (!icerir(a.sorumlu, f.sorumlu) || !icerir(k.kimden, f.kimden)) continue;
     // Başlık süzgeçleri (sütun okundaki menüden)
     if (!icerir(a.no, f.no) || !icerir(k.baslik, f.posta) || !icerir(a.metin, f.metin)) continue;
-    if (!terminUygun(f, a.termin) || !metinUygun(f.q, a.no, a.metin, a.alinan, k.no, k.baslik, k.kimden)) continue;
+    if (!terminUygun(f, a.termin) || !metinUygun(f.q, a.no, a.metin, a.alinan, (a.guncellemeler || []).map(g => g.metin).join(" "), k.no, k.baslik, k.kimden)) continue;
     L.push({ k, a });
   }
-  const S = LS.aksiyon;
-  if (S) {
-    const deger = { no: x => x.a.no, posta: x => x.k.baslik, kimden: x => x.k.kimden, metin: x => x.a.metin, sorumlu: x => x.a.sorumlu,
-      termin: x => x.a.termin, durum: x => x.a.durum === 'tamam' ? '2' : gunFark(x.a.termin) < 0 ? '0' : '1' }[S.alan];
-    L.sort((x, y) => S.yon * siraKarsilastir(deger(x), deger(y), S.alan === 'termin'));
-  } else
-    // Varsayılan: açıklar terminine göre üstte, kapananlar en son kapanan önce altta
-    L.sort((x, y) => x.a.durum !== y.a.durum ? (x.a.durum === 'tamam' ? 1 : -1)
-      : x.a.durum === 'tamam' ? (y.a.tamamTarih || '').localeCompare(x.a.tamamTarih || '') : terminSira(x.a, y.a));
-  $('[data-say]', kok).textContent = L.length;
-  const B = (a, ad, tur) => thBas('aksiyon', a, ad, tur);
-  $('[data-liste]', kok).innerHTML = `<table class="tbl"><thead><tr>${B('no', 'No', 'metin')}${B('posta', 'İlgili Posta', 'metin')}${B('kimden', 'Kimden', 'metin')}${B('metin', 'Alınacak Aksiyon', 'metin')}${B('sorumlu', 'Sorumlu', 'metin')}${B('termin', 'Termin', 'termin')}${B('termin', 'Kalan', '')}${B('durum', 'Durum', 'durum')}</tr></thead><tbody>${
-    L.length ? '' : '<tr><td colspan="8" class="bos">Aksiyon bulunamadı.</td></tr>'}${
-    L.map(({ k, a }) => {
+  // Varsayılan: açıklar terminine göre üstte, kapananlar en son kapanan önce altta (başlıktan sıralanınca o geçerli)
+  L.sort((x, y) => x.a.durum !== y.a.durum ? (x.a.durum === 'tamam' ? 1 : -1)
+    : x.a.durum === 'tamam' ? (y.a.tamamTarih || '').localeCompare(x.a.tamamTarih || '') : terminSira(x.a, y.a));
+  const K = [
+    { a: 'no', ad: 'No', tur: 'metin', d: x => x.a.no },
+    { a: 'acilis', ad: 'Açılış', tur: 'tarih', d: x => x.a.olusturma || x.k.olusturma },
+    { a: 'posta', ad: 'İlgili Posta', tur: 'metin', d: x => x.k.baslik },
+    { a: 'kimden', ad: 'Kimden', tur: 'metin', d: x => x.k.kimden },
+    { a: 'metin', ad: 'Alınacak Aksiyon', tur: 'metin', d: x => x.a.metin + ' ' + (x.a.alinan || '') },
+    { a: 'sorumlu', ad: 'Sorumlu', tur: 'metin', d: x => x.a.sorumlu },
+    { a: 'termin', ad: 'Termin', tur: 'termin', d: x => x.a.termin },
+    { a: 'kalan', ad: 'Kalan', tur: 'termin', d: x => x.a.durum === 'tamam' ? '' : x.a.termin },
+    { a: 'durum', ad: 'Durum', tur: 'durum', d: x => x.a.durum === 'tamam' ? '2' : gunFark(x.a.termin) < 0 ? '0' : '1' }
+  ];
+  const R = kolonSuzSirala('aksiyon', L, K);
+  $('[data-say]', kok).textContent = R.length;
+  $('[data-liste]', kok).innerHTML = `<table class="tbl"><thead><tr>${kolonBas('aksiyon', K)}</tr></thead><tbody>${
+    R.length ? '' : `<tr><td colspan="${K.length}" class="bos">Aksiyon bulunamadı.</td></tr>`}${
+    R.map(({ k, a }) => {
       const gecti = a.durum !== 'tamam' && gunFark(a.termin) < 0;
       return `<tr class="clickable${a.durum === 'tamam' ? ' soluk' : ''}" data-k="${k.id}" data-a="${a.id}">` +
-        `<td class="no">${esc(a.no || '')}</td><td>${esc(k.baslik)}${postaDugme(k)}</td><td>${esc(k.kimden || '')}</td>` +
-        `<td>${esc(a.metin)}${a.alinan ? `<div class="alt">Alınan: ${esc(a.alinan)}</div>` : ''}</td>` +
+        `<td class="no">${esc(a.no || '')}</td><td class="tarih">${acilisYaz(a.olusturma || k.olusturma)}</td><td>${esc(k.baslik)}${postaDugme(k)}</td><td>${esc(k.kimden || '')}</td>` +
+        `<td>${esc(a.metin)}${a.alinan ? `<div class="alt">${(a.guncellemeler || []).length > 1 ? `Son güncelleme (${a.guncellemeler.length}): ` : 'Alınan: '}${esc(a.alinan)}</div>` : ''}</td>` +
         `<td class="dar">${esc(a.sorumlu || '')}</td><td class="tarih${gecti ? ' kalan gecti' : ''}">${trTarih(a.termin)}</td>` +
         `<td class="dar">${a.durum === 'tamam' ? '' : kalanHtml(a.termin)}</td><td class="dar">${aksDurumHtml(a)}</td></tr>`;
     }).join('')
@@ -2603,20 +2845,25 @@ function notCiz2() {
   const L = V.kayitlar.filter(k => k.tur === 'not' && icerir(k.kimden, f.kimden) && metinUygun(f.q, k.no, k.baslik, k.ozet, k.kimden) &&
     icerir(k.no, f.no) && icerir(k.baslik, f.konu) && icerir(k.ozet, f.not) && terminUygun(f, k.termin) &&
     (!f.durum || f.durum === 'hepsi' || (f.durum === 'acik') === acikMi(k)));
-  const S = LS.not;
-  if (S) {
-    const deger = { no: k => k.no, konu: k => k.baslik, kimden: k => k.kimden, not: k => k.ozet, termin: k => k.termin }[S.alan];
-    L.sort((a, b) => S.yon * siraKarsilastir(deger(a), deger(b), S.alan === 'termin'));
-  } else
-    // Varsayılan: açık notlar üstte termine göre (gecikmiş/en yakın önce, terminsizler sonra), kapananlar altta soluk
-    L.sort((a, b) => acikMi(a) !== acikMi(b) ? (acikMi(a) ? -1 : 1)
-      : (acikMi(a) && terminSira(a, b)) || (b.olusturma || '').localeCompare(a.olusturma || ''));
-  $('[data-say]', kok).textContent = L.length;
-  const B = (a, ad, tur) => thBas('not', a, ad, tur);
-  $('[data-liste]', kok).innerHTML = `<table class="tbl"><thead><tr>${B('no', 'No', 'metin')}${B('konu', 'Konu', 'metin')}${B('kimden', 'Kimden', 'metin')}${B('not', 'Not', 'metin')}${B('termin', 'Termin', 'termin')}${B('termin', 'Kalan', '')}<th></th></tr></thead><tbody>${
-    L.length ? '' : '<tr><td colspan="7" class="bos">Not bulunamadı.</td></tr>'}${
-    L.map(k => { const ac = acikMi(k);
-      return `<tr class="clickable${ac ? '' : ' soluk'}" data-k="${k.id}"><td class="no">${esc(k.no)}</td><td>${esc(k.baslik)}${postaDugme(k)}</td>` +
+  // Varsayılan: açık notlar üstte termine göre (gecikmiş/en yakın önce, terminsizler sonra), kapananlar altta soluk
+  L.sort((a, b) => acikMi(a) !== acikMi(b) ? (acikMi(a) ? -1 : 1)
+    : (acikMi(a) && terminSira(a, b)) || (b.olusturma || '').localeCompare(a.olusturma || ''));
+  const K = [
+    { a: 'no', ad: 'No', tur: 'metin', d: k => k.no },
+    { a: 'acilis', ad: 'Açılış', tur: 'tarih', d: k => k.olusturma },
+    { a: 'konu', ad: 'Konu', tur: 'metin', d: k => k.baslik },
+    { a: 'kimden', ad: 'Kimden', tur: 'metin', d: k => k.kimden },
+    { a: 'not', ad: 'Not', tur: 'metin', d: k => k.ozet },
+    { a: 'termin', ad: 'Termin', tur: 'termin', d: k => k.termin },
+    { a: 'kalan', ad: 'Kalan', tur: 'termin', d: k => acikMi(k) ? k.termin : '' },
+    { a: 'durum', ad: 'Durum', tur: 'durum', d: k => acikMi(k) ? '0' : '1' }
+  ];
+  const R = kolonSuzSirala('not', L, K);
+  $('[data-say]', kok).textContent = R.length;
+  $('[data-liste]', kok).innerHTML = `<table class="tbl"><thead><tr>${kolonBas('not', K)}</tr></thead><tbody>${
+    R.length ? '' : `<tr><td colspan="${K.length}" class="bos">Not bulunamadı.</td></tr>`}${
+    R.map(k => { const ac = acikMi(k);
+      return `<tr class="clickable${ac ? '' : ' soluk'}" data-k="${k.id}"><td class="no">${esc(k.no)}</td><td class="tarih">${acilisYaz(k.olusturma)}</td><td>${esc(k.baslik)}${postaDugme(k)}</td>` +
       `<td>${esc(k.kimden || '')}</td><td class="not-metin">${esc(k.ozet)}</td>` +
       `<td class="tarih">${trTarih(k.termin)}</td><td class="dar">${ac ? kalanHtml(k.termin) : ''}</td>` +
       `<td class="dar"><button class="ikon-btn${ac ? '' : ' bitti'}" data-not-kapat="${k.id}" title="${ac ? 'Notu kapat' : 'Yeniden aç'}">${svg('aksiyon')}</button>` +
@@ -2651,27 +2898,55 @@ function aksiyonAc(kid, aid) {
       ${posta ? `<button class="btn sm" id="maPosta" style="margin-left:8px">${svg('posta')}Postayı aç</button>` : ''}</div>
     <div class="field"><label>Alınacak aksiyon</label><textarea id="maMetin" rows="2">${esc(a.metin)}</textarea></div>
     <div class="grid2">
-      <div class="field"><label>Sorumlu</label><input id="maSorumlu" data-kisi-sec autocomplete="off" value="${esc(a.sorumlu || '')}"></div>
+      <div class="field"><label>Sorumlu</label><input id="maSorumlu" data-kisi-sec autocomplete="off" placeholder="Ad yazın, listeden seçin" value="${esc(a.sorumlu || '')}"></div>
       <div class="field"><label>Termin</label><input type="date" id="maTermin" value="${esc(a.termin || '')}"></div>
       <div class="field"><label>Önem</label><select id="maOnem"><option value="normal">Normal</option><option value="yuksek">Yüksek</option></select></div>
       <div class="field"><label>Tahmini süre (saat)</label><input type="number" id="maTahmini" min="0" step="0.5" value="${a.tahminiSaat || ''}">${tahminIpucu(a.metin + ' ' + k.baslik, k.kimden)}</div>
     </div>
-    <div class="bolum"><div class="bolum-h"><h4>Alınan aksiyon</h4></div>
-      <div class="field"><textarea id="maAlinan" rows="3">${esc(a.alinan || '')}</textarea></div>
+    <div class="bolum"><div class="bolum-h"><h4>İlerleme</h4></div>
+      ${aksIlerlemeHtml(a)}
+      ${kapali ? '' : `<div class="field"><label>Alınan aksiyon / yapılan iş</label><textarea id="maAlinan" rows="3" placeholder="Bugün ne yapıldı? Güncelle ile ilerlemeye eklenir"></textarea></div>
       <div class="grid2">
-        <div class="field"><label>Tarih</label><input type="date" id="maAlinanTarih" value="${esc(a.alinanTarih || bugun())}"></div>
-        <div class="field"><label>Harcanan süre (saat)</label><input type="number" id="maHarcanan" min="0" step="0.5" value="${a.harcananSaat || ''}"></div>
+        <div class="field"><label>Tarih</label><input type="date" id="maAlinanTarih" value="${esc(bugun())}"></div>
+        <div class="field"><label>Harcanan süre (saat)</label><input type="number" id="maHarcanan" min="0" step="0.5"></div>
         <div class="field"><label>Sekteye uğradıysa neden</label><select id="maSekte"><option value="">—</option>${
           [...new Set([...V.ayar.sekteNedenleri, a.sekteNeden].filter(Boolean))].map(n => `<option>${esc(n)}</option>`).join('')}</select></div>
-        <div class="field"><label>Açıklama</label><input id="maSekteAcik" value="${esc(a.sekteAciklama || '')}"></div>
-      </div>
+        <div class="field"><label>Açıklama</label><input id="maSekteAcik"></div>
+      </div>`}
     </div>`;
   $('#maOnem').value = a.onem || 'normal';
-  $('#maSekte').value = a.sekteNeden || '';
+  const il = $('#maGovde .aks-ilerleme'); if (il) il.scrollTop = il.scrollHeight;
+  $('#maKaydet').textContent = 'Güncelle';
   $('#maSil').style.display = ''; $('#maKapat').style.display = '';   // yeni aksiyon penceresi gizlemiş olabilir
   $('#maKapat').textContent = kapali ? 'Yeniden aç' : 'Aksiyonu kapat';
   $('#maKapat').className = kapali ? 'btn' : 'btn danger';
   $('#mAks').classList.add('show');
+}
+/* Aksiyon ilerlemesi (16.10.2026): kapanana kadar her "Güncelle" bir kayıt ekler (tarih, yapılan iş, saat, sekte).
+   a.alinan = son kayıt, a.harcananSaat = toplam, a.sekteNeden = son girilen neden (liste, arama ve öğrenme motoru bunları okur).
+   Bu yapıdan önce tek "alınan aksiyon" yazılmış aksiyonlarda o metin ilk kayıt sayılır. */
+function aksGuncellemeler(a) {
+  if (!a.guncellemeler) a.guncellemeler = a.alinan ? [{ id: uid(), t: a.tamamTarih || a.olusturma || simdi(), tarih: a.alinanTarih || '', metin: a.alinan,
+    saat: +a.harcananSaat || '', sekte: a.sekteNeden || '', sekteAcik: a.sekteAciklama || '' }] : [];
+  return a.guncellemeler;
+}
+function aksOzetGuncelle(a) {
+  const G = aksGuncellemeler(a), son = G[G.length - 1];
+  const top = G.reduce((s, g) => s + (+g.saat || 0), 0);
+  a.alinan = son ? son.metin : ''; a.alinanTarih = son ? son.tarih : '';
+  a.harcananSaat = top ? Math.round(top * 10) / 10 : '';
+  const sek = [...G].reverse().find(g => g.sekte); a.sekteNeden = sek ? sek.sekte : ''; a.sekteAciklama = sek ? sek.sekteAcik || '' : '';
+}
+function aksIlerlemeHtml(a) {
+  const G = aksGuncellemeler(a);
+  if (!G.length) return '<div class="aks-ilr-bos">Henüz güncelleme yok. Yaptığınız işi aşağıya yazıp Güncelle deyin.</div>';
+  const top = G.reduce((s, g) => s + (+g.saat || 0), 0), tah = +a.tahminiSaat || 0;
+  const yuzde = tah && top ? Math.min(100, Math.round(top / tah * 100)) : 0;
+  const ozet = `<div class="aks-ilr-ozet"><span><b>${G.length}</b> güncelleme</span>${top ? `<span>Harcanan <b>${saatYaz(top)}</b>${tah ? ` / tahmini ${saatYaz(tah)}` : ''}</span>` : ''}
+    <span>İlk ${esc(trTarih(G[0].tarih || G[0].t.slice(0, 10)))} · son ${esc(trTarih(G[G.length - 1].tarih || G[G.length - 1].t.slice(0, 10)))}</span></div>` +
+    (tah && top ? `<div class="aks-ilr-cubuk${top > tah ? ' asti' : ''}" title="Harcanan süre / tahmini süre"><i style="width:${yuzde}%"></i></div>` : '');
+  return ozet + `<ol class="aks-ilerleme">${G.map((g, i) => `<li${i === G.length - 1 ? ' class="son"' : ''}><div class="ai-ust"><b>${esc(trTarih(g.tarih || g.t.slice(0, 10)))}</b>${
+    g.saat ? `<span>${saatYaz(+g.saat)}</span>` : ''}${g.sekte ? `<span class="ai-sekte">${esc(g.sekte)}${g.sekteAcik ? ' · ' + esc(g.sekteAcik) : ''}</span>` : ''}</div><div class="ai-metin">${esc(g.metin)}</div></li>`).join('')}</ol>`;
 }
 // Öğrenilen tahmin, dayanağıyla birlikte (kaç benzer iş). Yeterli veri yoksa hiçbir şey yazmaz.
 function tahminIpucu(metin, kimden) {
@@ -2702,13 +2977,14 @@ function aksiyonYeni() {
     <div id="maPosta"></div>
     <div class="field"><label>Alınacak aksiyon</label><textarea id="maMetin" rows="2"></textarea></div>
     <div class="grid2">
-      <div class="field"><label>Sorumlu</label><input id="maSorumlu" data-kisi-sec autocomplete="off" value="${esc(a.sorumlu)}"></div>
+      <div class="field"><label>Sorumlu</label><input id="maSorumlu" data-kisi-sec autocomplete="off" placeholder="Ad yazın, listeden seçin" value="${esc(a.sorumlu)}"></div>
       <div class="field"><label>Termin</label><input type="date" id="maTermin"></div>
       <div class="field"><label>Önem</label><select id="maOnem"><option value="normal">Normal</option><option value="yuksek">Yüksek</option></select></div>
       <div class="field"><label>Tahmini süre (saat)</label><input type="number" id="maTahmini" min="0" step="0.5"></div>
       ${talepler.length ? `<div class="field tam"><label>Bağlı talep (isteğe bağlı)</label><select id="maHedef"><option value="">—</option>${
         talepler.map(t => `<option value="${t.id}">${esc(t.no)} · ${esc(t.baslik)}</option>`).join('')}</select></div>` : ''}
     </div>`;
+  $('#maKaydet').textContent = 'Kaydet';
   $('#maSil').style.display = 'none'; $('#maKapat').style.display = 'none';
   $('#mAks').classList.add('show');
   setTimeout(() => $('#maMetin').focus(), 30);
@@ -2745,11 +3021,17 @@ function aksiyonFormOku() {
   const sayi = id => { const v = parseFloat((deger(id) || '').replace(',', '.')); return v > 0 ? Math.round(v * 10) / 10 : ''; };
   const yeni = { metin: deger('#maMetin').trim(), sorumlu: deger('#maSorumlu').trim(), termin: deger('#maTermin'),
     onem: deger('#maOnem') || 'normal', tahminiSaat: sayi('#maTahmini') };
-  // Kapatma bölümü yalnız mevcut aksiyonda var
-  if ($('#maAlinan')) Object.assign(yeni, { alinan: deger('#maAlinan').trim(), alinanTarih: deger('#maAlinanTarih'),
-    harcananSaat: sayi('#maHarcanan'), sekteNeden: deger('#maSekte'), sekteAciklama: deger('#maSekteAcik').trim() });
   if (!yeni.metin) { toast('Alınacak aksiyon boş olamaz.', true); $('#maMetin').focus(); return false; }
   if (AK.yeni) { Object.assign(a, yeni); return true; }
+  // İlerleme kutusu yalnız açık aksiyonda var: yazı (ya da süre/neden) girildiyse yeni bir ilerleme kaydı olur
+  const gm = deger('#maAlinan').trim(), gs = sayi('#maHarcanan'), gn = deger('#maSekte'), ga = deger('#maSekteAcik').trim();
+  if (gm || gs || gn) {
+    if (!gm) { toast('Yapılan işi yazın; süre ve neden onunla birlikte kaydedilir.', true); $('#maAlinan').focus(); return false; }
+    aksGuncellemeler(a).push({ id: uid(), t: z, tarih: deger('#maAlinanTarih') || bugun(), metin: gm, saat: gs, sekte: gn, sekteAcik: ga });
+    aksOzetGuncelle(a);
+    k.gecmis.push({ t: z, m: `${a.no} güncellendi: ${gm}` });
+    AK.eklendi = true;
+  }
   if ((a.termin || '') !== yeni.termin) k.gecmis.push({ t: z, m: `${a.no} termin: ${trTarih(a.termin) || '—'} → ${trTarih(yeni.termin) || '—'}` });
   if ((a.sorumlu || '') !== yeni.sorumlu) k.gecmis.push({ t: z, m: `${a.no} sorumlu: ${a.sorumlu || '—'} → ${yeni.sorumlu || '—'}` });
   Object.assign(a, yeni);
@@ -2793,7 +3075,9 @@ async function aksiyonKaydet() {
     aksiyonPencereKapat(); kaydet(); hepsiniCiz();
     return toast(`${no} kaydedildi.` + (hedef ? ` (${hedef.no})` : ''));
   }
-  aksiyonPencereKapat(); kaydet(); hepsiniCiz(); toast('Aksiyon kaydedildi.');
+  // İlerleme eklendiyse pencere açık kalır, yeni kayıt çizelgede görünür
+  if (AK.eklendi) { const { k, a } = AK; kaydet(); hepsiniCiz(); aksiyonAc(k.id, a.id); return toast('İlerleme kaydedildi.'); }
+  aksiyonPencereKapat(); kaydet(); hepsiniCiz(); toast('Aksiyon güncellendi.');
 }
 function aksiyonKapatAc() {
   const { k, a } = AK;
@@ -2868,7 +3152,7 @@ function kayitPencere(vurgu) {
       <div class="field"><label>Öncelik</label><select id="kOncelik"><option value="normal">Normal</option><option value="yuksek">Yüksek</option></select></div>
       <div class="field tam"><label>Açıklama</label><textarea id="kOzet" rows="5">${esc(k.ozet)}</textarea></div>
     </div>
-    ${k.postalar.length ? '<div class="bolum"><div class="bolum-h"><h4>Postalar</h4></div><div id="kPostalar"></div></div>' : ''}`;
+    ${k.postalar.length ? '<div class="bolum"><div class="bolum-h"><h4>Eklenen posta</h4><span class="sp"></span><span class="ps-ek">Talebe eklenip karşı tarafa gönderilir · istemezseniz çarpıyla kaldırın</span></div><div id="kPostalar"></div></div>' : ''}`;
   // Not sade: başlık, kimden (postadan geldiyse), not metni, posta. Termin/sorumlu/durum yok.
   else $('#mkGovde').innerHTML = `<div id="kIletPanel"></div>
     ${K_YENI ? `<div class="doldur"><span>E-postadan doldur</span>
@@ -3010,6 +3294,7 @@ async function kayitKaydet() {
     $('#mkKaydet').disabled = true;
     const ap = V.ayar.posta;
     for (const p of yeniPosta) {
+      if (ornekMi(p.id)) { delete p.yeni; continue; }   // GEÇİCİ ÖRNEK — silinecek
       try {
         const j = await apiJson('/api/posta/bagla', { method: 'POST', body: JSON.stringify({ id: p.id, store: p.store, msgId: p.msgId, msgSakla: !!ap.msgSakla, kategori: ap.kategoriAta ? ap.kategori : '' }) });
         p.msg = j.msg || '';
@@ -3083,12 +3368,29 @@ function talepYanitIsle(g, t) {
     k.durum = 'tamam'; k.kapanis = z;
     k.yazisma.push({ id: g.id, msgId: (g.posta || {}).msgId || '', t: z, kimden: kim, metin: 'Talebi kapattı.' + (t.metin ? '\n' + t.metin : ''), sistem: true });
     k.gecmis.push({ t: z, m: `${kim} talebi kapattı` }); k.gorulmedi = 'kapat';
+  } else if (t.tur === 'hatirlat') {   // yalnız açan hatırlatır; kapanmış talebe hatırlatma düşmez
+    if (k.yon !== 'gelen' || !acikMi(k)) return false;
+    k.yazisma.push({ id: g.id, msgId: (g.posta || {}).msgId || '', t: z, kimden: kim, metin: 'Hatırlatma gönderdi.' + (t.metin ? ' ' + t.metin : ''), sistem: true, hatirlatma: true });
+    k.gecmis.push({ t: z, m: `${kim} hatırlatma gönderdi` }); k.gorulmedi = 'hatirlat';
   } else {
     k.yazisma.push({ id: g.id, msgId: (g.posta || {}).msgId || '', t: z, kimden: kim, metin: t.metin || '' });
     k.gorulmedi = 'cevap';
   }
   k.guncelleme = z;
   return true;
+}
+// Talep yazışması sohbet gibi: benim mesajlarım sağda açık lacivert, karşı taraf solda gri (adı bordo); kapatma ortada
+function talepSohbetHtml(k) {
+  let gunOnce = '';
+  return (k.yazisma || []).map(y => {
+    const d = new Date(y.t), gun = yerelTarih(d), saat = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const etiket = gun !== gunOnce ? `<li class="sb-gun"><span>${gun === bugun() ? 'Bugün' : esc(trTarih(gun))}</span></li>` : ''; gunOnce = gun;
+    if (y.sistem) return etiket + `<li class="sb-sistem"><span>${esc(y.kimden || '')} · ${esc(y.metin || '')} · ${saat}</span></li>`;
+    const ben = y.ben === true || !('msgId' in y);   // gelen cevaplar postayla gelir (msgId alanı var); kendi yazdıklarım yerelde eklenir
+    return etiket + `<li class="sb-mesaj${ben ? ' ben' : ''}"><div class="sb-balon" style="background:${ben ? '#D9E2EF' : '#E6E9EE'}">` +
+      (ben ? '' : `<b class="sb-ad" style="color:#7A1418">${esc(y.kimden || '')}</b>`) +
+      `<div class="sb-metin">${esc(y.metin || '')}</div><span class="sb-saat">${saat}</span></div></li>`;
+  }).join('');
 }
 function talepYazismaPencere() {
   const k = K, giden = k.yon === 'giden', acik = acikMi(k);
@@ -3097,7 +3399,7 @@ function talepYazismaPencere() {
   ['#mkSil', '#mkIlet', '#mkNotKapat', '#mkKaydet'].forEach(s => { $(s).style.display = 'none'; });
   $('#mkVazgec').textContent = 'Kapat';
   const satir = (a, d) => d ? `<div class="ty-s"><span>${a}</span><b>${d}</b></div>` : '';
-  const yaz = (k.yazisma || []).map(y => `<li class="${y.sistem ? 'sistem' : ''}"><div class="ust"><b>${esc(y.kimden || '')}</b><span>${esc(trTarihSaat(y.t))}</span></div><div class="metin">${esc(y.metin || '')}</div></li>`).join('');
+  const yaz = talepSohbetHtml(k);
   $('#mkGovde').innerHTML = `<div class="ty-bilgi">
       ${satir('Kimden', esc(giden ? (k.kimden || benAd()) : (k.kimden || '')))}${satir('Kime', esc(giden ? (k.kime || k.sorumlu || '') : benAd()))}
       ${satir('Termin', k.termin ? esc(trTarih(k.termin)) + ' ' + (acik ? kalanHtml(k.termin) : '') : '')}${satir('Öncelik', k.oncelik === 'yuksek' ? 'Yüksek' : '')}
@@ -3105,9 +3407,9 @@ function talepYazismaPencere() {
     ${k.ozet ? `<div class="field"><label>Açıklama</label><div class="ty-metin">${esc(k.ozet)}</div></div>` : ''}
     ${k.postalar.length ? '<div class="bolum"><div class="bolum-h"><h4>Postalar</h4></div><div id="kPostalar"></div></div>' : ''}
     <div class="bolum"><div class="bolum-h"><h4>Yazışma</h4></div>
-      <ul class="od-defter ty-defter">${yaz || '<li class="sistem"><div class="metin">Henüz cevap yok.</div></li>'}</ul></div>
+      <ul class="od-defter ty-defter sohbet">${yaz || '<li class="sb-sistem"><span>Henüz cevap yok.</span></li>'}</ul></div>
     ${acik ? `<div class="field"><label>Cevap</label><textarea id="tyCevap" rows="3" placeholder="Açıklama yazın"></textarea></div>
-      <div class="ty-dugmeler">${giden ? `<button class="btn hayalet-kirmizi" id="tySil">${svg('cop')}Talebi sil</button><button class="btn" id="tyKapat">Talebi kapat</button>` : ''}<span class="sp"></span>
+      <div class="ty-dugmeler">${giden ? `<button class="btn hayalet-kirmizi" id="tySil">${svg('cop')}Talebi sil</button><button class="btn" id="tyKapat">Talebi kapat</button><button class="btn" id="tyHatirlat" data-ipucu="Karşı tarafa bu talebin hâlâ açık olduğunu bildirir; kutuya yazdığınız not da eklenir">${svg('zil')}Hatırlatma gönder</button>` : ''}<span class="sp"></span>
         <button class="btn primary" id="tyGonder">${svg('posta')}Cevabı gönder</button></div>`
       : `<div class="note" style="margin-top:10px">${giden ? 'Talebi kapattınız.' : 'Talep, açan kişi tarafından kapatıldı.'}</div>
         ${giden ? `<div class="ty-dugmeler"><button class="btn hayalet-kirmizi" id="tySil">${svg('cop')}Talebi sil</button></div>` : ''}`}`;
@@ -3122,7 +3424,8 @@ async function talepMesaj(tur, metin) {
   const kime = giden ? k.kimeEposta : k.kimdenEposta, kimeAd = giden ? (k.kime || '') : (k.kimden || '');
   if (!kime) throw new Error('Karşı tarafın e-posta adresi bu kayıtta yok.');
   const no = giden ? k.no : (k.kaynakNo || k.no);
-  const yazi = { cevap: 'Cevap: ' + metin, kapat: 'Talep kapatıldı.' + (metin ? '\n' + metin : ''), sil: 'Talep silindi.' }[tur];
+  const yazi = { cevap: 'Cevap: ' + metin, kapat: 'Talep kapatıldı.' + (metin ? '\n' + metin : ''), sil: 'Talep silindi.',
+    hatirlat: 'Hatırlatma: bu talep hâlâ açık.' + (k.termin ? ' Termin: ' + trTarih(k.termin) + '.' : '') + (metin ? '\n' + metin : '') }[tur];
   await apiJson('/api/talep/gonder', { method: 'POST', body: JSON.stringify({ kime, konu: `Talep: ${no} · ${k.baslik}`,
     govde: `Merhaba ${kimeAd.split(' ')[0]},\n\nTalep: ${no} · ${k.baslik}\n${yazi}`,
     talep: { surum: 2, tur, kimlik: giden ? k.id : (k.kaynakKimlik || ''), kaynakNo: no, metin: metin || '', gonderen: benAd() } }) });
@@ -3138,7 +3441,7 @@ async function talepCevapGonder() {
   if (!metin) { toast('Cevap yazın.', true); return $('#tyCevap').focus(); }
   if (!confirm('Cevap gönderilsin mi?')) return;
   $('#tyGonder').disabled = true;
-  try { const kim = await talepMesaj('cevap', metin); K.yazisma = K.yazisma || []; K.yazisma.push({ id: uid(), t: simdi(), kimden: benAd(), metin }); K.gecmis.push({ t: simdi(), m: `${kim} kişisine cevap gönderildi` }); talepYazismaKaydet(); talepYazismaPencere(); toast('Cevap gönderildi.'); }
+  try { const kim = await talepMesaj('cevap', metin); K.yazisma = K.yazisma || []; K.yazisma.push({ id: uid(), t: simdi(), kimden: benAd(), metin, ben: true }); K.gecmis.push({ t: simdi(), m: `${kim} kişisine cevap gönderildi` }); talepYazismaKaydet(); talepYazismaPencere(); toast('Cevap gönderildi.'); }
   catch (e) { toast('Gönderilemedi: ' + e.message, true); $('#tyGonder').disabled = false; }
 }
 async function talepKapatGonder() {
@@ -3146,6 +3449,15 @@ async function talepKapatGonder() {
   if (!confirm('Talep kapatılsın mı? Karşı tarafta "Kapandı" olarak görünür ve artık cevap yazılamaz.' + (metin ? ' Yazdığınız not da gönderilir.' : ''))) return;
   try { const kim = await talepMesaj('kapat', metin); K.durum = 'tamam'; K.kapanis = simdi(); K.yazisma = K.yazisma || []; K.yazisma.push({ id: uid(), t: simdi(), kimden: benAd(), metin: 'Talebi kapattı.' + (metin ? '\n' + metin : ''), sistem: true }); K.gecmis.push({ t: simdi(), m: `Talep kapatıldı (${kim} kişisine bildirildi)` }); talepYazismaKaydet(); talepYazismaPencere(); toast('Talep kapatıldı.'); }
   catch (e) { toast('Gönderilemedi: ' + e.message, true); }
+}
+// Yalnız talebi gönderen hatırlatır; karşı tarafta yazışmaya ortada bir satır düşer, zil ve kenar sayacı yanar
+async function talepHatirlatGonder() {
+  const metin = $('#tyCevap') ? $('#tyCevap').value.trim() : '';
+  const son = [...(K.yazisma || [])].reverse().find(y => y.hatirlatma && y.ben);
+  if (!confirm((son ? `Son hatırlatma ${trTarihSaat(son.t)} tarihinde gönderildi. ` : '') + 'Hatırlatma gönderilsin mi?' + (metin ? ' Yazdığınız not da eklenir.' : ''))) return;
+  $('#tyHatirlat').disabled = true;
+  try { const kim = await talepMesaj('hatirlat', metin); K.yazisma = K.yazisma || []; K.yazisma.push({ id: uid(), t: simdi(), kimden: benAd(), metin: 'Hatırlatma gönderdi.' + (metin ? ' ' + metin : ''), sistem: true, hatirlatma: true, ben: true }); K.gecmis.push({ t: simdi(), m: `${kim} kişisine hatırlatma gönderildi` }); talepYazismaKaydet(); talepYazismaPencere(); toast('Hatırlatma gönderildi.'); }
+  catch (e) { toast('Gönderilemedi: ' + e.message, true); $('#tyHatirlat').disabled = false; }
 }
 async function talepSilGonder() {
   if (!confirm('Talep silinsin mi? Karşı taraftan da kaldırılır; geri alınamaz.')) return;
@@ -3160,6 +3472,13 @@ async function talepYeniGonder() {
   if (REHBER === null) await rehberYukle();
   const kisi = K.sorumlu ? ortakKisiBul(K.sorumlu) : null;
   if (!kisi) { toast(K.sorumlu ? 'Bu kişinin e-posta adresi rehberde yok; Kime alanında listeden seçin.' : 'Kime alanını doldurun.', true); return $('#kSorumlu').focus(); }
+  // GEÇİCİ ÖRNEK — silinecek: örnek postaya bağlı talep kimseye gönderilmez, yalnız listeye "Giden" olarak kaydedilir
+  if (K.postalar.some(p => ornekMi(p.id))) {
+    if (!confirm(`ÖRNEK: "${K.baslik}" talebi kimseye GÖNDERİLMEZ, yalnız listeye kaydedilir. Devam edilsin mi?`)) return;
+    K.no = K.no || numaraVer('talep'); K.durum = 'acik'; K.sorumlu = kisi.ad; K.yon = 'giden'; K.kime = kisi.ad; K.kimeEposta = ''; K.iletim = simdi();
+    K.gecmis.push({ t: simdi(), m: 'Örnek talep: gönderilmedi, yalnız listeye kaydedildi' });
+    await kayitKaydet(); return toast('Örnek talep listeye kaydedildi (gönderilmedi).');
+  }
   if (!confirm(`"${K.baslik}" talebi ${kisi.ad} kişisine gönderilsin mi?`)) return;
   K.no = K.no || numaraVer('talep'); K.durum = 'acik'; K.sorumlu = kisi.ad;
   const ben = V.ayar.adSoyad || KULLANICI_AD || '', ad = kisi.ad.split(' ')[0];
@@ -3169,7 +3488,8 @@ async function talepYeniGonder() {
     kimden: ben, not: '', gonderen: ben, aksiyonlar: [], kimlik: K.id };
   const btn = $('#mkKaydet'); btn.disabled = true;
   try {
-    await apiJson('/api/talep/gonder', { method: 'POST', body: JSON.stringify({ kime: kisi.eposta, konu: `Talep: ${K.no} · ${K.baslik}`, govde: metin, talep: veri, posta: null }) });   // bağlı Outlook postası eklenmez; talep doğrudan gider (kullanıcı istedi)
+    // Formdaki "Postalar"da duran posta (kullanıcı ekledi; çarpıyla kaldırabilir) talebe eklenip gider (16.10.2026)
+    await apiJson('/api/talep/gonder', { method: 'POST', body: JSON.stringify({ kime: kisi.eposta, konu: `Talep: ${K.no} · ${K.baslik}`, govde: metin, talep: veri, posta: K.postalar[K.postalar.length - 1] || null }) });
   } catch (e) { btn.disabled = false; return toast('Gönderilemedi: ' + e.message, true); }
   K.yon = 'giden'; K.kime = kisi.ad; K.kimeEposta = kisi.eposta; K.iletim = simdi();
   K.gecmis.push({ t: simdi(), m: `${kisi.ad} kişisine gönderildi (Assist)` });
@@ -3259,19 +3579,22 @@ async function gelenTalepAl() {
       const t = g.talep || {};
       // Aynı taşıyıcı ileti (Internet ileti kimliği) ikinci kez talep/cevap oluşturmaz
       const mid = g.posta && g.posta.msgId;
-      if (mid && V.kayitlar.some(k => (k.postalar || []).some(p => p.msgId === mid) || (k.yazisma || []).some(y => y.msgId === mid))) continue;
-      if (t.tur === 'cevap' || t.tur === 'kapat' || t.tur === 'sil') { if (talepYanitIsle(g, t)) yanit++; continue; }
+      if (mid && V.kayitlar.some(k => k.tasiyiciMsgId === mid || (k.postalar || []).some(p => p.msgId === mid) || (k.yazisma || []).some(y => y.msgId === mid))) continue;
+      if (['cevap', 'kapat', 'sil', 'hatirlat'].includes(t.tur)) { if (talepYanitIsle(g, t)) yanit++; continue; }
       V.kayitlar.push({ id: uid(), tur: 'talep', yon: 'gelen', gelenId: g.id, no: numaraVer('talep'), kaynakNo: t.no || '',
         baslik: t.baslik || '(başlıksız talep)', ozet: [t.ozet, t.not ? 'Not: ' + t.not : ''].filter(Boolean).join('\n\n'),
         kimden: g.gonderen || t.gonderen || '', kimdenEposta: g.gonderenEposta || '', sorumlu: '', kaynakKimlik: t.kimlik || '',
         termin: t.termin || '', oncelik: t.oncelik === 'yuksek' ? 'yuksek' : 'normal', kategori: '', durum: 'acik',
-        postalar: g.posta && g.posta.id ? [Object.assign({ msg: '' }, g.posta)] : [],
+        // Taşıyıcı "[Assist] Talep:" iletisi talebe posta olarak EKLENMEZ (kullanıcı 16.10.2026: gerekirse postayı kendisi seçer);
+        // yalnız ileti kimliği tutulur ki aynı ileti ikinci kez talep oluşturmasın.
+        // Gönderen postayı bilerek eklediyse (ek) taşıyıcı ileti, ekli postanın adıyla bağlanır: "Aç" ekli postayı gösterir
+        postalar: g.posta && g.posta.ek ? [Object.assign({ msg: '' }, g.posta, { konu: g.posta.ek, ekli: true })] : [], tasiyiciMsgId: mid || '',
         aksiyonlar: (t.aksiyonlar || []).map(a => ({ id: uid(), no: numaraVer('aksiyon'), metin: a.metin || '', sorumlu: '',
           termin: a.termin || '', onem: a.onem === 'yuksek' ? 'yuksek' : 'normal', tahminiSaat: '', durum: 'acik', olusturma: z })),
         gecmis: [{ t: z, m: `${g.gonderen || 'Bir kişi'} tarafından Assist ile gönderildi${t.no ? ' (onun kaydı ' + t.no + ')' : ''}` }],
         olusturma: z, guncelleme: z, kapanis: '', gorulmedi: true });   // açılınca silinir (kenar menü sayısı + zil)
     }
-    const talepSay = yeni.filter(g => !['cevap', 'kapat', 'sil'].includes((g.talep || {}).tur)).length;
+    const talepSay = yeni.filter(g => !['cevap', 'kapat', 'sil', 'hatirlat'].includes((g.talep || {}).tur)).length;
     if (yeni.length) { await kaydet(); hepsiniCiz(); if (talepSay) toast(talepSay === 1 ? 'Yeni talep geldi.' : talepSay + ' yeni talep geldi.'); if (yanit) toast('Taleplerinizde yeni hareket var.'); }
     if ((j.gelen || []).length) await apiJson('/api/gelen/al', { method: 'POST', body: JSON.stringify({ ids: j.gelen.map(g => g.id) }) });
   } catch (e) { /* sunucu meşgul / eski sürüm: sonraki turda tekrar */ }
@@ -3348,6 +3671,7 @@ function kayitSil() {
   kaydet(); hepsiniCiz(); toast('Kayıt silindi.');
 }
 async function postaAc(p) {
+  if (ornekMi(p.id)) return postaAktar({ id: p.id, store: '' });   // GEÇİCİ ÖRNEK — silinecek
   try {
     const j = await apiJson('/api/posta/ac', { method: 'POST', body: JSON.stringify({ id: p.id, store: p.store, msgId: p.msgId || '', msg: p.msg || '' }) });
     toast(j.kaynak === 'kopya' ? 'Posta kutusunda bulunamadı; saklanan kopyası açıldı.' : 'Posta Outlook\'ta açıldı.');
@@ -3360,13 +3684,89 @@ async function postaAc(p) {
 let POSTALAR = null, POSTA_HATA = '', POSTA_KAYNAK = null, BAGLA_HEDEF = null, POSTA_BEKLEYEN = 0;
 function postaKaynakSecenek() {
   const p = V.ayar.posta;
-  return [['gelen', `Gelen Kutusu · son ${p.gun} gün`], ['bayrakli', `Bayraklı · son ${p.gun} gün`], ['kategori', `Kategori: ${p.kategori || '—'}`]];
+  return [['gelen', `Gelen Kutusu · son ${p.gun} gün`], ['bayrakli', `Bayraklı · son ${p.gun} gün`]];   // kategori görünümü kaldırıldı (16.10.2026): klasör listesi var
 }
 function postaSorgu(kaynak, gun) {
   const p = V.ayar.posta;
+  if (String(kaynak).startsWith('k:')) {   // klasör ağacından seçilen klasör: tarih sınırı yok (en yeni 300)
+    const k = KLASOR[kaynak.slice(2)] || {};
+    return '/api/posta/liste?klasorId=' + encodeURIComponent(k.id || '') + '&store=' + encodeURIComponent(k.store || '') + (KIME_TUR.has(k.tur) ? '&kime=1' : '');
+  }
   return '/api/posta/liste?kaynak=' + encodeURIComponent(kaynak) + '&gun=' + (gun || p.gun) +
     '&klasor=' + encodeURIComponent(p.klasor || '') + '&kategori=' + encodeURIComponent(p.kategori || '');
 }
+/* ── Klasör bölmesi (Outlook aynası, 16.10.2026) ──
+   Sunucu tüm depoları (posta kutuları + PST "Kişisel Klasörler") ve posta klasörlerini okunmamış sayılarıyla verir.
+   Seçim POSTA_KAYNAK'ta: 'gelen' | 'bayrakli' | 'kategori' (Ayarlar'daki kaynaklar) ya da 'k:<EntryID>'.
+   Açık dallar V.ayar.posta.agacAcik'ta kalır. */
+let AGAC = null, AGAC_HATA = '', AGAC_YUK = false;
+const KLASOR = {};   // EntryID -> { id, store, ad, tur }
+const KIME_TUR = new Set(['gonderilmis', 'taslak', 'giden']);
+const KLASOR_TR = { gelen: 'Gelen Kutusu', taslak: 'Taslaklar', gonderilmis: 'Gönderilmiş Öğeler', silinmis: 'Silinmiş Öğeler', arsiv: 'Arşiv', onemsiz: 'Önemsiz E-posta', giden: 'Giden Kutusu' };
+const KLASOR_SIMGE = { gelen: 'gelen', taslak: 'taslak', gonderilmis: 'gonder', silinmis: 'cop', arsiv: 'arsiv', onemsiz: 'onemsiz', giden: 'giden' };
+const klasorAd = k => KLASOR_TR[k.tur] || k.ad;
+function agacAcik() { if (!Array.isArray(V.ayar.posta.agacAcik)) V.ayar.posta.agacAcik = []; return V.ayar.posta.agacAcik; }
+async function klasorYukle() {
+  if (AGAC_YUK) return; AGAC_YUK = true;
+  try {
+    const j = await apiJson('/api/posta/klasorler');
+    AGAC = j.depolar || []; AGAC_HATA = '';
+    const dolas = (L, store) => L.forEach(k => { KLASOR[k.id] = { id: k.id, store, ad: k.ad, tur: k.tur }; dolas(k.alt || [], store); });
+    AGAC.forEach(d => dolas(d.klasorler || [], d.store));
+    // İlk kullanım: birincil posta kutusu açık
+    if (!V.ayar.posta.agacAcik) { V.ayar.posta.agacAcik = AGAC.filter(d => d.birincil).map(d => 'S:' + d.store); kaydet(); }
+  } catch (e) { AGAC_HATA = e.message; }
+  AGAC_YUK = false;
+  if (aktif === 'posta') { klasorCiz(); postaBaslikYaz(); }
+}
+// Seçili kaynağa karşılık gelen klasör (Gelen Kutusu kaynağı = birincil deponun Gelen Kutusu)
+function seciliKlasorId() {
+  if (POSTA_KAYNAK.startsWith('k:')) return POSTA_KAYNAK.slice(2);
+  if (POSTA_KAYNAK === 'gelen' && !V.ayar.posta.klasor && AGAC) { const d = AGAC.find(x => x.birincil); const g = d && (d.klasorler || []).find(k => k.tur === 'gelen'); return g ? g.id : ''; }
+  return '';
+}
+function klasorCiz() {
+  const kutu = $('#postaAgac'); if (!kutu) return;
+  const acik = new Set(V.ayar.posta.agacAcik || []), secId = seciliKlasorId();
+  const gorunum = (kaynak, simge, ad) => `<div class="pa-oge${POSTA_KAYNAK === kaynak ? ' sec' : ''}" data-pk-kaynak="${kaynak}" style="padding-left:8px"><svg class="i"><use href="#ic-${simge}"/></svg><span class="pa-ad">${esc(ad)}</span></div>`;
+  const p = V.ayar.posta;
+  let h = `<div class="pa-grup">Takip</div>` + gorunum('bayrakli', 'bayrak', 'Bayraklı postalar');
+  const dal = (L, d) => L.map(k => {
+    const alt = k.alt || [], ac = acik.has(k.id);
+    return `<div class="pa-oge${k.id === secId ? ' sec' : ''}${k.ok ? ' okunmamis' : ''}" data-pk="${esc(k.id)}" style="padding-left:${4 + d * 14}px" title="${esc(k.ad)}">` +
+      (alt.length ? `<button class="pa-ok" data-pk-ac="${esc(k.id)}">${ac ? '▾' : '▸'}</button>` : '<span class="pa-ok"></span>') +
+      `<svg class="i"><use href="#ic-${KLASOR_SIMGE[k.tur] || 'klasor'}"/></svg><span class="pa-ad">${esc(klasorAd(k))}</span>${k.ok ? `<span class="pa-say">${k.ok}</span>` : ''}</div>` +
+      (alt.length && ac ? dal(alt, d + 1) : '');
+  }).join('');
+  if (AGAC_HATA && !AGAC) h += `<div class="note warn" style="margin:8px 4px">Klasörler okunamadı: ${esc(AGAC_HATA)}</div>`;
+  else if (!AGAC) h += '<div class="yukleniyor">Klasörler okunuyor…</div>';
+  else h += AGAC.map(dp => { const ac = acik.has('S:' + dp.store);
+    return `<div class="pa-depo" data-pk-ac="S:${esc(dp.store)}" title="${esc(dp.ad)}"><span class="pa-ok">${ac ? '▾' : '▸'}</span>${esc(dp.ad)}</div>` + (ac ? dal(dp.klasorler || [], 0) : ''); }).join('');
+  kutu.innerHTML = h;
+  $('#paEtkin').classList.toggle('var', Object.values(PF).some(Boolean));
+}
+function postaBaslikYaz() {
+  const e = $('#postaKlasorAd'); if (!e) return;
+  if (POSTA_KAYNAK.startsWith('k:')) { const k = KLASOR[POSTA_KAYNAK.slice(2)]; e.textContent = k ? klasorAd(k) : 'Klasör'; }
+  else e.textContent = (postaKaynakSecenek().find(x => x[0] === POSTA_KAYNAK) || [, ''])[1];
+}
+function postaKaynakSec(kaynak) {
+  if (kaynak === POSTA_KAYNAK) return;
+  POSTA_KAYNAK = kaynak; POSTALAR = null; PF.kime = '';   // Kime süzgeci klasöre özgü: başka klasörde her şeyi gizlemesin
+  klasorCiz(); postaBaslikYaz(); postaYukle();
+}
+document.addEventListener('click', e => {
+  const c = s => e.target.closest(s); let x;
+  if (c('#paAraBas')) { const b = $('#paAraBas'), ac = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', ac); $('#paAra').hidden = !ac; if (ac) setTimeout(() => $('#paAra input').focus(), 30); return; }
+  if ((x = c('[data-pk-ac]'))) { e.stopPropagation(); const L = agacAcik(), i = L.indexOf(x.dataset.pkAc); if (i >= 0) L.splice(i, 1); else L.push(x.dataset.pkAc); kaydet(); return klasorCiz(); }
+  if ((x = c('[data-pk-kaynak]'))) return postaKaynakSec(x.dataset.pkKaynak);
+  if ((x = c('#postaAgac [data-pk]'))) {
+    const k = KLASOR[x.dataset.pk];
+    // Birincil deponun Gelen Kutusu = Ayarlar'daki "Gelen Kutusu" kaynağı (yeni posta sayımı ve takip bununla)
+    const birincilGelen = k && k.tur === 'gelen' && AGAC && (AGAC.find(d => d.birincil) || {}).store === k.store && !V.ayar.posta.klasor;
+    return postaKaynakSec(birincilGelen ? 'gelen' : 'k:' + x.dataset.pk);
+  }
+});
 function bagliPostalar() {
   const m = new Map();
   V.kayitlar.forEach(k => k.postalar.forEach(p => m.set(p.id, k)));
@@ -3374,19 +3774,29 @@ function bagliPostalar() {
 }
 function postaGorunum() {
   if (!POSTA_KAYNAK) POSTA_KAYNAK = V.ayar.posta.kaynak;
-  $('#postaKaynak').innerHTML = postaKaynakSecenek().map(([v, a]) => `<option value="${v}">${esc(a)}</option>`).join('');
-  $('#postaKaynak').value = POSTA_KAYNAK;
+  klasorCiz(); postaBaslikYaz();
+  if (!AGAC) klasorYukle();
   const h = BAGLA_HEDEF && kayitBul(BAGLA_HEDEF);
   $('#postaHedefNot').innerHTML = h ? `<div class="note info">Seçeceğiniz posta <b>${esc(h.no)} · ${esc(h.baslik)}</b> kaydına bağlanacak.<button class="btn sm" id="hedefIptal">Vazgeç</button></div>` : '';
   if (POSTALAR === null && !POSTA_HATA) postaYukle(); else postaListeCiz();
 }
+/* Geçici örnek yazışma yalnız yerel kopyada; yayın kopyasında örnek veri yok. */
+const ORNEK_YAZISMA = [], ORNEK_AKTIF = false;
+const ornekMi = id => String(id || '').startsWith('ornek-');
+function ornekDetay() { return null; }
+function ornekKayitlariSil() { return 0; }
+function ornekEkle(L) { return L; }
 async function postaYukle() {
   $('#postaListe').innerHTML = '<div class="yukleniyor">Outlook\'tan okunuyor…</div>';
   $('#postaSay').textContent = '';
   POSTA_HATA = '';
   try {
-    const j = await apiJson(postaSorgu(POSTA_KAYNAK));
-    POSTALAR = j.postalar || [];
+    const kaynak = POSTA_KAYNAK, j = await apiJson(postaSorgu(kaynak));
+    if (kaynak !== POSTA_KAYNAK) return;   // bu arada başka klasör seçildi
+    POSTALAR = ornekEkle(j.postalar || []);   // GEÇİCİ ÖRNEK — silinecek
+    // Seçili klasörün okunmamış sayısı bölmede de tazelenir
+    const kid = seciliKlasorId(), dolas = L => L.forEach(k => { if (k.id === kid && typeof j.okunmamis === 'number') k.ok = j.okunmamis; dolas(k.alt || []); });
+    if (AGAC && kid) { AGAC.forEach(d => dolas(d.klasorler || [])); klasorCiz(); }
   } catch (e) { POSTALAR = null; POSTA_HATA = e.message; }
   postaBekleyenHesapla();
   if (aktif === 'posta') postaListeCiz();
@@ -3403,8 +3813,10 @@ function postaListeCiz() {
   L.sort((a, b) => yon * (alan === 'tarih' ? (a.p.tarih || '').localeCompare(b.p.tarih || '') : String(a.p[alan] || '').localeCompare(String(b.p[alan] || ''), 'tr')));
   $('#postaSay').textContent = L.length === POSTALAR.length ? L.length : `${L.length} / ${POSTALAR.length}`;
   const bas = (alan, ad) => thBas('posta', alan, ad, alan === 'tarih' ? 'tarih' : 'metin');
-  $('#postaListe').innerHTML = !POSTALAR.length ? '<div class="bos">Bu kaynakta posta yok.</div>'
-    : `<table class="tbl"><thead><tr>${bas('tarih', 'Tarih')}${bas('kimden', 'Kimden')}${bas('konu', 'Konu')}<th></th><th></th></tr></thead><tbody>${
+  // Gönderilmiş / Taslaklar / Giden: Outlook gibi "Kime" gösterilir
+  const kime = POSTA_KAYNAK.startsWith('k:') && KIME_TUR.has((KLASOR[POSTA_KAYNAK.slice(2)] || {}).tur);
+  $('#postaListe').innerHTML = !POSTALAR.length ? '<div class="bos">Bu klasörde posta yok.</div>'
+    : `<table class="tbl"><thead><tr>${bas('tarih', 'Tarih')}${kime ? bas('kime', 'Kime') : bas('kimden', 'Kimden')}${bas('konu', 'Konu')}<th></th><th></th></tr></thead><tbody>${
     L.length ? '' : '<tr><td colspan="5" class="bos">Aramaya uyan posta yok.</td></tr>'}${
     L.map(({ p, i }) => {
       const o = postaOzet(p.id), k = o.aks || o.not || o.talep, ys = yok.has(p.id);
@@ -3412,8 +3824,8 @@ function postaListeCiz() {
       const son = k ? (o.talep ? `<span class="badge green">${esc(o.talep)}</span>` : '')
         : ys ? `<span class="badge gray">Yok sayıldı</span> <button class="btn sm" data-yoksay-geri="${i}">Geri al</button>` : '';
       return `<tr class="clickable${k || ys ? ' soluk' : ''}${p.okunmadi ? ' okunmadi' : ''}" data-p="${i}">` +
-        `<td class="tarih">${kisaTarih(p.tarih)}</td><td class="dar">${esc(p.kimden)}</td>` +
-        `<td class="konu"><b>${esc(p.konu || '(konusuz)')}</b><span class="konu-on">${esc(p.on)}</span></td>` +
+        `<td class="tarih">${kisaTarih(p.tarih)}</td><td class="dar kisi-hucre" title="${esc(kime ? p.kime || '' : p.kimden)}">${esc(kime ? p.kime || '' : p.kimden)}</td>` +
+        `<td class="konu"><b>${postaIsaret(p)}${esc(p.konu || '(konusuz)')}</b><span class="konu-on">${esc(p.on)}</span></td>` +
         `<td class="dar" style="text-align:right">${son}</td>` +
         postaIkonlar(p, i, o) + '</tr>';
     }).join('')}</tbody></table>`;
@@ -3421,11 +3833,12 @@ function postaListeCiz() {
 /* ── Posta Kutusu arama / sıralama ──
    PF: uygulanmış süzgeç (panel + başlık menüsü aynı durumu paylaşır)
    PS: sıralama (alan + yön) */
-let PF = { q: '', kimden: '', konu: '', durum: '', tarih: '', okunmamis: false, bayrak: false }, PS = { alan: 'tarih', yon: -1 };
+let PF = { q: '', kimden: '', kime: '', konu: '', durum: '', tarih: '', okunmamis: false, bayrak: false }, PS = { alan: 'tarih', yon: -1 };
 function postaUygun(p) {
   const o = postaOzet(p.id), ys = V.yoksay.includes(p.id);
   if (PF.q && !metinUygun(PF.q, p.konu, p.kimden, p.on)) return false;
   if (PF.kimden && !trK(p.kimden).includes(trK(PF.kimden))) return false;
+  if (PF.kime && !trK(p.kime || '').includes(trK(PF.kime))) return false;   // Gönderilmiş / Taslak / Giden: Kime sütunu süzgeci
   if (PF.konu && !trK(p.konu).includes(trK(PF.konu))) return false;
   if (PF.okunmamis && !p.okunmadi) return false;
   if (PF.bayrak && !p.bayrak) return false;
@@ -3449,7 +3862,7 @@ function postaPanelYaz() { $$('#postaPanel [data-pf]').forEach(e => { if (e.type
 const LS = {};   // görünüm başına sıralama { alan, yon }
 const TH_SECENEK = {
   termin: [['', 'Tümü'], ['gecmis', 'Termini geçen'], ['bugun', 'Bugün'], ['yaklasan', 'Yaklaşan'], ['yok', 'Termini yok']],
-  tarih: [['', 'Tümü'], ['bugun', 'Bugün'], ['3', 'Son 3 gün'], ['7', 'Son 7 gün']],
+  tarih: [['', 'Tümü'], ['bugun', 'Bugün'], ['3', 'Son 3 gün'], ['7', 'Son 7 gün'], ['30', 'Son 30 gün']],
   durum: [['hepsi', 'Tümü'], ['acik', 'Açık'], ['tamam', 'Kapandı']]
 };
 const thSuzDeger = (v, alan) => v === 'posta' ? PF[alan] : (LF[v] || {})[alan];
@@ -3460,7 +3873,27 @@ function thBas(v, alan, ad, tur) {
   return `<th><span class="th-ic"><button class="th-sirala" data-ls="${alan}" data-lv="${v}">${ad}<span class="th-ok">${ok}</span></button>` +
     (tur ? `<button class="th-filtre${etkin}" data-lfm="${alan}" data-lv="${v}" data-lt="${tur}" title="Sırala / süz">${svg('suzgec')}</button>` : '') + `</span></th>`;
 }
-function listeYenile(v) { if (v === 'ml' || v === 'mlp') anaListePencere(ANA_LISTE_F); else if (v === 'posta') postaListeCiz(); else listeCiz2(v); }   // ml/mlp: anasayfadaki açılır listeler
+function listeYenile(v) {   // ml/mlp: anasayfadaki açılır listeler, ana: anasayfa iş tablosu
+  if (v === 'ml' || v === 'mlp') anaListePencere(ANA_LISTE_F); else if (v === 'posta') postaListeCiz(); else if (v === 'ana') anaCiz();
+  else if (v === 'ortak') ortakCiz(); else if (v === 'hat') hatListeCiz(); else listeCiz2(v);
+}
+/* ── Sütun düzeni (16.10.2026): her liste sütunlarını tanımlar; başlık, başlık süzgeci ve sıralama buradan üretilir,
+   böylece tüm başlıklar süzülebilir. Sütun: a (alan), ad, tur ('metin' | 'tarih' | 'termin' | 'durum'; null = boş başlık),
+   d (değer: süzgeç + sıralama), s (isteğe bağlı sıralama değeri). 'durum' süzgecini liste kendisi uygular (soldaki panelle aynı). */
+const TH_SUZ = {
+  metin: (d, f) => trK(String(d ?? '')).includes(trK(f)),
+  termin: (d, f) => kova(d || '') === f,
+  tarih: (d, f) => { if (!d) return false; const once = -gunFark(yerelTarih(new Date(d))); return f === 'bugun' ? once === 0 : once >= 0 && once < +f; }
+};
+const acilisYaz = t => t ? trTarih(yerelTarih(new Date(t))) : '';
+function kolonBas(v, K) { return K.map(c => c.tur === null ? '<th></th>' : thBas(v, c.a, c.ad, c.tur)).join(''); }
+function kolonSuzSirala(v, L, K) {
+  const f = LF[v] || {}, S = LS[v] || {};
+  let R = L.filter(x => K.every(c => { const d = f[c.a]; return !d || d === 'hepsi' || !c.d || !TH_SUZ[c.tur] || TH_SUZ[c.tur](c.d(x), d); }));
+  const c = S.alan && K.find(k => k.a === S.alan && k.d);
+  if (c) R = R.slice().sort((x, y) => S.yon * siraKarsilastir((c.s || c.d)(x), (c.s || c.d)(y), c.tur === 'termin' || c.tur === 'tarih'));
+  return R;
+}
 function thMenuAc(v, alan, tur, dugme) {
   const m = $('#thMenu'), r = dugme.getBoundingClientRect(), sec = TH_SECENEK[tur];
   const zaman = tur === 'tarih' ? ['Eskiden yeniye', 'Yeniden eskiye'] : tur === 'termin' ? ['Yakın tarih önce', 'Uzak tarih önce'] : ['A → Z', 'Z → A'];
@@ -3493,7 +3926,9 @@ function postaIkonlar(p, i, o) {
   return `<td class="dar p-ikonlar"><button class="ikon-btn${takip ? ' bayrakli' : ''}" data-p-bayrak="${i}" title="${takip ? 'Takibi bırak' + (p.bayrakTermin ? ' · termin ' + trTarih(p.bayrakTermin) : '') : 'Takibe al'}">${svg('bayrak')}</button>` +
     // Kırmızı: açık olan var · Yeşil: hepsi kapandı · Gri: hiç yok
     `<button class="ikon-btn${o.aksAcik ? ' yanik' : o.aks ? ' bitti' : ''}" data-p-aks="${i}" title="${o.aksAcik ? o.aksAcik + ' açık aksiyon' : o.aks ? o.aks + ' aksiyon kapandı' : 'Aksiyon oluştur'}">${svg('aksiyon')}</button>` +
-    `<button class="ikon-btn${o.notAcik ? ' yanik' : o.not ? ' bitti' : ''}" data-p-not="${i}" title="${o.notAcik ? o.notAcik + ' açık not' : o.not ? o.not + ' not kapandı' : 'Not oluştur'}">${svg('not')}</button></td>`;
+    `<button class="ikon-btn${o.notAcik ? ' yanik' : o.not ? ' bitti' : ''}" data-p-not="${i}" title="${o.notAcik ? o.notAcik + ' açık not' : o.not ? o.not + ' not kapandı' : 'Not oluştur'}">${svg('not')}</button>` +
+    // En sağda sil: Outlook'ta Silinmiş Öğeler'e taşır (16.10.2026)
+    `<button class="ikon-btn p-sil" data-p-sil="${i}" title="Sil (Outlook'ta Silinmiş Öğeler'e taşınır)">${svg('cop')}</button></td>`;
 }
 
 /* ── ANA EKRAN: Outlook'taki bayraklı postalar (son N gün) ──
@@ -3559,7 +3994,7 @@ function anaPostaTablo(v) {
   return ANA_POSTA.length ? `<table class="tbl"><thead><tr>${bas}</tr></thead><tbody>${
     L.map(({ p, i }) => `<tr class="clickable${p.okunmadi ? ' okunmadi' : ''}" data-p="${i}">` +
       `<td class="tarih">${kisaTarih(p.tarih)}</td><td class="dar">${esc(p.kimden)}</td>` +
-      `<td class="konu"><b>${esc(p.konu || '(konusuz)')}</b>${p.on ? `<span class="konu-on">${esc(p.on)}</span>` : ''}</td>` +
+      `<td class="konu"><b>${postaIsaret(p)}${esc(p.konu || '(konusuz)')}</b>${p.on ? `<span class="konu-on">${esc(p.on)}</span>` : ''}</td>` +
       postaIkonlar(p, i, postaOzet(p.id)) + '</tr>').join('')
   }</tbody></table>` : '<div class="bos">Takipte posta yok.</div>';
 }
@@ -3692,19 +4127,24 @@ let P = null, P_TB = null, P_OZET = null;   // açık posta + termin önerisi + 
 // listede ince yazıya döner, okunmamış sayıları ve tepsi bildirimi güncellenir.
 function postaKapat() {
   const oz = P_OZET; $('#mPosta').classList.remove('show'); P = null; P_OZET = null;
+  pmOkuDurdur(); if (KAYIT) KAYIT.iptal();   // pencere kapanınca okuma durur, kayıt gönderilmeden kesilir
   if (!oz || !oz.okunmadi) return;
   apiJson('/api/posta/okundu-tek', { method: 'POST', body: JSON.stringify({ id: oz.id, store: oz.store, msgId: oz.msgId || '' }) }).then(() => {
     [...(POSTALAR || []), ...(ANA_POSTA || [])].forEach(x => { if (x.id === oz.id) x.okunmadi = false; });
     oz.okunmadi = false;
+    // Klasör bölmesindeki okunmamış sayısı da bir azalır
+    const kid = aktif === 'posta' && AGAC ? seciliKlasorId() : '', dolas = L => L.forEach(k => { if (k.id === kid && k.ok > 0) k.ok--; dolas(k.alt || []); });
+    if (kid) { AGAC.forEach(d => dolas(d.klasorler || [])); klasorCiz(); }
     if (aktif === 'posta') postaListeCiz(); bayrakliCiz(); sayacYukle();
   }).catch(() => {});
 }
 async function postaAktar(ozet, ac) {   // ozet: Gelen Posta ya da ana ekran bayraklı listesindeki satır
-  P_OZET = ozet;
+  P_OZET = ozet; pmMenu(false); $('#mpKaydet').style.display = 'none'; pmFormGorunum();
+  P_CEV = null; P_DIL = ''; pmOkuDurdur(); if (KAYIT) KAYIT.iptal();   // önceki postanın çevirisi/okuması/kaydı taşınmaz
   $('#mpGovde').innerHTML = '<div class="yukleniyor">Posta okunuyor…</div>';
   $('#mPosta').classList.add('show');
   try {
-    P = await apiJson('/api/posta/oku?id=' + encodeURIComponent(ozet.id) + '&store=' + encodeURIComponent(ozet.store));
+    P = ornekMi(ozet.id) ? ornekDetay(ozet.id) : await apiJson('/api/posta/oku?id=' + encodeURIComponent(ozet.id) + '&store=' + encodeURIComponent(ozet.store));   // GEÇİCİ ÖRNEK — silinecek
   } catch (e) { $('#mpGovde').innerHTML = `<div class="note warn">${esc(e.message)}</div>`; P = null; return; }
   P_TB = P.bayrakTermin ? { tarih: P.bayrakTermin, kaynak: 'bayrak' } : terminBul(P.konu + '\n' + govdeTemizle(P.govde), P.tarih);
   // Bu postadan daha önce alınanlar (aynı aksiyonu ikinci kez açmamak için)
@@ -3714,26 +4154,89 @@ async function postaAktar(ozet, ac) {   // ozet: Gelen Posta ya da ana ekran bay
     else k.aksiyonlar.forEach(a => onceki.push(`<div class="pm-onceki" data-k="${k.id}" data-a="${a.id}"><b>${esc(a.no || '')}</b><span>${esc(a.metin)}</span><em>${aksDurumHtml(a)}</em></div>`));
   });
   $('#mpGovde').innerHTML = `<div class="aktar">
-    <div>
+    <div class="aktar-posta">
       <div class="posta-ust"><h4>${esc(P.konu || '(konusuz)')}</h4>
         <b>${esc(P.kimden)}</b>${P.eposta ? ' &lt;' + esc(P.eposta) + '&gt;' : ''}${P.eposta ? ' ' + iletisimDugmeleri(Object.assign({ eposta: P.eposta }, kisiler().map(kisiTam).find(k => k.eposta && trK(k.eposta) === trK(P.eposta)) || {})) : ''} · ${trTarihSaat(P.tarih)}
-        ${P.ekler.length ? `<br>Ekler: ${P.ekler.map(esc).join(', ')}` : ''}
-        <button class="btn sm" id="mpOutlook" style="margin-left:8px">Outlook'ta aç</button></div>
-      <div class="posta-govde">${esc(P.govde.trim())}</div>
+        <span class="pm-ust-ikonlar">${ekCipler(P)}<button class="pm-ikon" id="mpOutlook" data-ipucu="Outlook'ta aç: bu postayı Outlook penceresinde açar (taşıma, kategori, ileri gönderme için)">${svg('posta')}</button></span></div>
+      ${P.html ? `<div class="posta-html-ust"><span id="mpResimNot" style="display:none">Uzak resimler gizlendi.</span><button class="btn sm" id="mpResim" style="display:none">Resimleri göster</button></div><iframe class="posta-html" id="mpHtml" sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer"></iframe><div class="posta-govde" id="mpDuzMetin" style="display:none">${esc(P.govde.trim())}</div>` : `<div class="posta-govde">${esc(P.govde.trim())}</div>`}
     </div>
-    <div>
-      <div class="pm-dugmeler">
-        <button class="btn" id="pmAks">${svg('aksiyon')}Aksiyon</button>
-        <button class="btn" id="pmNot">${svg('not')}Not</button>
-      </div>
-      ${onceki.length ? `<div class="pm-onceki-kutu">${onceki.join('')}</div>` : ''}
+    <div class="aktar-form" id="pmForm" hidden>
+      <div id="pmYazisma"></div>   <!-- aynı yazışmadaki diğer iletiler; sağda başka bir şey açılınca (Yanıt, Not…) yerini ona bırakır -->
+      <div id="pmAracKutu"></div><div id="pmYanitKutu"></div>   <!-- Özet / Çeviri / Yanıt: + menüsündeki Not/Aksiyon gibi sağ bölmede -->
       <div id="pmAksBloklar"></div>
       <button class="btn sm" id="pmAksEkle" style="display:none">${svg('arti')}Aksiyon ekle</button>
       <div id="pmNotBlok"></div>
     </div></div>`;
-  $('#mpYoksay').style.display = onceki.length ? 'none' : '';
+  // Bu postadan daha önce alınan işler postanın üstünde şerit olarak
+  if (onceki.length) $('#mpGovde .aktar-posta').insertAdjacentHTML('afterbegin', `<div class="pm-onceki-kutu">${onceki.join('')}</div>`);
+  if (P.html) postaHtmlGoster(P.html, false);
+  pmFormGorunum();
   if (ac === 'aksiyon') pmAksiyonEkle();
   if (ac === 'not') pmNotAc();
+  pmYazismaYukle(P);
+}
+/* Aynı yazışmanın önceki iletileri (16.10.2026): posta açılınca sağ bölmede sade bir liste (en yeni üstte, açık ileti
+   işaretli). Alıntılanan eski metin kesilir, ilk satırlar görünür. Tıklanan ileti aynı pencerede açılır.
+   Yanıt, Özet, Çeviri, Not ya da Aksiyon açılınca liste gizlenir, sağ bölme ona kalır; kapanınca liste geri gelir. */
+let P_YAZISMA = [];
+async function pmYazismaYukle(p) {
+  P_YAZISMA = [];
+  let j; try { j = ornekMi(p.id) ? { iletiler: ORNEK_YAZISMA } : await apiJson('/api/posta/yazisma?id=' + encodeURIComponent(p.id) + '&store=' + encodeURIComponent(p.store || '')); } catch { return; }   // GEÇİCİ ÖRNEK — silinecek
+  if (P !== p || !$('#pmYazisma')) return;   // beklerken başka posta açıldı
+  P_YAZISMA = (j.iletiler || []).slice().reverse();
+  if (P_YAZISMA.length < 2) return;
+  const kes = g => {
+    const s = String(g || '').replace(/\r/g, '').split(/\n\s*(?:-{2,}\s*Original Message|-{2,}\s*Özgün İleti|_{8,}|From:|Kimden:|Gönderen:|On .{6,80} wrote:)/i)[0];
+    return s.replace(/\n{3,}/g, '\n\n').trim();
+  };
+  $('#pmYazisma').innerHTML = `<div class="pm-yz"><div class="pm-yz-h">${svg('sohbet')}Yazışma<span>${P_YAZISMA.length} ileti</span></div>
+    <ol>${P_YAZISMA.map((m, i) => { const bu = m.id === p.id; return `<li class="${bu ? 'bu' : ''}"${bu ? '' : ` data-pm-ileti="${i}" title="Bu iletiyi aç"`}>
+      <div class="pm-yz-ust"><b>${esc(m.kimden || '')}</b>${pmYzEk(m)}<span>${esc(trTarihSaat(m.tarih))}</span></div>
+      <div class="pm-yz-metin">${esc(kes(m.govde)) || '<i>(metin yok)</i>'}</div></li>`; }).join('')}</ol></div>`;
+  pmFormGorunum();
+}
+// Yazışma listesi: iletide gerçek ek varsa gönderenin adının yanında ataç + sayı; üzerine gelince dosya adları
+function pmYzEk(m) {
+  const L = m.ekler || [];
+  return L.length ? `<span class="pm-yz-ek" data-ipucu="${esc(L.join(' · '))}">${svg('ek')}<b>${L.length}</b></span>` : '';
+}
+document.addEventListener('click', e => {
+  const li = e.target.closest('[data-pm-ileti]'); if (!li) return;
+  const m = P_YAZISMA[+li.dataset.pmIleti]; if (!m) return;
+  const satir = [...(POSTALAR || []), ...(ANA_POSTA || [])].find(x => x.id === m.id) || { id: m.id, store: m.store };
+  postaKapat(); postaAktar(satir);   // açık ileti okunmamışsa okundu olur, seçilen aynı pencerede açılır
+});
+/* HTML posta gövdesi (16.10.2026): Outlook'taki gibi bağlantılar, tablolar ve resimler.
+   GÜVENLİK: gövde BETİKSİZ ve AYRI KÖKENLİ bir iframe'de gösterilir (sandbox, allow-scripts
+   ve allow-same-origin YOK) — iletideki kod Assist'e, anahtarına ya da sunucuya erişemez.
+   İçine konan CSP de betiği, formu ve dış bağlantıyı yasaklar. Uzak resimler (izleme
+   pikselleri, dış sunucuya istek) Outlook'taki gibi VARSAYILAN ENGELLİ; "Resimleri göster"
+   ile o ileti için açılır. Satır içi (ekli) resimler sunucuda data: adresine çevrilmiştir.
+   Bağlantılar yeni pencerede açılır. */
+function postaHtmlGoster(html, uzakResim) {
+  const f = $('#mpHtml'); if (!f) return;
+  const csp = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data: cid:" + (uzakResim ? ' https: http:' : '') + "; form-action 'none'";
+  // Uzak resim var mı? (http/https src) — varsa bilgi ve düğme görünür.
+  const uzakVar = /<img[^>]+src\s*=\s*["']?\s*https?:/i.test(html) || /url\(\s*["']?https?:/i.test(html);
+  $('#mpResim').style.display = uzakVar && !uzakResim ? '' : 'none';
+  $('#mpResimNot').style.display = uzakVar && !uzakResim ? '' : 'none';
+  const ust = $('#mpGovde .posta-html-ust'); if (ust) ust.style.display = uzakVar && !uzakResim ? '' : 'none';   // boşken yer kaplamasın
+  const bas = '<meta http-equiv="Content-Security-Policy" content="' + csp + '"><base target="_blank">' +
+    '<style>html,body{margin:0;padding:10px 12px;font-family:Calibri,"Segoe UI",Arial,sans-serif;font-size:13px;color:#1a1d23;background:#fff;word-wrap:break-word}img{max-width:100%;height:auto}table{max-width:100%}</style>';
+  // Yönlendirme (meta refresh) çerçeveyi dış sayfaya götürmesin.
+  html = html.replace(/<meta[^>]+http-equiv\s*=\s*["']?refresh[^>]*>/gi, '');
+  // Gövdenin kendi <head>'i varsa CSP en başa konur (meta CSP belge başında olmalı).
+  f.srcdoc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + bas) : bas + html;
+  f.onload = () => {
+    // Yükseklik içeriğe göre (sandbox'ta erişim yok: sabit yükseklik + kaydırma)
+    f.style.height = Math.min(window.innerHeight * 0.56, 2000) + 'px';
+  };
+  $('#mpResim').onclick = () => postaHtmlGoster(html, true);
+  if ($('#mpDuz')) $('#mpDuz').onclick = () => {   // Düz metin düğmesi kaldırıldı (16.10.2026); düğme yoksa atlanır
+    const duz = $('#mpDuzMetin'), acik = duz.style.display === 'none';
+    duz.style.display = acik ? '' : 'none'; f.style.display = acik ? 'none' : '';
+    $('#mpDuz').textContent = acik ? 'Biçimli göster' : 'Düz metin';
+  };
 }
 function pmAksiyonEkle() {
   const kutu = $('#pmAksBloklar'), n = $$('.pm-blok[data-aks]', kutu).length;
@@ -3744,24 +4247,372 @@ function pmAksiyonEkle() {
       <div class="pm-blok-h">Aksiyon<span class="sp"></span><button class="ikon-btn" data-pm-sil title="Kaldır">${svg('x')}</button></div>
       <div class="field"><label>Alınacak aksiyon</label><textarea rows="2" data-a="metin"></textarea></div>
       <div class="grid2">
-        <div class="field"><label>Sorumlu</label><input data-a="sorumlu" data-kisi-sec autocomplete="off" value="${esc('')}"></div>
+        <div class="field"><label>Sorumlu</label><input data-a="sorumlu" data-kisi-sec autocomplete="off" placeholder="Ad yazın, listeden seçin" value="${esc('')}"></div>
         <div class="field"><label>Termin</label><input type="date" data-a="termin" value="${tb ? tb.tarih : ''}">${ipucu ? `<div class="ipucu">${ipucu}</div>` : ''}</div>
         <div class="field"><label>Önem</label><select data-a="onem"><option value="normal">Normal</option><option value="yuksek" ${/(acil|ivedi|urgent|önemli)/.test(trK(P.konu)) ? 'selected' : ''}>Yüksek</option></select></div>
         <div class="field"><label>Tahmini süre (saat)</label><input type="number" min="0" step="0.5" data-a="tahmini">${ilk ? tahminIpucu(P.konu, P.kimden) : ''}</div>
       </div></div>`);
   $('#pmAksEkle').style.display = '';
+  pmFormGorunum();
   const son = $$('.pm-blok[data-aks]', kutu).pop();
   $('[data-a=metin]', son).focus();
 }
+/* Posta penceresi (16.10.2026): posta tam genişlik; Not / Aksiyon seçilince form sağda açılır, form boşalınca kapanır.
+   Kaydet yalnız form açıkken görünür. Sol alttaki + menüsü: Not, Aksiyon, Talep (talep formu postayla dolar). */
+function pmFormGorunum() {
+  const f = $('#pmForm');
+  const dolu = !!(f && ($$('#pmAksBloklar .pm-blok').length || $('#pmNotMetin')));
+  // Sağ bölme: Not/Aksiyon formu ya da araç kutuları (Özet, Çeviri, Yanıt) varsa açılır
+  const arac = !!(f && ($('#pmAracKutu').children.length || $('#pmYanitKutu').innerHTML.trim()));
+  $('#mpAlt').hidden = !dolu; $('#mPosta').classList.toggle('alt-yok', !dolu);   // alt çubuk (Kaydet) yalnız Not/Aksiyon açıkken; yoksa balonlar en alta iner
+  if (!f) return;
+  // Yazışma listesi sağ bölmeyi yalnız başka bir şey açık değilken kullanır (Yanıt vb. açılınca yerini ona bırakır)
+  const yz = $('#pmYazisma'), yzVar = !!(yz && yz.innerHTML.trim()); if (yz) yz.hidden = dolu || arac;
+  f.hidden = !(dolu || arac || yzVar); $('#mpGovde .aktar').classList.toggle('form-acik', dolu || arac || yzVar);
+  $('#mpKaydet').style.display = dolu ? '' : 'none';
+}
+function pmMenu(ac) {
+  const m = $('#pmMenu'); m.hidden = !(ac ?? m.hidden); $('#pmArti').classList.toggle('acik', !m.hidden);
+  // Biçimli posta ayrı kökenli iframe'de: içine tıklama sayfaya ulaşmaz. Menü açıkken iframe tıklama almaz,
+  // tıklama sayfaya düşer ve menü kapanır.
+  $('#mPosta').classList.toggle('pm-menu-acik', !m.hidden);
+}
+// + menüsü açıkken menü ve + dışında herhangi bir yere tıklanınca kapanır (yakalama evresi: diğer işleyiciler "return" etse de)
+document.addEventListener('click', e => { const m = $('#pmMenu'); if (m && !m.hidden && !e.target.closest('#pmMenu, #pmArti')) pmMenu(false); }, true);
+function pmTalep() {
+  if (!P) return;
+  const p = P; postaKapat();   // posta penceresi kapanır (okunmamışsa okundu olur)
+  kayitYeni('talep'); postadanDoldur(p);   // başlık, açıklama, termin postadan; posta "Eklenen posta"da
+}
+/* ── Posta araçları (16.10.2026): Sesli oku · Özetle · Çevir · Yanıtla ──
+   Sesli oku: tarayıcının YALNIZ bilgisayardaki (localService) Windows sesleri; metin dışarı gitmez.
+   Özetle: çevrimdışı özet motoru (ozetle + terminBul). Çevir / dikte: sunucu üzerinden şirketin Azure hesabı.
+   Yanıt: yazılı ya da sesli; posta başka dildeyse otomatik o dile çevrilir; Outlook'ta TASLAK açılır (gönderilmez). */
+let P_CEV = null, P_DIL = '', OKU_AKTIF = false, KAYIT = null;
+const dilAdi = k => { try { return new Intl.DisplayNames(['tr'], { type: 'language' }).of(k) || k; } catch { return k; } };
+if ('speechSynthesis' in window) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices(); }   // ses listesi önceden yüklensin
+const DIKTE_DIL = [['tr-TR', 'Türkçe'], ['en-US', 'İngilizce'], ['de-DE', 'Almanca'], ['fr-FR', 'Fransızca'], ['ar-SA', 'Arapça'], ['ru-RU', 'Rusça']];
+// Dil tahmini (çevrimdışı, 16.10.2026): yazı sistemi + sık sözcükler + Türkçeye özgü harfler. Okuma sesi bununla seçilir;
+// Azure çevirisi yapıldıysa onun algıladığı dil (P_DIL) önceliklidir.
+const DIL_SOZ = {
+  tr: 've bir bu için ile da de çok olan gibi daha ama ne mi sonra kadar olarak rica ederim teşekkürler merhaba saygılarımla lütfen hafta gün tarafından',
+  en: 'the and to of a in is that for you it with on this be are as we have please will your from at our by thank regards would can',
+  de: 'der die und das ist nicht mit sie ich zu den ein eine für auf dem bitte wir ihr vielen dank grüße sehr',
+  fr: 'le la les et des est une pour que dans pas vous nous avec sur bonjour merci cordialement votre',
+  es: 'el la los las y que de en es por para una con no saludos gracias usted nuestro',
+  it: 'il la che di e un una per non con sono grazie saluti cordiali nostro vostro'
+};
+const DIL_SET = Object.fromEntries(Object.entries(DIL_SOZ).map(([k, v]) => [k, new Set(v.split(' '))]));
+function dilTahmin(metin) {
+  const t = String(metin || '').slice(0, 4000);
+  const kiril = (t.match(/[Ѐ-ӿ]/g) || []).length, arap = (t.match(/[؀-ۿ]/g) || []).length, latin = (t.match(/[A-Za-zÀ-ÿĞğŞşİı]/g) || []).length;
+  if (arap > latin && arap > kiril) return 'ar';
+  if (kiril > latin) return 'ru';
+  const soz = trK(t).match(/[a-zçğıöşüäßéèêàâîôûñ]+/g) || [], puan = {};
+  for (const k in DIL_SET) puan[k] = soz.reduce((s, w) => s + (DIL_SET[k].has(w) ? 1 : 0), 0);
+  puan.tr += 2 * (t.match(/[ğşıİĞŞ]/g) || []).length;   // Türkçeye özgü harfler
+  const [en, deger] = Object.entries(puan).sort((a, b) => b[1] - a[1])[0];
+  return deger > 0 ? en : 'tr';
+}
+// Postanın asıl metni: alıntılanan eski yazışma ve yasal uyarıdan önceki kısım
+function postaAsilMetin() {
+  const out = [];
+  for (const s of String(P && P.govde || '').replace(/\r/g, '').split('\n')) {
+    const t = trK(s.trim());
+    if (/^(from|kimden|gönderen|sent|gönderildi)\s*:|^-{2,}\s*(original|özgün|orijinal|forwarded|iletilen)|^_{6,}|^on .+wrote:?$|tarihinde .+ yazdı:?$/.test(t)) break;
+    if (!t.startsWith('>')) out.push(s);
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+let OKU_SES = null;   // Azure ile okunurken çalan ses
+function pmOkuBalon() { const b = $('#pmOku'); if (b) { b.innerHTML = svg('durdur'); b.classList.add('aktif'); b.dataset.ipucu = 'Okumayı durdur'; } }
+function pmOkuDurdur() {
+  try { speechSynthesis.cancel(); } catch {} if (OKU_SES) { OKU_SES.pause(); OKU_SES = null; }
+  OKU_AKTIF = false; const b = $('#pmOku'); if (b) { b.innerHTML = svg('ses'); b.classList.remove('aktif'); b.dataset.ipucu = 'Sesli oku — postayı dilini algılayarak okur (çevrildiyse çeviriyi)'; }
+}
+// Bilgisayarda o dilin Windows sesi yoksa: şirketin Azure Konuşma hizmeti (doğal ses), ~2500 karakterlik parçalar sırayla
+async function pmOkuAzure(metin, dil) {
+  const parcalar = []; let p = '';
+  for (const c of metin.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]*\s*/g) || [metin]) { if ((p + c).length > 2500 && p) { parcalar.push(p); p = ''; } p += c; }
+  if (p) parcalar.push(p);
+  OKU_AKTIF = true; pmOkuBalon();
+  let sonraki = apiJson('/api/ses-oku', { method: 'POST', body: JSON.stringify({ metin: parcalar[0], dil }) });
+  for (let i = 0; i < parcalar.length && OKU_AKTIF; i++) {
+    let j; try { j = await sonraki; } catch (e) { toast(e.message, true); break; }
+    if (i + 1 < parcalar.length) sonraki = apiJson('/api/ses-oku', { method: 'POST', body: JSON.stringify({ metin: parcalar[i + 1], dil }) });   // bir sonraki parça önceden istenir
+    if (!OKU_AKTIF) break;
+    OKU_SES = new Audio('data:audio/mpeg;base64,' + j.ses);
+    await new Promise(r => { OKU_SES.onended = r; OKU_SES.onerror = r; OKU_SES.onpause = r; OKU_SES.play().catch(r); });
+  }
+  if (OKU_AKTIF) pmOkuDurdur();
+}
+async function pmOku() {
+  if (OKU_AKTIF) return pmOkuDurdur();
+  const ceviriVar = P_CEV && $('#pmCeviriKutu');
+  const asil = postaAsilMetin(), metin = ceviriVar ? P_CEV.ceviri : asil;
+  const dil = ceviriVar ? (P_CEV.hedef || 'tr') : (P_DIL || dilTahmin(P.konu + '\n' + asil));   // postanın dili algılanır: İngilizce posta İngilizce okunur
+  if (!metin) return toast('Okunacak metin yok.', true);
+  const sesler = 'speechSynthesis' in window ? speechSynthesis.getVoices().filter(v => v.localService) : [];   // yalnız bilgisayardaki sesler (tarayıcının çevrim içi sesleri metni dışarı gönderir)
+  const ses = sesler.find(v => v.lang.toLowerCase().startsWith(dil)) || null;
+  if (!ses) {
+    if (!CEV.yuklendi) { await cevAyarYukle(); CEV.yuklendi = true; }
+    if (CEV.konusma) return pmOkuAzure(metin, dil);
+    return toast(`Bu bilgisayarda ${dilAdi(dil)} Windows sesi yok. Windows Ayarlar › Zaman ve dil › Konuşma'dan eklenebilir ya da Ayarlar › Çeviri ve Ses'e Azure Konuşma anahtarı girilirse doğal sesle okunur.`, true);
+  }
+  // Uzun metin cümle cümle sıraya konur (tek parça uzun okumada tarayıcı yarıda kesebiliyor)
+  const parcalar = metin.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]*\s*/g) || [metin];
+  speechSynthesis.cancel(); OKU_AKTIF = true; pmOkuBalon();
+  parcalar.forEach((p, i) => { const u = new SpeechSynthesisUtterance(p); u.voice = ses; u.lang = ses.lang; u.rate = 1;
+    if (i === parcalar.length - 1) u.onend = () => { if (OKU_AKTIF) pmOkuDurdur(); }; speechSynthesis.speak(u); });
+}
+function pmKutu(id, html) {   // araç kutusu: aynı düğmeye tekrar basınca kapanır
+  const k = $('#pmAracKutu'), var_ = $('#' + id);
+  if (var_) { var_.remove(); pmFormGorunum(); return false; }
+  k.insertAdjacentHTML('beforeend', `<div class="pm-arac-kutu" id="${id}">${html}</div>`); pmFormGorunum(); return true;
+}
+function pmOzet() {
+  const o = ozetle(P.govde), tb = P_TB;
+  pmKutu('pmOzetKutu', `<div class="pak-h">${svg('ozet')}Özet<span class="sp"></span><button class="ikon-btn" data-pak-kapat="pmOzetKutu" title="Kapat">${svg('x')}</button></div>
+    <div class="pak-metin">${o ? esc(o) : 'Özetlenecek metin bulunamadı.'}</div>
+    ${tb ? `<div class="pak-alt">Tarih/termin: <b>${esc(trTarih(tb.tarih))}</b> ${tb.kaynak === 'bayrak' ? '(Outlook bayrağı)' : tb.alinti ? '— <q>' + esc(tb.alinti) + '</q>' : ''}</div>` : ''}
+    ${P.ekler.length ? `<div class="pak-alt">Ekler: ${P.ekler.map(esc).join(', ')}</div>` : ''}`);
+}
+async function cevHazir(tur) {
+  if (!CEV.yuklendi) { await cevAyarYukle(); CEV.yuklendi = true; }
+  if (CEV[tur]) return true;
+  toast(tur === 'ceviri' ? 'Çeviri için Ayarlar › Çeviri ve Ses bölümüne şirketin Azure Translator anahtarını girin.' : 'Sesli cevap için Ayarlar › Çeviri ve Ses bölümüne Azure Konuşma anahtarını ve bölgesini girin.', true);
+  return false;
+}
+// Çevir: posta seçilen dile (Çevir'in yanındaki liste; seçim hatırlanır) çevrilir. Liste değişince açık çeviri yenilenir.
+/* ── Çeviri motoru (16.10.2026): önce BİLGİSAYARDA (Mozilla Bergamot, metin dışarı gitmez), o dil çifti kurulu
+   değilse ve anahtar varsa Azure. Ayarlar › Çeviri ve Ses'te "Azure'u tercih et" seçilirse önce Azure.
+   Bergamot ayrı işçide (ceviri-isci.js) çalışır; işçinin ağ izni yoktur (sunucu CSP'si). Motor ve modeller
+   /lib/bergamot'tan sayfaca okunup işçiye aktarılır; işçi bir kez kurulur, sayfa açık kaldıkça kullanılır. */
+let BG = null;   // { isci, surum, hazir: Promise, modeller: {cift: Promise}, sayac, bekleyen: {id: {coz, red}} }
+async function bgSurum() {
+  if (BG && BG.surum !== undefined) return BG.surum;
+  BG = BG || {};
+  try { const r = await fetch('/lib/bergamot/surum.json', { cache: 'no-store' }); BG.surum = r.ok ? await r.json() : null; } catch { BG.surum = null; }
+  return BG.surum;
+}
+const bgCift = (k, h) => { const s = BG && BG.surum; if (!s) return null; if (s.ciftler[k + h]) return k + h;
+  if (k !== 'en' && h !== 'en' && s.ciftler[k + 'en'] && s.ciftler['en' + h]) return [k + 'en', 'en' + h]; return null; };   // İngilizce üzerinden
+function bgIsci() {
+  if (BG.isci) return BG.hazir;
+  BG.isci = new Worker('/ceviri-isci.js'); BG.modeller = {}; BG.sayac = 0; BG.bekleyen = {};
+  BG.isci.onmessage = e => { const d = e.data, a = d.id || d.tur, b = BG.bekleyen[a]; if (!b) return; delete BG.bekleyen[a]; d.tur === 'hata' ? b.red(new Error(d.hata)) : b.coz(d); };
+  BG.isci.onerror = e => { Object.values(BG.bekleyen).forEach(b => b.red(new Error('Çeviri motoru çalışmadı: ' + (e.message || '')))); BG.bekleyen = {}; };
+  const bekle = anahtar => new Promise((coz, red) => { BG.bekleyen[anahtar] = { coz, red }; });
+  BG.ileti = (anahtar, veri, aktar) => { const p = bekle(anahtar); BG.isci.postMessage(veri, aktar || []); return p; };
+  BG.hazir = fetch('/lib/bergamot/bergamot-translator.wasm').then(r => r.arrayBuffer()).then(wasm => BG.ileti('hazir', { tur: 'baslat', wasm }, [wasm]));
+  return BG.hazir;
+}
+function bgModel(cift) {
+  if (!BG.modeller[cift]) BG.modeller[cift] = (async () => {
+    const d = BG.surum.ciftler[cift].dosyalar, dosyalar = {};
+    for (const tur of Object.keys(d)) dosyalar[tur] = await (await fetch(`/lib/bergamot/${cift}/${encodeURIComponent(d[tur].ad)}`)).arrayBuffer();
+    return BG.ileti('model-tamam', { tur: 'model', cift, dosyalar }, Object.values(dosyalar));
+  })();
+  return BG.modeller[cift];
+}
+async function bgCevir(metin, kaynak, hedef) {
+  const cift = bgCift(kaynak, hedef); if (!cift) throw new Error('Bu dil çifti bilgisayarda kurulu değil.');
+  await bgIsci(); for (const c of [].concat(cift)) await bgModel(c);
+  const satirlar = metin.replace(/\r/g, '').split('\n'), id = 'c' + (++BG.sayac);
+  const r = await BG.ileti(id, { tur: 'cevir', id, cift, metinler: satirlar });
+  return r.metinler.join('\n');
+}
+// Tek giriş: { ceviri, dil (kaynak), motor: 'yerel'|'azure' }. kaynak verilmezse çevrimdışı tahmin edilir.
+async function ceviriYap(metin, hedef, kaynak) {
+  await bgSurum(); if (!CEV.yuklendi) { await cevAyarYukle(); CEV.yuklendi = true; }
+  const k = kaynak || dilTahmin(metin);
+  if (k === hedef) return { ceviri: metin, dil: k, motor: 'yok' };
+  const yerelOlur = !!bgCift(k, hedef), azureOnce = V.ayar.cevirMotor === 'azure' && CEV.ceviri;
+  if (yerelOlur && !azureOnce) { try { return { ceviri: await bgCevir(metin, k, hedef), dil: k, motor: 'yerel' }; } catch (e) { if (!CEV.ceviri) throw e; } }
+  if (CEV.ceviri) { const j = await apiJson('/api/ceviri', { method: 'POST', body: JSON.stringify({ metin, hedef }) }); return { ceviri: j.ceviri, dil: j.dil || k, motor: 'azure' }; }
+  throw new Error(`${dilAdi(k)} → ${dilAdi(hedef)} çevirisi bu bilgisayarda kurulu değil (kurulu: İngilizce ↔ Türkçe). Diğer diller için Azure anahtarı gerekli.`);
+}
+async function ceviriMumkun(k, h) { await bgSurum(); if (!CEV.yuklendi) { await cevAyarYukle(); CEV.yuklendi = true; } return !!bgCift(k, h) || !!CEV.ceviri; }
+const motorAdi = m => m === 'outlook' ? 'Outlook\'un çevirisiyle (Microsoft Translator, şirketin Microsoft 365 lisansı) çevrildi' : m === 'yerel' ? 'bu bilgisayarda (Mozilla Bergamot) çevrildi, metin dışarı gitmedi' : m === 'azure' ? 'Microsoft Translator (şirket hesabı) ile çevrildi' : '';
+const CEVIR_DIL = [['tr', 'Türkçe'], ['en', 'İngilizce'], ['de', 'Almanca'], ['fr', 'Fransızca'], ['es', 'İspanyolca'], ['it', 'İtalyanca'], ['ru', 'Rusça'], ['ar', 'Arapça']];
+async function pmCevir(yenile) {
+  if ($('#pmCeviriKutu') && !yenile) { $('#pmCeviriKutu').remove(); return pmFormGorunum(); }
+  const metin = postaAsilMetin(); if (!metin) return toast('Çevrilecek metin yok.', true);
+  // Yön otomatik: posta Türkçeyse İngilizceye, değilse Türkçeye
+  const kaynak0 = P_DIL || dilTahmin(P.konu + '\n' + metin), hedef = kaynak0 === 'tr' ? 'en' : 'tr', b = $('#pmCevir'); b.disabled = true;
+  if ($('#pmCevirDurum')) $('#pmCevirDurum').remove();
+  $('#pmAracKutu').insertAdjacentHTML('afterbegin', '<div class="pak-alt" id="pmCevirDurum">Çevriliyor… (ilk çeviride motor bir kez yüklenir)</div>'); pmFormGorunum();
+  try {
+    let j = P_CEV && P_CEV.id === P.id && P_CEV.hedef === hedef ? P_CEV : null;
+    const kaynak = P_DIL || dilTahmin(P.konu + '\n' + metin);
+    // Türkçeye: önce Outlook'un kendi çevirisi (Microsoft Translator, M365) — posta kısa süre küçültülmüş açılır
+    if (!j && hedef === 'tr' && kaynak !== 'tr' && V.ayar.outlookCeviri !== false) {
+      $('#pmCevirDurum').textContent = 'Outlook\'un çevirisi alınıyor… (posta birkaç saniye görev çubuğunda küçük açılır)';
+      try { const o = await apiJson('/api/posta/outlook-cevir', { method: 'POST', body: JSON.stringify({ id: P.id, store: P.store, msgId: P.msgId || '' }) });
+        j = { ceviri: o.ceviri, dil: kaynak, motor: 'outlook', kaynakAd: o.kaynak }; }
+      catch (e) { $('#pmCevirDurum').textContent = 'Outlook çevirisi alınamadı, bilgisayardaki motorla çevriliyor…'; }
+    }
+    if (!j) j = await ceviriYap(metin, hedef, kaynak);
+    P_CEV = Object.assign({}, j, { id: P.id, hedef }); P_DIL = j.dil || P_DIL;
+    if ($('#pmCeviriKutu')) $('#pmCeviriKutu').remove();
+    if (j.dil && j.dil === hedef) { toast(`Posta zaten ${dilAdi(hedef)}.`); return; }
+    pmKutu('pmCeviriKutu', `<div class="pak-h">${svg('cevir')}Çeviri · ${esc(dilAdi(j.dil || '?'))} → ${esc(dilAdi(hedef))}<span class="sp"></span><button class="ikon-btn" data-pak-kapat="pmCeviriKutu" title="Kapat">${svg('x')}</button></div>
+      <div class="pak-metin">${esc(j.ceviri)}</div><div class="pak-alt">${esc(motorAdi(j.motor))}${hedef !== 'tr' && j.motor !== 'outlook' && V.ayar.outlookCeviri !== false ? ' (Outlook\'un çevirisi yalnız Türkçeye çevirebiliyor)' : ''}. Sesli oku artık çeviriyi okur.</div>`);
+  } catch (e) { toast(e.message, true); }
+  finally { if ($('#pmCevir')) $('#pmCevir').disabled = false; if ($('#pmCevirDurum')) $('#pmCevirDurum').remove(); pmFormGorunum(); }
+}
+document.addEventListener('change', e => {
+  if (e.target.id === 'pmYanitDil') { pmYanitCevirPlanla(0); }
+});
+// Postanın dili: Azure çevirisi algıladıysa o, yoksa çevrimdışı tahmin
+const pmPostaDili = () => P_DIL || dilTahmin(P.konu + '\n' + postaAsilMetin());
+/* Yanıt (16.10.2026): Assist'ten gönderilir (onaydan sonra) ya da Outlook'ta taslak açılır. Türkçe yazılan/söylenen metin
+   seçilen dile (varsayılan: postanın dili) yazdıkça otomatik çevrilir; çeviri gönderilmeden düzeltilebilir.
+   İmza: Outlook'taki yanıt imzanız; Outlook yanıta kendisi ekler (resimleriyle), burada metin hâli gösterilir. */
+let YANIT_ZAMAN = null, YANIT_SURUM = 0, IMZA = null;
+async function pmYanit() {
+  const k = $('#pmYanitKutu');
+  if (k.innerHTML) { k.innerHTML = ''; return pmFormGorunum(); }
+  if (!CEV.yuklendi) { await cevAyarYukle(); CEV.yuklendi = true; }
+  const pd = pmPostaDili(), varsHedef = pd && pd !== 'tr' ? pd : '';
+  const kime = P.kimden + (P.eposta ? ' <' + P.eposta + '>' : '');
+  k.innerHTML = `<div class="pm-arac-kutu"><div class="pak-h">${svg('yanit')}Yanıt<span class="sp"></span><button class="ikon-btn" data-pak-kapat="pmYanitKutu" title="Kapat">${svg('x')}</button></div>
+    <div class="pak-alt" style="margin:0 0 6px">Kime: <b>${esc(kime)}</b> <label class="ara-onay" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="pmTumune">Tümünü yanıtla</label></div>
+    <textarea id="pmYanitMetin" rows="4" placeholder="Cevabınızı yazın ya da Konuş'a basıp söyleyin"></textarea>
+    <div class="pak-satir">
+      <button class="btn sm" id="pmDikte" title="Windows sesli yazma (Win+H) — Outlook'taki dikte gibi">${svg('mikrofon')}<span>Konuş</span></button>
+      ${V.ayar.cevirMotor === 'azure' && CEV.konusma ? `<select id="pmDikteDil" class="btn sm" title="Konuştuğunuz dil (Azure dikte)">${DIKTE_DIL.map(([v, a]) => `<option value="${v}">${a}</option>`).join('')}</select>` : ''}
+      <span class="sp"></span><label class="pak-alt" style="margin:0">Gönderilecek dil</label>
+      <select id="pmYanitDil" class="btn sm"><option value="">Orijinal</option>${CEVIR_DIL.filter(([v]) => v !== 'tr').map(([v, a]) => `<option value="${v}"${v === varsHedef ? ' selected' : ''}>${a}</option>`).join('')}</select></div>
+    <div id="pmYanitCeviriAlan" ${varsHedef ? '' : 'hidden'}><div class="pak-alt" id="pmYanitCeviriBas">Gönderilecek metin — düzeltebilirsiniz</div><textarea id="pmYanitCeviri" rows="4"></textarea></div>
+    <div class="pak-satir"><span class="pak-alt" id="pmYanitNot" style="margin:0"></span><span class="sp"></span>
+      <button class="btn sm" id="pmYanitAc">Outlook'ta taslak aç</button><button class="btn sm primary" id="pmYanitGonder">${svg('gonder')}Gönder</button></div></div>`;
+  pmFormGorunum(); $('#pmYanitMetin').focus();
+  if (varsHedef && !(await ceviriMumkun('tr', varsHedef))) $('#pmYanitNot').textContent = `Türkçe → ${dilAdi(varsHedef)} çevirisi bu bilgisayarda kurulu değil; Azure anahtarı gerekli.`;
+}
+async function pmImzaGoster() {
+  if (IMZA === null) { try { IMZA = await apiJson('/api/imza'); } catch { IMZA = { ad: '', metin: '', html: '' }; } }
+  const e = $('#pmImza'); if (!e) return;
+  e.innerHTML = '';
+  if (IMZA.html) {
+    // Outlook imzası resimleriyle, olduğu gibi (açıklama yok). Gölge DOM: imzanın stili Assist'e karışmaz.
+    // Temizlik: betik/çerçeve/form/bağlantı öğeleri ve on* öznitelikleri atılır; önizleme tıklanamaz.
+    const d = new DOMParser().parseFromString('<body>' + IMZA.html + '</body>', 'text/html');
+    d.querySelectorAll('script,iframe,object,embed,link,meta,base,form,input,button,textarea,select').forEach(x => x.remove());
+    d.querySelectorAll('*').forEach(x => [...x.attributes].forEach(a => { if (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) x.removeAttribute(a.name); }));
+    const kok = e.attachShadow ? (e.shadowRoot || e.attachShadow({ mode: 'open' })) : e;
+    kok.innerHTML = '<style>:host{display:block}div.imza{font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#1f1f1f;pointer-events:none}img{max-width:100%;height:auto}p{margin:0}</style><div class="imza"></div>';
+    kok.querySelector('.imza').innerHTML = d.body.innerHTML;
+  } else if (IMZA.metin) e.innerHTML = `<div class="pm-imza-metin">${esc(IMZA.metin)}</div>`;
+}// Yazdıkça çeviri: 1,2 sn duraksayınca seçilen dile çevrilir; eski istek sonucu yenisini ezmez
+function pmYanitCevirPlanla(gecikme = 1200) {
+  const hedef = $('#pmYanitDil') ? $('#pmYanitDil').value : '';
+  $('#pmYanitCeviriAlan').hidden = !hedef;
+  clearTimeout(YANIT_ZAMAN);
+  if (!hedef) return;
+  YANIT_ZAMAN = setTimeout(async () => {
+    const metin = $('#pmYanitMetin').value.trim(), s = ++YANIT_SURUM;
+    if (!metin) { $('#pmYanitCeviri').value = ''; return; }
+    $('#pmYanitCeviriBas').textContent = `${dilAdi(hedef)} çeviri yapılıyor…`;
+    try {
+      const j = await ceviriYap(metin, hedef, 'tr');
+      if (s !== YANIT_SURUM || !$('#pmYanitCeviri')) return;
+      $('#pmYanitCeviri').value = j.ceviri; otoBoy($('#pmYanitCeviri'));
+      $('#pmYanitCeviriBas').textContent = `Gönderilecek metin (${dilAdi(hedef)}) — düzeltebilirsiniz`;
+    } catch (e) { if ($('#pmYanitCeviriBas')) $('#pmYanitCeviriBas').textContent = 'Çevrilemedi: ' + e.message; }
+  }, gecikme);
+}
+// Yanıt ve çeviri alanları içerik kadar büyür (cümleler yarıda kalmaz)
+function otoBoy(el) { if (!el) return; el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px'; }
+document.addEventListener('input', e => { if (e.target.id === 'pmYanitMetin') { otoBoy(e.target); pmYanitCevirPlanla(); } if (e.target.id === 'pmYanitCeviri') otoBoy(e.target); });
+// Gönderilecek metin: dil seçiliyse çeviri (bekleyen çeviri önce tamamlanır), değilse yazılan
+async function pmYanitMetniAl() {
+  const yazi = $('#pmYanitMetin').value.trim(), hedef = $('#pmYanitDil').value;
+  if (!yazi) { toast('Yanıt yazın ya da söyleyin.', true); return null; }
+  if (!hedef) return yazi;
+  clearTimeout(YANIT_ZAMAN);
+  let c = $('#pmYanitCeviri').value.trim();
+  if (!c) { const j = await ceviriYap(yazi, hedef, 'tr'); c = j.ceviri; $('#pmYanitCeviri').value = c; }
+  return c;
+}
+async function pmYanitAc(gonder) {
+  const b = $(gonder ? '#pmYanitGonder' : '#pmYanitAc'); b.disabled = true;
+  try {
+    const metin = await pmYanitMetniAl(); if (!metin) return;
+    const tum = $('#pmTumune').checked;
+    if (gonder && !confirm(`Yanıt ${tum ? 'tüm alıcılara' : P.kimden + ' kişisine'} şimdi gönderilsin mi?\n\n${metin.length > 300 ? metin.slice(0, 297) + '…' : metin}`)) return;
+    const j = await apiJson('/api/posta/yanitla', { method: 'POST', body: JSON.stringify({ id: P.id, store: P.store, msgId: P.msgId || '', metin, tumune: tum, gonder: !!gonder }) });
+    if (j.gonderildi) { toast('Yanıt gönderildi.'); $('#pmYanitKutu').innerHTML = ''; pmFormGorunum(); }
+    else toast('Yanıt Outlook\'ta taslak olarak açıldı.');
+  } catch (e) { toast(e.message, true); }
+  finally { if (b) b.disabled = false; }
+}// Dikte: mikrofon → 16 kHz mono PCM WAV (en çok 55 sn) → sunucu → Azure Konuşma → metin kutusuna eklenir
+async function pmDikte() {
+  if (KAYIT) return KAYIT.bitir();
+  if (!CEV.yuklendi) { await cevAyarYukle(); CEV.yuklendi = true; }
+  // Varsayılan: Windows sesli yazma (Win+H, Outlook'taki dikte gibi) — kutuya doğrudan yazar, anahtar gerekmez.
+  // Azure dikte yalnız "önce Azure" seçili ve Konuşma anahtarı tanımlıysa.
+  if (!(V.ayar.cevirMotor === 'azure' && CEV.konusma)) {
+    const t = $('#pmYanitMetin'); t.focus(); t.setSelectionRange(t.value.length, t.value.length);
+    try { await apiJson('/api/sesli-yazma', { method: 'POST', body: '{}' }); }
+    catch (e) { return toast('Sesli yazma açılamadı: ' + e.message + ' (Win+H ile de açabilirsiniz).', true); }
+    t.focus();
+    $('#pmYanitNot').textContent = 'Windows sesli yazma açıldı: konuşun, metin kutuya yazılır (Türkçe). Bitince susun ya da mikrofon simgesine basın.';
+    return;
+  }
+  let akis; try { akis = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { return toast('Mikrofona erişilemedi: ' + e.message, true); }
+  const ctx = new AudioContext(), kaynak = ctx.createMediaStreamSource(akis), isl = ctx.createScriptProcessor(4096, 1, 1), parcalar = [];
+  isl.onaudioprocess = e => parcalar.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  kaynak.connect(isl); isl.connect(ctx.destination);
+  const b = $('#pmDikte'); b.classList.add('kayit'); b.querySelector('span').textContent = 'Bitir';
+  const zaman = setTimeout(() => KAYIT && KAYIT.bitir(), 55000);
+  KAYIT = { iptal: () => { clearTimeout(zaman); KAYIT = null; try { isl.disconnect(); kaynak.disconnect(); } catch {} akis.getTracks().forEach(t => t.stop()); ctx.close().catch(() => {}); },
+    bitir: async () => {
+    clearTimeout(zaman); KAYIT = null;
+    isl.disconnect(); kaynak.disconnect(); akis.getTracks().forEach(t => t.stop());
+    const oran = ctx.sampleRate; await ctx.close();
+    if ($('#pmDikte')) { $('#pmDikte').classList.remove('kayit'); $('#pmDikte span').textContent = 'Çevriliyor…'; }
+    try {
+      const ses = wav16k(parcalar, oran);
+      const j = await apiJson('/api/konusma', { method: 'POST', body: JSON.stringify({ ses, dil: $('#pmDikteDil') ? $('#pmDikteDil').value : 'tr-TR' }) });
+      const t = $('#pmYanitMetin'); if (t) { t.value = (t.value.trim() ? t.value.trim() + ' ' : '') + j.metin; otoBoy(t); t.focus(); pmYanitCevirPlanla(0); }
+    } catch (e) { toast(e.message, true); }
+    if ($('#pmDikte span')) $('#pmDikte span').textContent = 'Konuş';
+  } };
+}
+function wav16k(parcalar, oran) {   // Float32 parçaları 16 kHz 16 bit mono WAV'a çevirir (base64)
+  const uz = parcalar.reduce((s, p) => s + p.length, 0), tum = new Float32Array(uz); let o = 0;
+  parcalar.forEach(p => { tum.set(p, o); o += p.length; });
+  const adim = oran / 16000, n = Math.floor(uz / adim), buf = new ArrayBuffer(44 + n * 2), d = new DataView(buf);
+  const yaz = (i, s) => { for (let k = 0; k < s.length; k++) d.setUint8(i + k, s.charCodeAt(k)); };
+  yaz(0, 'RIFF'); d.setUint32(4, 36 + n * 2, true); yaz(8, 'WAVEfmt '); d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true);
+  d.setUint32(24, 16000, true); d.setUint32(28, 32000, true); d.setUint16(32, 2, true); d.setUint16(34, 16, true); yaz(36, 'data'); d.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) { const v = Math.max(-1, Math.min(1, tum[Math.floor(i * adim)])); d.setInt16(44 + i * 2, v < 0 ? v * 0x8000 : v * 0x7FFF, true); }
+  let ikili = ''; const u8 = new Uint8Array(buf); for (let i = 0; i < u8.length; i += 0x8000) ikili += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(ikili);
+}
+document.addEventListener('click', e => {
+  const c = s => e.target.closest(s); let x;
+  if (c('#pmOku')) return pmOku();
+  if (c('#pmOzet')) return pmOzet();
+  if (c('#pmCevir')) return pmCevir();
+  if (c('#pmYanit')) return pmYanit();
+  if (c('#pmYanitAc')) return pmYanitAc(false);
+  if (c('#pmYanitGonder')) return pmYanitAc(true);
+  if (c('#pmDikte')) return pmDikte();
+  if ((x = c('[data-pak-kapat]'))) { const h = x.dataset.pakKapat; if (h === 'pmYanitKutu') $('#pmYanitKutu').innerHTML = ''; else { const el = $('#' + h); if (el) el.remove(); } pmFormGorunum(); }
+});
 function pmNotAc() {
   if (!$('#pmNotMetin')) $('#pmNotBlok').innerHTML = `<div class="pm-blok">
       <div class="pm-blok-h">Not<span class="sp"></span><button class="ikon-btn" data-pm-not-sil title="Kaldır">${svg('x')}</button></div>
       <textarea id="pmNotMetin" rows="5"></textarea>
       <div class="field" style="max-width:220px"><label>Termin (isteğe bağlı)</label><input type="date" id="pmNotTermin"></div></div>`;
+  pmFormGorunum();
   $('#pmNotMetin').focus();
 }
 // Postayı kayda bağlarken sunucuda .msg kopyası ve (ayarlıysa) Outlook kategorisi
 async function postaBaglaSunucu(d) {
+  if (ornekMi(d.id)) return { posta: { id: d.id, store: '', msgId: '', konu: d.konu, kimden: d.kimden, eposta: d.eposta || '', tarih: d.tarih, msg: '' }, uyari: '' };   // GEÇİCİ ÖRNEK — silinecek
   const ap = V.ayar.posta;
   let msg = '', uyari = '';
   try {
@@ -3865,6 +4716,78 @@ async function postaBayrak(p, btn) {
   // Bayraklı postalar takip ediliyorsa zildeki "eklenmemiş posta" sayısı da tazelensin
   if (V.ayar.posta.kaynak === 'bayrakli') postaArkaPlanKontrol();
 }
+/* Postayı sil (16.10.2026): Outlook'ta Silinmiş Öğeler'e taşınır, oradan geri
+   alınabilir. Postadan alınmış açık aksiyon / not varsa önce uyarılır; onlar
+   kendi listelerinde kalır, posta takipten çıkar. */
+async function postaSil(p, btn) {
+  if (!p) return;
+  const o = postaOzet(p.id);
+  const acik = [o.aksAcik ? ` açık aksiyon` : '', o.notAcik ? ` açık not` : ''].filter(Boolean).join(' ve ');
+  if (!confirm(`"${p.konu || '(konusuz)'}" postası silinsin mi?\n\nPosta Outlook'ta Silinmiş Öğeler'e taşınır; oradan geri alınabilir.` +
+    (acik ? `\n\nBu postada ${acik} var; onlar kendi listelerinde açık kalır.` : ''))) return;
+  btn.disabled = true;
+  try {
+    await apiJson('/api/posta/sil', { method: 'POST', body: JSON.stringify({ id: p.id, store: p.store, msgId: p.msgId || '' }) });
+    if (!V.takipDisi.includes(p.id)) { V.takipDisi.push(p.id); kaydet(); }
+    if (POSTALAR) POSTALAR = POSTALAR.filter(x => x.id !== p.id);
+    if (BAYRAKLI) BAYRAKLI = BAYRAKLI.filter(x => x.id !== p.id);
+    toast("Posta Silinmiş Öğeler'e taşındı.");
+    if (POSTALAR) postaListeCiz();
+    bayrakliCiz(); sayacYukle();
+  } catch (e) { btn.disabled = false; toast('Posta silinemedi: ' + e.message, true); }
+}
+/* Posta ekleri (16.10.2026): ek Outlook'taki postadan açılır — Outlook'un kendi geçici
+   ek klasörüne yazılıp varsayılan programla açılır; Assist'te saklanmaz. Belge türü
+   dışındaki ekler (program, betik) için posta Outlook'ta açılır. */
+/* Posta listesi işaretleri (16.10.2026): yazışmanın parçası (bu iletiden önce ileti var) ve gerçek eki var
+   (satır içi imza resimleri sayılmaz; sunucu Outlook tablosundaki PR_HASATTACH'ı verir). */
+function postaIsaret(p) {
+  const s = (p.yz ? `<span data-ipucu="Yazışma: bu iletiden önce ${p.yz} ileti var">${svg('sohbet')}</span>` : '') +
+    (p.ek ? `<span data-ipucu="Eki var">${svg('ek')}</span>` : '');
+  return s ? `<span class="p-isaret">${s}</span>` : '';
+}
+// Ek türü → işaret (posta penceresindeki ek listesi)
+const EK_TUR = [
+  [/\.pdf$/i, '📕', 'PDF'], [/\.(docx?|rtf|odt)$/i, '📝', 'Word'], [/\.(xlsx?|xlsm|csv|ods)$/i, '📊', 'Excel'],
+  [/\.(pptx?|odp)$/i, '📽️', 'PowerPoint'], [/\.(png|jpe?g|gif|bmp|webp|tiff?|heic)$/i, '🖼️', 'Resim'],
+  [/\.(zip|rar|7z|gz)$/i, '🗜️', 'Arşiv'], [/\.(msg|eml)$/i, '✉️', 'Posta'], [/\.(txt|log)$/i, '📃', 'Metin'],
+  [/\.(dwg|dxf)$/i, '📐', 'Çizim'], [/\.(mp4|mov|avi|wmv)$/i, '🎬', 'Video'], [/\.(mp3|wav|m4a)$/i, '🎵', 'Ses']
+];
+const ekTur = ad => (EK_TUR.find(([r]) => r.test(ad || '')) || [null, '📎', 'Dosya']).slice(1);
+// Ek simgesi: Windows'un o tür için gösterdiği özgün simge (sunucu /simge/<uzantı>.png); Windows türü tanımıyorsa
+// ya da uzantı yoksa emoji kalır (resim yüklenemezse aşağıdaki işleyici emojiye çevirir)
+function ekSimge(ad) {
+  const em = ekTur(ad)[0], uz = ((/\.([A-Za-z0-9]{1,8})$/.exec(ad || '') || [])[1] || '').toLowerCase();
+  return uz ? `<img src="/simge/${uz}.png" alt="" data-emoji="${em}">` : em;
+}
+document.addEventListener('error', e => { const t = e.target; if (t && t.matches && t.matches('img[data-emoji]')) t.replaceWith(document.createTextNode(t.dataset.emoji)); }, true);
+// Posta penceresi: ekler satır yerine ataç düğmesi; tıklanınca ekler yumuşak açılan küçük listede (türüne göre işaretli)
+function ekCipler(p) {
+  const l = p.ekListe && p.ekListe.length ? p.ekListe : (p.ekler || []).map(ad => ({ ad, i: 0 }));
+  if (!l.length) return '';
+  return `<span class="pm-ek-sar"><button class="pm-ikon ek" id="mpEkDugme" data-ipucu="Ekler: ${l.length} dosya. Listeyi açmak için tıklayın">${svg('ek')}<b>${l.length}</b></button>
+    <div class="pm-ek-menu" id="mpEkMenu" hidden>${l.map(e => { const [em, tur] = ekTur(e.ad); return e.i
+      ? `<button class="pm-ek-oge" data-ek-ac="${e.i}" title="Aç"><span class="em">${ekSimge(e.ad)}</span><span class="ad">${esc(e.ad)}</span><span class="tur">${tur}</span></button>`
+      : `<span class="pm-ek-oge pasif"><span class="em">${ekSimge(e.ad)}</span><span class="ad">${esc(e.ad)}</span><span class="tur">${tur}</span></span>`; }).join('')}</div></span>`;
+}
+function ekMenu(ac) {
+  const m = $('#mpEkMenu'); if (!m) return;
+  m.hidden = !(ac ?? m.hidden); $('#mpEkDugme').classList.toggle('acik', !m.hidden);
+  $('#mPosta').classList.toggle('pm-menu-acik', !m.hidden || !$('#pmMenu').hidden);   // biçimli posta çerçevesi tıklamayı yutmasın
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('#mpEkDugme')) return ekMenu();
+  const m = $('#mpEkMenu'); if (m && !m.hidden && (!e.target.closest('#mpEkMenu') || e.target.closest('[data-ek-ac]'))) ekMenu(false);
+}, true);
+async function ekAc(i, btn) {
+  if (!P) return;
+  btn.disabled = true;
+  try {
+    const j = await apiJson('/api/posta/ek-ac', { method: 'POST', body: JSON.stringify({ id: P.id, store: P.store, msgId: P.msgId || '', i: +i }) });
+    toast(j.kaynak === 'outlook' ? "Bu tür ek güvenlik için Outlook'ta açılan postadan açılır." : 'Ek açılıyor…');
+  } catch (e) { toast('Ek açılamadı: ' + e.message, true); }
+  finally { btn.disabled = false; }
+}
 // Talep penceresindeki "Posta bağla": seçilen posta doğrudan o talebe bağlanır
 async function postaHedefeBagla(i) {
   const h = kayitBul(BAGLA_HEDEF), p = POSTALAR[i];
@@ -3893,7 +4816,7 @@ async function postaHedefeBagla(i) {
    puan/ağırlık bulgu olarak sunulmaz. Motor kuralları değişince
    OGR_SURUM yükseltilir; yoksa eski model sessizce kullanılmaya devam eder.
    ═══════════════════════════════════════════════════════════════ */
-const OGR_SURUM = '2026.10.13';
+const OGR_SURUM = '2026.10.16';   // 16.10.2026: kapanmış ortak işler de örnek (açılış → kapanış iş günü, termine göre gecikme)
 const DURAK = new Set(['ve', 'ile', 'için', 'icin', 'bir', 'bu', 'şu', 'da', 'de', 'ki', 'mi', 'mı', 'olarak', 'olan', 'gibi', 'daha',
   'çok', 'her', 'hakkında', 'ilgili', 'göre', 'kadar', 'sonra', 'önce', 'tarafından', 'yapılması', 'edilmesi', 'olması', 'konu', 'konusu',
   'hk', 'hkk', 'bilgi', 'rica', 'lütfen', 'acil', 'tarihli', 'sayılı', 'tarih']);
@@ -3924,6 +4847,15 @@ function ornekler() {
     if (k.tur === 'talep' && k.durum === 'tamam' && k.kapanis && k.olusturma && !k.aksiyonlar.length)
       O.push({ no: k.no, kok: kokler(k.baslik + ' ' + (k.ozet || '')), kimden: k.kimden || '', sorumlu: k.sorumlu || '',
         gun: isGunuSay(k.olusturma, k.kapanis), saat: null, gecikme: k.termin ? Math.round((new Date(k.kapanis.slice(0, 10)) - new Date(k.termin)) / 864e5) : null, neden: '' });
+  }
+  // Kapanmış ortak işler (16.10.2026): açılış → kapanış (defterdeki son 'Konuyu kapattı' girişi), termine göre gecikme.
+  // Kimden = konuyu açan. Yeniden açılmış konu (durum açık) örnek sayılmaz.
+  for (const k of (typeof ORTAK !== 'undefined' && ORTAK) || []) {
+    if (k.durum === 'acik' || !k.olusturma) continue;
+    const kap = [...(k.girisler || [])].reverse().find(g => g.tur !== 'not' && /kapat/i.test(g.metin || ''));
+    if (!kap) continue;
+    O.push({ no: 'OI-' + k.id.slice(0, 8), tur: 'ortak', kok: kokler(k.baslik || ''), kimden: (k.acan && k.acan.ad) || '', sorumlu: '',
+      gun: isGunuSay(k.olusturma, kap.t), saat: null, gecikme: k.termin ? Math.round((new Date(kap.t.slice(0, 10)) - new Date(k.termin)) / 864e5) : null, neden: '' });
   }
   return O;
 }
@@ -4206,6 +5138,9 @@ function ogrenilenlerHtml() {
   satir.push(`İşler ortanca <b>${MODEL.gunMed}</b> iş gününde kapanıyor.` + (MODEL.saatMed ? ` Harcanan sürenin ortancası <b>${saatYaz(MODEL.saatMed)}</b>.` : ''));
   const T = O.filter(o => o.gecikme !== null);
   if (T.length >= 3) { const z = T.filter(o => o.gecikme <= 0).length; satir.push(`Termini olan ${T.length} işin <b>${z}</b> tanesi (%${Math.round(z / T.length * 100)}) termininde kapandı.`); }
+  const OI = O.filter(o => o.tur === 'ortak');
+  if (OI.length) { const ot = OI.filter(o => o.gecikme !== null), oz = ot.filter(o => o.gecikme <= 0).length;
+    satir.push(`Ortak işler: <b>${OI.length}</b> kapanmış konu ortanca <b>${medyan(OI.map(o => o.gun))}</b> iş gününde kapandı` + (ot.length ? `; termini olan ${ot.length} konunun <b>${oz}</b> tanesi termininde kapandı.` : '.')); }
   const N = {}; O.filter(o => o.neden).forEach(o => N[o.neden] = (N[o.neden] || 0) + 1);
   const nl = Object.entries(N).sort((a, b) => b[1] - a[1]);
   if (nl.length) satir.push('Sekte nedenleri: ' + nl.map(([n, c]) => `${esc(n)} <b>${c}</b>`).join(' · '));
@@ -4354,8 +5289,21 @@ function hatCumleCoz(metin) {
 /* ── Hatırlatıcı listesi ── */
 function hatListeCiz() {
   const kok = $('#v-hat'), simdi = new Date();
-  const L = V.hatirlaticilar.map(h => ({ h, sonraki: h.aktif !== false ? hatSonraki(h, simdi) : null }))
+  const L0 = V.hatirlaticilar.map(h => ({ h, sonraki: h.aktif !== false ? hatSonraki(h, simdi) : null }))
     .sort((a, b) => (a.sonraki ? 0 : 1) - (b.sonraki ? 0 : 1) || (a.sonraki && b.sonraki ? a.sonraki - b.sonraki : (b.h.olusturma || '').localeCompare(a.h.olusturma || '')));
+  const durumAd = x => x.h.aktif === false ? 'Kapalı' : x.sonraki ? 'Bekliyor' : 'Geçti';
+  const EK_AD = { posta: 'Posta', belge: 'Belge', is: 'İş', link: 'Bağlantı' };
+  const K = [
+    { a: 'no', ad: 'No', tur: 'metin', d: x => x.h.no },
+    { a: 'acilis', ad: 'Açılış', tur: 'tarih', d: x => x.h.olusturma },
+    { a: 'baslik', ad: 'Hatırlatıcı', tur: 'metin', d: x => x.h.baslik + ' ' + (x.h.not || '') },
+    { a: 'sonraki', ad: 'Sonraki', tur: 'metin', d: x => x.sonraki ? saatYazHat(x.sonraki) : '', s: x => x.sonraki ? x.sonraki.toISOString() : '' },
+    { a: 'tekrar', ad: 'Tekrar', tur: 'metin', d: x => hatTekrarMetni(x.h) },
+    { a: 'ekler', ad: 'Ekler', tur: 'metin', d: x => [...new Set(x.h.ekler.map(e => EK_AD[e.tur] || e.tur))].join(' ') },
+    { a: 'durumAd', ad: 'Durum', tur: 'metin', d: durumAd },
+    { a: 'sil', ad: '', tur: null }
+  ];
+  const L = kolonSuzSirala('hat', L0, K);
   kok.innerHTML = `
     <div class="vhead"><h1>Hatırlatıcılar</h1></div>
     <div class="card"><div class="card-b yazarak">
@@ -4363,10 +5311,10 @@ function hatListeCiz() {
       <button class="btn primary" id="hatYaziBtn">Oluştur</button></div></div>
     <div class="card"><div class="card-h"><h3>Hatırlatıcılar</h3><span class="say">${L.length}</span><span class="sp"></span>
       <button class="btn primary sm" id="hatYeni">${svg('arti')}Yeni Hatırlatıcı</button></div>
-    <div class="card-b tight liste-kutu">${L.length ? `<table class="tbl"><thead><tr><th>No</th><th>Hatırlatıcı</th><th>Sonraki</th><th>Tekrar</th><th>Ekler</th><th>Durum</th><th></th></tr></thead><tbody>${
+    <div class="card-b tight liste-kutu">${L0.length ? `<table class="tbl"><thead><tr>${kolonBas('hat', K)}</tr></thead><tbody>${L.length ? '' : `<tr><td colspan="${K.length}" class="bos">Süzgece uyan hatırlatıcı yok.</td></tr>`}${
       L.map(({ h, sonraki }) => {
         const durum = h.aktif === false ? '<span class="badge gray">Kapalı</span>' : sonraki ? '<span class="badge blue">Bekliyor</span>' : '<span class="badge green">Geçti</span>';
-        return `<tr class="clickable${!sonraki ? ' soluk' : ''}" data-hat="${h.id}"><td class="no">${esc(h.no)}</td><td>${esc(h.baslik)}${h.not ? `<div class="ozet">${esc(h.not)}</div>` : ''}</td>` +
+        return `<tr class="clickable${!sonraki ? ' soluk' : ''}" data-hat="${h.id}"><td class="no">${esc(h.no)}</td><td class="tarih">${acilisYaz(h.olusturma)}</td><td>${esc(h.baslik)}${h.not ? `<div class="ozet">${esc(h.not)}</div>` : ''}</td>` +
           `<td class="tarih">${sonraki ? saatYazHat(sonraki) : ''}</td><td class="dar">${esc(hatTekrarMetni(h))}</td>` +
           `<td class="dar">${hatEkSimgeleri(h)}</td><td class="dar">${durum}</td>` +
           `<td class="dar"><button class="ikon-btn sil" data-hat-sil="${h.id}" title="Sil">${svg('cop')}</button></td></tr>`;
@@ -4547,7 +5495,7 @@ function bildirimHesapla() {
   // Ortak işler: karşıdan gelen okunmamış giriş olan konular (konu açılınca okundu sayılır)
   (ORTAK || []).forEach(k => { const n = ortakOkunmamis(k); if (n) B.unshift({ seviye: 'uyari', baslik: 'Ortak işte yeni giriş: ' + k.baslik, metin: n === 1 ? '1 yeni giriş' : n + ' yeni giriş',
     ortak: k.id, anahtar: 'ortak|' + k.id + '|' + ortakSonT(k) }); });
-  V.kayitlar.filter(k => k.gorulmedi).forEach(k => B.unshift({ seviye: 'uyari', baslik: (k.gorulmedi === 'cevap' ? 'Talebe cevap: ' : k.gorulmedi === 'kapat' ? 'Talep kapatıldı: ' : 'Yeni talep: ') + k.baslik, metin: [k.kimden, k.no].filter(Boolean).join(' · '),
+  V.kayitlar.filter(k => k.gorulmedi).forEach(k => B.unshift({ seviye: 'uyari', baslik: (k.gorulmedi === 'cevap' ? 'Talebe cevap: ' : k.gorulmedi === 'kapat' ? 'Talep kapatıldı: ' : k.gorulmedi === 'hatirlat' ? 'Talep hatırlatması: ' : 'Yeni talep: ') + k.baslik, metin: [k.kimden, k.no].filter(Boolean).join(' · '),
     k: k.id, anahtar: 'gelen|' + k.id + '|' + (k.guncelleme || '') }));
   if (POSTA_BEKLEYEN) B.unshift({ seviye: 'bilgi', baslik: `${POSTA_BEKLEYEN} posta kayda eklenmedi`, metin: postaKaynakSecenek().find(x => x[0] === A.posta.kaynak)[1],
     hedef: 'posta', anahtar: `posta|${POSTA_BEKLEYEN}|${bugun()}`, masaustu: true });
@@ -4690,15 +5638,13 @@ function ayarCiz() {
     outlook: kart('Outlook',
       ayarGrup('Posta Kutusu\'nda görünenler', `<div class="grid2">
         <div class="field"><label>Hangi postalar</label><select id="aKaynak">
-          <option value="gelen">Gelen Kutusu (tümü)</option><option value="bayrakli">Bayraklı postalar</option><option value="kategori">Kategorideki postalar</option></select></div>
+          <option value="gelen">Gelen Kutusu (tümü)</option><option value="bayrakli">Bayraklı postalar</option></select></div>
         <div class="field"><label>Son kaç gün</label><input type="number" id="aGun" min="1" max="365" value="${P_.gun}"></div>
         <div class="field"><label>Klasör (Gelen Kutusu altında)</label><input id="aKlasor" value="${esc(P_.klasor)}" placeholder="Gelen Kutusu"></div>
-        <div class="field"><label>Kategori adı</label><input id="aKategori" value="${esc(P_.kategori)}"></div>
         <div class="field"><label>Yeni posta kontrolü (dakikada bir)</label><input type="number" id="aKontrol" min="5" max="240" value="${A.kontrolDk}"></div></div>
         <div class="ayar-satir"><button class="btn sm" id="aDene">Bağlantıyı dene</button><span class="ayar-sonuc" id="aDeneSonuc"></span></div>`,
-        'Bayraklı ya da kategorili postalar kayda eklenene kadar zilde hatırlatılır.') +
-      ayarGrup('Kayda eklenen postalar', `${anahtarHtml('aMsg', 'Postanın kopyasını sakla (Outlook\'tan silinse de açılır)', P_.msgSakla)}
-        ${anahtarHtml('aKatAta', 'Postaya Outlook\'ta kategoriyi işle', P_.kategoriAta)}`) +
+        'Bayraklı postalar kayda eklenene kadar zilde hatırlatılır.') +
+      ayarGrup('Kayda eklenen postalar', `${anahtarHtml('aMsg', 'Postanın kopyasını sakla (Outlook\'tan silinse de açılır)', P_.msgSakla)}`) +
       // Telefon rehberi: şirket rehberi Outlook kişilerine (iPhone/Android'de gelen aramada isim)
       ayarGrup('Telefon rehberi (iPhone / Android)', `<div class="grid2"><div class="field"><label>Mobilden dahili arama öneki</label>
         <input id="aTelOnek" value="${esc(A.telOnek ?? '1')}" maxlength="4" style="max-width:90px"></div></div>
@@ -4728,7 +5674,24 @@ function ayarCiz() {
         ${[[0, 'Silinmesin'], [3, '3 ay sonra'], [6, '6 ay sonra'], [12, '1 yıl sonra'], [24, '2 yıl sonra']].map(([v, a]) => `<option value="${v}">${a}</option>`).join('')}</select></div></div>`) +
       ayarGrup('Yedek', `<div class="ayar-satir"><button class="btn" id="aYedekAl">Yedek indir (şifresiz)</button>
         <label class="btn">Yedekten yükle<input type="file" id="aYedekYukle" accept=".json" hidden></label></div>`,
-        'İndirilen yedek şifresizdir; güvenli bir yerde saklayın.'))
+        'İndirilen yedek şifresizdir; güvenli bir yerde saklayın.')),
+    // Çeviri ve dikte şirketin Azure hesabındaki Microsoft hizmetiyle (kullanıcı kararı 16.10.2026); anahtar sunucuda şifreli, sayfaya dönmez
+    ceviri: kart('Çeviri ve Ses',
+      ayarGrup('Durum', `<p class="ayar-ozet" id="aCevDurum">Okunuyor…</p>`,
+        'Özet bu bilgisayarda yapılır. Sesli okuma önce bilgisayardaki Windows sesini kullanır; o dilin sesi yoksa (ör. Türkçe) Azure Konuşma ile doğal sesle okunur. Çeviri, sesli cevap (dikte) ve Azure ile okuma için posta metni ya da ses kaydınız <b>şirketin Azure hesabındaki</b> Microsoft hizmetine gönderilir; ücretsiz genel hizmetler kullanılmaz.') +
+      ayarGrup('Bilgisayarda çeviri (Mozilla Bergamot)', `<p class="ayar-ozet" id="aBgDurum">Okunuyor…</p>
+        <div class="ayar-satir"><button class="btn sm" id="aBgDene">Bilgisayarda çeviriyi dene</button><button class="btn sm" id="aBgAg">Ağ kilidini denetle</button><span class="ayar-sonuc" id="aBgSonuc"></span></div>
+        ${anahtarHtml('aOutlookCev', 'Gelen postayı Türkçeye önce Outlook\'un çevirisiyle çevir (Microsoft Translator, şirket Microsoft 365 lisansı; posta birkaç saniye görev çubuğunda küçük açılır)', V.ayar.outlookCeviri !== false)}
+        ${anahtarHtml('aCevMotor', 'Anahtar varsa önce Azure kullan (daha iyi kalite; metin şirket Azure hesabına gider)', V.ayar.cevirMotor === 'azure')}`,
+        'İngilizce ↔ Türkçe çeviri bu bilgisayarda yapılır; posta metni hiçbir yere gönderilmez. Motor Firefox\'un çeviri motorudur (açık kaynak, MPL-2.0); ağ bağlantısı izni yoktur. Diğer diller için Azure gerekir. Güncellemeler kendiliğinden kurulmaz: Assist haftada bir yalnız sürüm listesine bakar, yeni sürüm varsa burada yazar; bakım sorumlusu kurar.') +
+      ayarGrup('Microsoft Translator (çeviri)', `<div class="grid2">
+        <div class="field"><label>Anahtar</label><input type="password" id="aCevAnahtar" autocomplete="off" placeholder="Değiştirmek için yazın"></div>
+        <div class="field"><label>Bölge (örn. westeurope)</label><input id="aCevBolge" autocomplete="off"></div></div>`,
+        'Anahtarı BT verir (Azure Portal › Translator ya da Azure AI services kaynağı › Anahtarlar ve uç nokta). Kaydedilince bu bilgisayarda Windows hesabınıza bağlı şifreli saklanır; ekranda bir daha gösterilmez.') +
+      ayarGrup('Azure Konuşma (sesli cevap / dikte)', `<div class="grid2">
+        <div class="field"><label>Anahtar (boşsa çeviri anahtarı kullanılır)</label><input type="password" id="aKonAnahtar" autocomplete="off" placeholder="Değiştirmek için yazın"></div>
+        <div class="field"><label>Bölge (boşsa çeviri bölgesi)</label><input id="aKonBolge" autocomplete="off"></div></div>
+        <div class="ayar-satir"><button class="btn sm primary" id="aCevKaydet">Kaydet</button><button class="btn sm" id="aCevDene">Çeviriyi dene</button><button class="btn sm hayalet-kirmizi" id="aCevSil">Anahtarları sil</button><span class="ayar-sonuc" id="aCevSonuc"></span></div>`), false)
   };
   $('#ayarGovde').innerHTML = B[ayarBolum];
   kstCiz();   // kişiye özel ad görünümü satırları (yalnız yöneticide görünür)
@@ -4736,7 +5699,65 @@ function ayarCiz() {
   if ($('#aSaklama')) $('#aSaklama').value = String(A.saklamaAy || 0);
   if ($('#aOtoBaslat')) apiJson('/api/otobaslat').then(j => { if ($('#aOtoBaslat')) $('#aOtoBaslat').checked = j.acik; }).catch(() => {});
   if ($('[data-baslat]')) apiJson('/api/baslat').then(j => document.querySelectorAll('[data-baslat]').forEach(c => { c.checked = !!j.baslat[c.dataset.baslat]; })).catch(() => {});
+  if ($('#aCevDurum')) { cevAyarYukle(); bgDurumYaz(); }
 }
+async function bgDurumYaz() {
+  const e = $('#aBgDurum'); if (!e) return;
+  let j = null; try { j = await apiJson('/api/bergamot/durum?kontrol=1'); } catch {}
+  if (!j || !j.kurulu) { e.innerHTML = 'Kurulu değil. Bakım sorumlusu <code>Sunucu\\bergamot_indir.ps1</code> ile kurar.'; return; }
+  e.innerHTML = `Kurulu: motor <b>${esc(j.motor)}</b> · İngilizce→Türkçe <b>${esc(j.ciftler.entr || '-')}</b> · Türkçe→İngilizce <b>${esc(j.ciftler.tren || '-')}</b>` +
+    (j.yeni && j.yeni.length ? `<br><span class="badge amber">Yeni sürüm var: ${esc(j.yeni.join(', '))}</span> — bakım sorumlusu <code>bergamot_indir.ps1</code> + <code>imzala.ps1</code> ile günceller.`
+      : `<br><span style="color:var(--s-graphite)">Son sürüm kontrolü: ${esc(j.kontrolTarih ? trTarihSaat(j.kontrolTarih) : 'henüz yapılmadı')} · güncel</span>`);
+}
+document.addEventListener('change', e => {
+  if (e.target.id === 'aCevMotor') { V.ayar.cevirMotor = e.target.checked ? 'azure' : ''; kaydet(); }
+  if (e.target.id === 'aOutlookCev') { V.ayar.outlookCeviri = e.target.checked; kaydet(); }
+});
+document.addEventListener('click', async e => {
+  if (e.target.closest('#aBgDene')) {
+    const s = $('#aBgSonuc'); s.className = 'ayar-sonuc'; s.textContent = 'Motor yükleniyor ve çevriliyor…'; const t0 = performance.now();
+    try { await bgSurum(); const c = await bgCevir('Good morning, the meeting has been moved to Thursday at 10 am.', 'en', 'tr');
+      s.className = 'ayar-sonuc ok'; s.textContent = `Çalışıyor (${Math.round(performance.now() - t0)} ms): "${c}"`; }
+    catch (er) { s.className = 'ayar-sonuc hata'; s.textContent = er.message; }
+  }
+  if (e.target.closest('#aBgAg')) {
+    const s = $('#aBgSonuc'); s.className = 'ayar-sonuc'; s.textContent = 'Denetleniyor…';
+    try { await bgSurum(); await bgIsci(); const r = await BG.ileti('ag-sonuc', { tur: 'ag-dene' });
+      s.className = 'ayar-sonuc ' + (r.engellendi ? 'ok' : 'hata');
+      s.textContent = r.engellendi ? 'Ağ kilidi çalışıyor: çeviri motoru hiçbir adrese bağlanamıyor.' : 'DİKKAT: çeviri motoru ağa erişebildi; yöneticiye bildirin.'; }
+    catch (er) { s.className = 'ayar-sonuc hata'; s.textContent = er.message; }
+  }
+});
+/* ── Çeviri ve Ses ayarı: anahtar sunucuya yazılır, geri okunmaz (yalnız "tanımlı" bilgisi) ── */
+let CEV = { ceviri: false, konusma: false };
+function cevDurumYaz() {
+  const e = $('#aCevDurum'); if (!e) return;
+  const yerel = 'speechSynthesis' in window ? [...new Set(speechSynthesis.getVoices().filter(v => v.localService).map(v => dilAdi(v.lang.slice(0, 2))))] : [];
+  e.innerHTML = `Çeviri: <b>${CEV.ceviri ? 'hazır' : 'anahtar yok'}</b> · Sesli cevap (dikte): <b>${CEV.konusma ? 'hazır' : 'anahtar/bölge yok'}</b> · Özet: <b>hazır</b><br>` +
+    `Sesli okuma: bilgisayardaki sesler <b>${yerel.length ? esc(yerel.join(', ')) : 'yok'}</b>${CEV.konusma ? ' · diğer diller Azure doğal sesle' : ' · diğer diller için Azure Konuşma anahtarı gerekli'}`;
+  if ($('#aCevBolge') && !$('#aCevBolge').value) $('#aCevBolge').value = CEV.bolge || '';
+  if ($('#aKonBolge') && !$('#aKonBolge').value) $('#aKonBolge').value = CEV.konusmaBolge || '';
+}
+async function cevAyarYukle() { try { CEV = await apiJson('/api/ceviri/ayar'); } catch (e) {} cevDurumYaz(); }
+async function cevAyarKaydet(sil) {
+  const s = $('#aCevSonuc'); s.className = 'ayar-sonuc'; s.textContent = 'Kaydediliyor…';
+  const govde = sil ? { anahtar: '-', konusmaAnahtar: '-' } : { anahtar: $('#aCevAnahtar').value, konusmaAnahtar: $('#aKonAnahtar').value, bolge: $('#aCevBolge').value, konusmaBolge: $('#aKonBolge').value };
+  try {
+    CEV = await apiJson('/api/ceviri/ayar', { method: 'POST', body: JSON.stringify(govde) });
+    $('#aCevAnahtar').value = ''; $('#aKonAnahtar').value = '';
+    s.className = 'ayar-sonuc ok'; s.textContent = sil ? 'Anahtarlar silindi.' : 'Kaydedildi.'; cevDurumYaz();
+  } catch (e) { s.className = 'ayar-sonuc hata'; s.textContent = e.message; }
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('#aCevKaydet')) return cevAyarKaydet(false);
+  if (e.target.closest('#aCevSil')) { if (confirm('Çeviri ve konuşma anahtarları bu bilgisayardan silinsin mi?')) cevAyarKaydet(true); return; }
+  if (e.target.closest('#aCevDene')) {
+    const s = $('#aCevSonuc'); s.className = 'ayar-sonuc'; s.textContent = 'Deneniyor…';
+    apiJson('/api/ceviri', { method: 'POST', body: JSON.stringify({ metin: 'Good morning, the meeting has been moved to Thursday.', hedef: 'tr' }) })
+      .then(j => { s.className = 'ayar-sonuc ok'; s.textContent = 'Çalışıyor: "' + j.ceviri + '"'; })
+      .catch(er => { s.className = 'ayar-sonuc hata'; s.textContent = er.message; });
+  }
+});
 /* ── SAKLAMA SÜRESİ (KVKK: gereğinden uzun tutma) ──
    Seçilen süreden eski: kapanmış (Tamamlandı/İptal) talepler, kapanmış
    aksiyonlar ve notlar silinir. Açık işe dokunulmaz. Kayıtlı posta kopyaları
@@ -4781,8 +5802,8 @@ function ayarKaydet() {
     A.masaustu = $('#aMasaustu').checked;
     A.yaklasanGun = sayi('#aYaklasan', 1, 60, 7);
   } else if (ayarBolum === 'outlook') {
-    Object.assign(A.posta, { kaynak: $('#aKaynak').value, kategori: $('#aKategori').value.trim(), klasor: $('#aKlasor').value.trim(),
-      gun: sayi('#aGun', 1, 365, 14), msgSakla: $('#aMsg').checked, kategoriAta: $('#aKatAta').checked });
+    Object.assign(A.posta, { kaynak: $('#aKaynak').value, klasor: $('#aKlasor').value.trim(),
+      gun: sayi('#aGun', 1, 365, 14), msgSakla: $('#aMsg').checked, kategoriAta: false });
     A.kontrolDk = sayi('#aKontrol', 5, 240, 15);
     if ($('#aTelOnek')) A.telOnek = $('#aTelOnek').value.replace(/[^\d+]/g, '');
     postaZamanlayici();
@@ -4869,6 +5890,7 @@ document.addEventListener('click', e => {
   if (c('#mkKaydet')) return K && K_YENI && K.tur === 'talep' ? talepYeniGonder() : kayitKaydet();
   if (c('#tyGonder')) return talepCevapGonder();
   if (c('#tyKapat')) return talepKapatGonder();
+  if (c('#tyHatirlat')) return talepHatirlatGonder();
   if (c('#tySil')) return talepSilGonder();
   if (c('#mkSil')) return kayitSil();
   if (c('#mkIlet')) return talepIletOnce();
@@ -4889,7 +5911,7 @@ document.addEventListener('click', e => {
   // Ortak başlık okları (Posta Kutusu, Aksiyonlar, Notlar)
   if ((x = c('[data-ls]'))) {
     const v = x.dataset.lv, a = x.dataset.ls, S = thSirala(v);
-    const yeni = S.alan === a ? { alan: a, yon: -S.yon } : { alan: a, yon: a === 'tarih' ? -1 : 1 };
+    const yeni = S.alan === a ? { alan: a, yon: -S.yon } : { alan: a, yon: ['tarih', 'acilis', 'son'].includes(a) ? -1 : 1 };   // tarihler ilk tıklamada yeniden eskiye
     if (v === 'posta') PS = yeni; else LS[v] = yeni;
     return listeYenile(v);
   }
@@ -4897,17 +5919,19 @@ document.addEventListener('click', e => {
   if ((x = c('[data-ths]'))) { const m = $('#thMenu'), yeni = { alan: m.dataset.alan, yon: +x.dataset.ths }; if (m.dataset.v === 'posta') PS = yeni; else LS[m.dataset.v] = yeni; thMenuKapat(); return listeYenile(m.dataset.v); }
   if (c('[data-thu]')) return thSuzUygula($('#thDeger').value.trim());
   if (c('[data-tht]')) return thSuzUygula(null);
-  if (c('#pAra')) { postaPanelOku(); return postaListeCiz(); }
-  if (c('#pTemizle')) { PF = { q: '', kimden: '', konu: '', durum: '', tarih: '', okunmamis: false, bayrak: false }; postaPanelYaz(); return postaListeCiz(); }
-  if (c('#postaYenile')) return postaYukle();
+  if (c('#pAra')) { postaPanelOku(); klasorCiz(); return postaListeCiz(); }
+  if (c('#pTemizle')) { PF = { q: '', kimden: '', kime: '', konu: '', durum: '', tarih: '', okunmamis: false, bayrak: false }; postaPanelYaz(); klasorCiz(); return postaListeCiz(); }
+  if (c('#postaYenile')) { klasorYukle(); return postaYukle(); }
   if (c('#postaOkundu')) {
-    const n = +($('#postaBalonSay').textContent.replace(/\D/g, '')) || 0;
-    if (!confirm(`Outlook Gelen Kutusu'ndaki ${n ? n + ' ' : 'tüm '}okunmamış posta okundu yapılsın mı?`)) return;
+    // Ağaçtan klasör seçiliyse o klasör, değilse Gelen Kutusu
+    const kl = POSTA_KAYNAK.startsWith('k:') ? KLASOR[POSTA_KAYNAK.slice(2)] : null;
+    const n = kl ? (POSTALAR || []).filter(p => p.okunmadi).length : +($('#postaBalonSay').textContent.replace(/\D/g, '')) || 0;
+    if (!confirm(`Outlook ${kl ? '"' + klasorAd(kl) + '" klasöründeki' : 'Gelen Kutusu\'ndaki'} ${n ? n + ' ' : 'tüm '}okunmamış posta okundu yapılsın mı?`)) return;
     const b = $('#postaOkundu'); b.disabled = true;
-    return apiJson('/api/posta/okundu', { method: 'POST', body: '{}' })
+    return apiJson('/api/posta/okundu', { method: 'POST', body: JSON.stringify(kl ? { klasorId: kl.id, store: kl.store } : {}) })
       .then(j => {
-        (POSTALAR || []).forEach(p => p.okunmadi = false); (ANA_POSTA || []).forEach(p => p.okunmadi = false);
-        if (aktif === 'posta') postaListeCiz(); bayrakliCiz(); sayacYukle();
+        (POSTALAR || []).forEach(p => p.okunmadi = false); if (!kl) (ANA_POSTA || []).forEach(p => p.okunmadi = false);
+        if (aktif === 'posta') { postaListeCiz(); klasorYukle(); } bayrakliCiz(); sayacYukle();
         toast(j.sayi ? `${j.sayi} posta okundu yapıldı.` : 'Okunmamış posta yoktu.');
       })
       .catch(er => toast(er.message, true)).finally(() => { b.disabled = false; });
@@ -4920,15 +5944,17 @@ document.addEventListener('click', e => {
   if ((x = c('[data-p-bayrak]'))) return postaBayrak(pL(x)[+x.dataset.pBayrak], x);
   if ((x = c('[data-p-aks]'))) return postaAktar(pL(x)[+x.dataset.pAks], 'aksiyon');
   if ((x = c('[data-p-not]'))) return postaAktar(pL(x)[+x.dataset.pNot], 'not');
+  if ((x = c('[data-p-sil]'))) return postaSil(pL(x)[+x.dataset.pSil], x);
   if ((x = c('#anaBayrak tr[data-p], #mlPosta tr[data-p]'))) return postaAktar(ANA_POSTA[+x.dataset.p]);
   if ((x = c('[data-ana-liste]'))) return anaListePencere(x.dataset.anaListe);
   if (c('#bayrakliYenile')) return bayrakliYukle();
   if ((x = c('#postaListe tr[data-p]'))) return BAGLA_HEDEF ? postaHedefeBagla(+x.dataset.p) : postaAktar(POSTALAR[+x.dataset.p]);
-  // Posta penceresi: Aksiyon / Not bölümleri
-  if (c('#pmAks') || c('#pmAksEkle')) return pmAksiyonEkle();
-  if (c('#pmNot')) return pmNotAc();
-  if ((x = c('[data-pm-sil]'))) { x.closest('.pm-blok').remove(); if (!$$('#pmAksBloklar .pm-blok').length) $('#pmAksEkle').style.display = 'none'; return; }
-  if (c('[data-pm-not-sil]')) { $('#pmNotBlok').innerHTML = ''; return; }
+  // Posta penceresi: sol alttaki + menüsü (Not / Aksiyon / Talep) ve form bölümleri
+  if (c('#pmArti')) return pmMenu();
+  if ((x = c('[data-pm-ekle]'))) { pmMenu(false); const t = x.dataset.pmEkle; return t === 'aksiyon' ? pmAksiyonEkle() : t === 'not' ? pmNotAc() : pmTalep(); }
+  if (c('#pmAksEkle')) return pmAksiyonEkle();
+  if ((x = c('[data-pm-sil]'))) { x.closest('.pm-blok').remove(); if (!$$('#pmAksBloklar .pm-blok').length) $('#pmAksEkle').style.display = 'none'; return pmFormGorunum(); }
+  if (c('[data-pm-not-sil]')) { $('#pmNotBlok').innerHTML = ''; return pmFormGorunum(); }
   if ((x = c('.pm-onceki'))) { postaKapat(); return kaydiAc(x.dataset.k, x.dataset.a); }
   // Aksiyon penceresi
   if (c('#mAks [data-kapat]') || t.id === 'mAks') return aksiyonPencereKapat();
@@ -4942,10 +5968,7 @@ document.addEventListener('click', e => {
   if (c('#mPosta [data-kapat]') || t.id === 'mPosta') { postaKapat(); return; }
   if (c('#mpKaydet')) return postaAktarKaydet();
   if (c('#mpOutlook')) return postaAc(P);
-  if (c('#mpYoksay')) {
-    if (P) { V.yoksay.push(P.id); kaydet(); }
-    postaKapat(); postaBekleyenHesapla(); return postaListeCiz();
-  }
+  if ((x = c('[data-ek-ac]'))) return ekAc(x.dataset.ekAc, x);
   // Ayarlar
   if ((x = c('#ayarNav button'))) { ayarBolum = x.dataset.b; return ayarCiz(); }
   if (c('[data-ayar-kaydet]')) return ayarKaydet();
@@ -4981,7 +6004,6 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.name === 'mpKip') { $('#mpYeni').style.display = t.value === 'yeni' ? '' : 'none'; $('#mpBagla').style.display = t.value === 'bagla' ? '' : 'none'; }
-  if (t.id === 'postaKaynak') { POSTA_KAYNAK = t.value; postaYukle(); }
   if (t.name === 'tkKip') { TK_KIP = t.value; planCiz(); }
   if (t.id === 'hTekrar') hatFormGorunum();
   if (t.id === 'hEkBelge' && t.files.length) { hatEkBelge([...t.files]); t.value = ''; }
@@ -5014,6 +6036,7 @@ document.addEventListener('keydown', e => {
     if ($('#mHat').classList.contains('show')) return hatKapat(true);
     if ($('#mListe').classList.contains('show') && !$('#mKayit').classList.contains('show') && !$('#mAks').classList.contains('show')) return $('#mListe').classList.remove('show');
     if ($('#mAks').classList.contains('show')) return aksiyonPencereKapat();
+    if (!$('#pmMenu').hidden) return pmMenu(false);   // önce + menüsü kapanır, pencere açık kalır
     if ($('#mPosta').classList.contains('show')) { postaKapat(); return; }
     if ($('#mOrtakDetay').classList.contains('show')) return ortakKapat();
     if ($('#mKayit').classList.contains('show')) return kayitKapat(true);
@@ -5092,7 +6115,7 @@ function ortakZaman(t) {
 async function ortakYukle() {
   try { const j = await apiJson('/api/ortak'); ORTAK = j.konular || []; ORTAK_BEN = j.ben || null; ORTAK_BEKLEYEN = j.bekleyen || 0; ORTAK_KURAL = j.kural || ''; ORTAK_PARMAK = j.parmak || ''; ORTAK_DEGISEN = j.degisen || []; ORTAK_ANAHTAR_BEK = j.anahtarBekleyen || 0; }
   catch (e) { if (ORTAK === null) ORTAK = []; }
-  ortakSayac(); bildirimKontrol();
+  ortakSayac(); bildirimKontrol(); ogrenArkada();   // kapanmış ortak işler öğrenme motoruna girer
   if (aktif === 'ortak') ortakCiz();
   if (ortakPencereAcik() && !$('#mOrtakDetay textarea:focus') && !$('#mOrtakDetay input:focus')) ortakPencereCiz();
 }
@@ -5100,19 +6123,63 @@ function ortakSayac() {
   const n = (ORTAK || []).reduce((s, k) => s + ortakOkunmamis(k), 0), e = $('#snOrtakSay');
   if (e) e.textContent = n ? (n > 99 ? '99+' : n) : '';
 }
-function ortakCiz() {
+/* Ortak İşler arama paneli (16.10.2026): diğer listeler gibi solda; yalnız "Ara" / Enter ile uygulanır */
+let OF = { q: '', kisi: '', durum: '', termin: '', tarih: '', okunmamis: false };
+function ortakPanelHtml() {
+  const s = (ad, k, sec) => `<div class="field"><label>${ad}</label><select data-of="${k}">${sec.map(([v, a]) => `<option value="${v}">${a}</option>`).join('')}</select></div>`;
+  return `<aside class="card ara-panel" id="okPanel"><div class="ara-baslik">Ara</div>
+    <div class="field"><label>Ara</label><input type="search" data-of="q" placeholder="Başlık ya da yazışma"></div>
+    <div class="field"><label>Kişi</label><input type="search" data-of="kisi" placeholder="Açan ya da katılımcı"></div>
+    ${s('Durum', 'durum', [['', 'Tümü'], ['acik', 'Açık'], ['kapali', 'Kapandı']])}
+    ${s('Termin', 'termin', [['', 'Tümü'], ['gecmis', 'Termini geçen'], ['bugun', 'Bugün'], ['yaklasan', 'Yaklaşan'], ['yok', 'Termini yok']])}
+    ${s('Açılış', 'tarih', [['', 'Tümü'], ['bugun', 'Bugün'], ['7', 'Son 7 gün'], ['30', 'Son 30 gün']])}
+    <label class="ara-onay"><input type="checkbox" data-of="okunmamis">Yalnız okunmamış</label>
+    <div class="ara-dugmeler"><button class="btn primary sm" id="okAra">Ara</button><button class="btn sm" id="okTemizle">Temizle</button></div></aside>`;
+}
+function ortakUygun(k) {
+  if (OF.q && !metinUygun(OF.q, k.baslik, ...(k.girisler || []).map(g => g.metin || ''))) return false;
+  if (OF.kisi && !metinUygun(OF.kisi, (k.acan && k.acan.ad) || '', ...(k.katilimcilar || []).map(p => (p.ad || '') + ' ' + (p.eposta || '')))) return false;
+  if (OF.durum === 'acik' && k.durum !== 'acik') return false;
+  if (OF.durum === 'kapali' && k.durum === 'acik') return false;
+  if (OF.termin) { const g = k.termin ? gunFark(k.termin) : null;
+    if (OF.termin === 'yok' ? g !== null : g === null || (OF.termin === 'gecmis' ? !(g < 0 && k.durum === 'acik') : OF.termin === 'bugun' ? g !== 0 : !(g >= 0 && g <= V.ayar.yaklasanGun))) return false; }
+  if (OF.tarih && k.olusturma) { const once = -gunFark(yerelTarih(new Date(k.olusturma))); if (OF.tarih === 'bugun' ? once !== 0 : once >= +OF.tarih) return false; }
+  if (OF.okunmamis && !ortakOkunmamis(k)) return false;
+  return true;
+}
+function ortakPanelOku() { $$('#okPanel [data-of]').forEach(e => OF[e.dataset.of] = e.type === 'checkbox' ? e.checked : e.value.trim()); }
+document.addEventListener('click', e => {
+  if (e.target.closest('#okAra')) { ortakPanelOku(); return ortakCiz(); }
+  if (e.target.closest('#okTemizle')) { OF = { q: '', kisi: '', durum: '', termin: '', tarih: '', okunmamis: false }; $$('#okPanel [data-of]').forEach(x => { if (x.type === 'checkbox') x.checked = false; else x.value = ''; }); return ortakCiz(); }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest && e.target.closest('#okPanel')) { e.preventDefault(); ortakPanelOku(); ortakCiz(); } });function ortakCiz() {
   const v = $('#v-ortak'); if (!v) return;
-  if (ORTAK === null) { v.innerHTML = '<div class="vhead"><h1>Ortak İşler</h1></div><div class="yukleniyor">Yükleniyor…</div>'; ortakYukle(); return; }
-  const L = [...ORTAK].sort((a, b) => ((a.durum === 'acik' ? 0 : 1) - (b.durum === 'acik' ? 0 : 1)) || ortakSonT(b).localeCompare(ortakSonT(a)));
+  // İskelet bir kez kurulur (sol arama paneli + liste); yeni giriş gelince yalnız başlık ve liste tazelenir, panelde yazarken odak kaybolmaz
+  if (!$('#okPanel')) v.innerHTML = `<div id="okUst"></div><div class="ara-duzen">${ortakPanelHtml()}<div class="ara-liste"><div class="card"><div class="card-h"><b>Ortak işler</b><span class="sp"></span><span class="say" id="okSay"></span></div><div class="card-b tight liste-kutu" id="okListe"></div></div><div id="okAlt"></div></div></div>`;
+  if (ORTAK === null) { $('#okUst').innerHTML = '<div class="vhead"><h1>Ortak İşler</h1></div>'; $('#okListe').innerHTML = '<div class="yukleniyor">Yükleniyor…</div>'; ortakYukle(); return; }
+  const ortakKisi = x => { const acanE = ((x.acan && x.acan.eposta) || '').toLowerCase(); return (x.katilimcilar || []).filter(p => (p.eposta || '').toLowerCase() !== acanE).map(p => p.ad || p.eposta).join(', '); };
+  const K = [
+    { a: 'acilis', ad: 'Açılış', tur: 'tarih', d: x => x.olusturma },
+    { a: 'baslik', ad: 'Başlık', tur: 'metin', d: x => x.baslik },
+    { a: 'acan', ad: 'Açan', tur: 'metin', d: x => (x.acan && x.acan.ad) || '' },
+    { a: 'kisi', ad: 'Katılımcılar', tur: 'metin', d: ortakKisi },
+    { a: 'termin', ad: 'Termin', tur: 'termin', d: x => x.termin },
+    { a: 'son', ad: 'Son hareket', tur: 'tarih', d: ortakSonT },
+    { a: 'durumAd', ad: 'Durum', tur: 'metin', d: x => x.durum === 'acik' ? 'Açık' : 'Kapandı' }
+  ];
+  const L0 = [...ORTAK].filter(ortakUygun).sort((a, b) => ((a.durum === 'acik' ? 0 : 1) - (b.durum === 'acik' ? 0 : 1)) || ortakSonT(b).localeCompare(ortakSonT(a)));
+  const L = kolonSuzSirala('ortak', L0, K);   // başlık süzgeçleri soldaki panelin üstüne uygulanır
   // Talepler listesi gibi: satıra tıklayınca yazışma açılır pencerede; görülmemiş giriş olan konu koyu
-  const liste = L.length ? `<table class="tbl"><thead><tr><th>Tarih</th><th>Başlık</th><th>Açan</th><th>Katılımcılar</th><th>Termin</th><th>Son hareket</th><th>Durum</th></tr></thead><tbody>${L.map(x => {
-      const n = ortakOkunmamis(x), acanE = ((x.acan && x.acan.eposta) || '').toLowerCase();
-      const kisi = (x.katilimcilar || []).filter(p => (p.eposta || '').toLowerCase() !== acanE).map(p => p.ad || p.eposta).join(', ');
+  const liste = L.length || L0.length ? `<table class="tbl"><thead><tr>${kolonBas('ortak', K)}</tr></thead><tbody>${L.length ? '' : `<tr><td colspan="${K.length}" class="bos">Süzgece uyan ortak iş yok.</td></tr>`}${L.map(x => {
+      const n = ortakOkunmamis(x), kisi = ortakKisi(x);
       return `<tr class="clickable${n ? ' yeni' : ''}" data-ortak="${esc(x.id)}"><td class="tarih">${esc(trTarihSaat(x.olusturma))}</td><td>${esc(x.baslik)}${n ? ` <span class="oo-say">${n}</span>` : ''}</td>` +
         `<td>${esc((x.acan && x.acan.ad) || '')}</td><td>${esc(kisi)}</td><td class="tarih">${x.termin ? esc(trTarih(x.termin)) : ''}</td><td class="tarih">${esc(ortakZaman(ortakSonT(x)))}</td>` +
         `<td class="dar">${x.durum === 'acik' ? '<span class="badge green">Açık</span>' : '<span class="badge gray">Kapandı</span>'}</td></tr>`; }).join('')}</tbody></table>`
-    : '<div class="bos">Henüz ortak iş yok. "Yeni Ortak İş" ile başlayın.</div>';
-  v.innerHTML = `<div class="vhead"><h1>Ortak İşler</h1><span class="sp"></span>${ORTAK_BEKLEYEN ? `<span class="badge amber" data-ipucu="Outlook'a ulaşılınca kendiliğinden gönderilir">${ORTAK_BEKLEYEN} gönderim bekliyor</span>` : ''}${ORTAK_ANAHTAR_BEK ? `<span class="badge amber" data-ipucu="Bu kişilerin Assist'i açılınca anahtar kendiliğinden alınır ve bekleyen girişler şifrelenip gönderilir">${ORTAK_ANAHTAR_BEK} kişinin anahtarı bekleniyor</span>` : ''}
+    : ORTAK.length ? '<div class="bos">Aramaya uyan ortak iş yok.</div>' : '<div class="bos">Henüz ortak iş yok. "Yeni Ortak İş" ile başlayın.</div>';
+  $('#okSay').textContent = L.length === ORTAK.length ? L.length : `> ${L.length} / ${ORTAK.length}`;
+  $('#okListe').innerHTML = liste;
+  $('#okAlt').innerHTML = ORTAK_PARMAK ? `<div class="od-not" data-ipucu="Uçtan uca şifreleme: içerik yalnız katılımcıların Assist'inde açılır. Başka bir katılımcı anahtar değişikliği uyarısı alırsa bu kodu karşılaştırın.">Şifreleme anahtarınız: <code>${esc(ORTAK_PARMAK)}</code></div>` : '';
+  $('#okUst').innerHTML = `<div class="vhead"><h1>Ortak İşler</h1><span class="sp"></span>${ORTAK_BEKLEYEN ? `<span class="badge amber" data-ipucu="Outlook'a ulaşılınca kendiliğinden gönderilir">${ORTAK_BEKLEYEN} gönderim bekliyor</span>` : ''}${ORTAK_ANAHTAR_BEK ? `<span class="badge amber" data-ipucu="Bu kişilerin Assist'i açılınca anahtar kendiliğinden alınır ve bekleyen girişler şifrelenip gönderilir">${ORTAK_ANAHTAR_BEK} kişinin anahtarı bekleniyor</span>` : ''}
     <button class="btn primary" id="okYeni"><svg class="i"><use href="#ic-arti"/></svg>Yeni Ortak İş</button></div>
     ${ORTAK_KURAL === 'eksik' ? `<div class="note warn" style="margin:0 0 12px">Outlook kuralınıza talep iletileri için bir sözcük eklenmeli (otomatik eklenemedi). <b>Dosya › Kuralları ve Uyarıları Yönet</b> › <b>Assist ortak işler</b> › Kuralı Değiştir › "konusunda belirli sözcükler geçen" › sözcüklere <code>[Assist] Talep:</code> ekleyin. Eklemezseniz gelen talep iletileri birkaç saniye Gelen Kutusu'nda görünür.
       <button class="btn sm" id="okKuralBak" style="margin-left:8px">Kontrol et</button></div>` : ''}
@@ -5120,8 +6187,7 @@ function ortakCiz() {
       <b>Dosya › Kuralları ve Uyarıları Yönet › Yeni Kural</b> › Aldığım iletilere kural uygula › <b>konusunda belirli sözcükler geçen</b>: <code>[Assist] Ortak iş:</code> ve <code>[Assist] Talep:</code> › <b>belirtilen klasöre taşı</b>: Gelen Kutusu › Assist ve <b>başka kural işlemeyi durdur</b> › ad: <code>Assist ortak işler</code>.
       <button class="btn sm" id="okKuralBak" style="margin-left:8px">Kontrol et</button></div>` : ''}
     ${ORTAK_DEGISEN.map(d => `<div class="note warn" style="margin:0 0 12px"><b>${esc(d.eposta)}</b> kişisinin Assist şifreleme anahtarı değişti (eski <code>${esc(d.eski || '—')}</code> → yeni <code>${esc(d.parmak)}</code>). Yeni bir bilgisayara geçtiyse kabul edin; emin değilseniz önce kişiye sorun ve kendi Ortak İşler sayfasında yazan parmak izini karşılaştırın. Kabul edene kadar bu kişiden gelen girişler bekletilir.
-      <button class="btn sm" data-ortak-kabul="${esc(d.eposta)}" style="margin-left:8px">Kabul et</button></div>`).join('')}
-    <div class="card">${liste}</div>${ORTAK_PARMAK ? `<div class="od-not" data-ipucu="Uçtan uca şifreleme: içerik yalnız katılımcıların Assist'inde açılır. Başka bir katılımcı anahtar değişikliği uyarısı alırsa bu kodu karşılaştırın.">Şifreleme anahtarınız: <code>${esc(ORTAK_PARMAK)}</code></div>` : ''}`;
+      <button class="btn sm" data-ortak-kabul="${esc(d.eposta)}" style="margin-left:8px">Kabul et</button></div>`).join('')}`;
 }
 const ortakPencereAcik = () => $('#mOrtakDetay').classList.contains('show');
 function ortakAc(id) { ORTAK_SECILI = id; ortakPencereCiz(); }
@@ -5145,19 +6211,34 @@ function ortakKapat() {
   apiJson('/api/ortak/okundu', { method: 'POST', body: JSON.stringify({ id: k.id }) }).catch(() => {});
   ortakSayac(); bildirimKontrol(); if (aktif === 'ortak') ortakCiz();
 }
-function ortakDetayHtml(k) {
+/* Ortak iş yazışması WhatsApp gibi (16.10.2026): kendi mesajlarım sağda (açık lacivert), diğerleri solda gri zeminde, her kişiye
+   e-postasından türeyen sabit ad rengi (yalnız gri/bordo/lacivert tonları); sistem girişleri (açtı/kapattı/katılımcı) ortada küçük; gün değişince tarih etiketi. */
+const SOHBET_RENK = [['#E6E9EE', '#7A1418'], ['#E6E9EE', '#1F3A63'], ['#E6E9EE', '#4A525E'], ['#E6E9EE', '#A3262D'], ['#E6E9EE', '#2E5288'], ['#E6E9EE', '#5C1015']];
+function sohbetRenk(anahtar) { let h = 0; for (const c of String(anahtar || '').toLowerCase()) h = (h * 31 + c.charCodeAt(0)) >>> 0; return SOHBET_RENK[h % SOHBET_RENK.length]; }
+function ortakSohbetHtml(k) {
+  let gunOnce = '';
+  return (k.girisler || []).map(g => {
+    const d = new Date(g.t), gun = yerelTarih(d), saat = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const etiket = gun !== gunOnce ? `<li class="sb-gun"><span>${gun === bugun() ? 'Bugün' : esc(trTarih(gun))}</span></li>` : ''; gunOnce = gun;
+    if (g.tur !== 'not') return etiket + `<li class="sb-sistem"><span>${esc((g.yazar && g.yazar.ad) || '')} · ${esc(g.metin || '')} · ${saat}</span></li>`;
+    const ep = (g.yazar && g.yazar.eposta) || '', ben = ortakBenMi(ep), yeni = g.t > (k.okunan || '') && !ben;
+    const [zemin, ad] = ben ? ['#D9E2EF', '#1F3A63'] : sohbetRenk(ep || (g.yazar && g.yazar.ad));
+    return etiket + `<li class="sb-mesaj${ben ? ' ben' : ''}${yeni ? ' yeni' : ''}"><div class="sb-balon" style="background:${zemin}">` +
+      (ben ? '' : `<b class="sb-ad" style="color:${ad}">${esc((g.yazar && g.yazar.ad) || ep)}</b>`) +
+      (g.aktaran ? '<small class="aktarildi" title="Bu girişi konuyu açan kişi aktardı; yazarı doğrulanamaz.">aktarılan</small>' : '') +
+      `<div class="sb-metin">${esc(g.metin || '')}</div><span class="sb-saat">${saat}</span></div></li>`;
+  }).join('');
+}function ortakDetayHtml(k) {
   const acan = ortakAcanMi(k), acik = k.durum === 'acik';
   const kisiler = (k.katilimcilar || []).map(p => {
     const ben = ortakBenMi(p.eposta), sahip = (p.eposta || '').toLowerCase() === (k.acan.eposta || '').toLowerCase();
     return `<span class="od-kisi" data-ipucu="${esc(p.eposta || '')}">${esc(p.ad || p.eposta)}${sahip ? ' <i>açan</i>' : ''}${ben ? ' <i>siz</i>' : ''}${acan && !ben && acik ? ` <button data-ortak-gecmis="${esc(p.eposta)}" data-ipucu="Önceki bütün girişleri bu kişiye gönder">Geçmişi paylaş</button>` : ''}</span>`;
   }).join('');
-  const defter = (k.girisler || []).map(g => `<li class="${g.tur !== 'not' ? 'sistem' : ''}${g.t > (k.okunan || '') && !ortakBenMi(g.yazar && g.yazar.eposta) ? ' yeni' : ''}">
-      <div class="ust"><b>${esc(g.yazar && g.yazar.ad || '')}</b>${g.aktaran ? '<small class="aktarildi" title="Bu girişi konuyu açan kişi aktardı; yazarı doğrulanamaz.">aktarılan</small>' : ''}<span>${esc(ortakZaman(g.t))}</span></div><div class="metin">${esc(g.metin || '')}</div></li>`).join('');
-  const satir = (a, d) => d ? `<div class="ty-s"><span>${a}</span><b>${d}</b></div>` : '';
+  const defter = ortakSohbetHtml(k);  const satir = (a, d) => d ? `<div class="ty-s"><span>${a}</span><b>${d}</b></div>` : '';
   return `<div class="ty-bilgi">${satir('Açan', esc(k.acan.ad || ''))}${satir('Açılış', esc(ortakZaman(k.olusturma)))}${satir('Termin', k.termin ? esc(trTarih(k.termin)) + ' ' + (acik ? kalanHtml(k.termin) : '') : '')}</div>
     <div class="od-kisiler" style="margin:0 0 12px">${kisiler}${acan && acik ? `<span class="od-ekle"><input id="okEkleGir" data-kisi-sec autocomplete="off" placeholder="+ Katılımcı ekle"></span>` : ''}</div>
     <div class="bolum"><div class="bolum-h"><h4>Yazışma</h4></div>
-      <ul class="od-defter ty-defter od-pencere">${defter || '<li class="sistem"><div class="metin">Henüz giriş yok.</div></li>'}</ul></div>
+      <ul class="od-defter sohbet">${defter || '<li class="sb-sistem"><span>Henüz giriş yok.</span></li>'}</ul></div>
     ${acik ? `<div class="field"><label>Giriş</label><textarea id="okGiris" rows="3" placeholder="Ne yapıldı? (Ctrl+Enter ile gönder)"></textarea></div>
       <div class="ty-dugmeler"><span class="sp"></span><button class="btn primary" id="okGonder">${svg('posta')}Gönder</button></div>`
       : `<div class="note" style="margin-top:10px">${acan ? 'Konuyu kapattınız; yeni giriş eklenemez.' : 'Konu, açan kişi tarafından kapatıldı.'}</div>`}`;

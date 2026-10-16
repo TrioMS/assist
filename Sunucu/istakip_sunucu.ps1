@@ -129,6 +129,17 @@ function Sifre-Gocu {
 }
 # Bulgu 3 (15.10.2026): acilmak icin cozulen dosyaya "internetten geldi" isareti (Mark-of-the-Web, Zone 3)
 # konur. Isaretsiz dosyada Office Korumali Gorunum'u ve internet makrolarini engelleme kuralini uygulamiyordu.
+# Outlook'un ekleri actigi kendi gecici klasoru (OLK / Content.Outlook). Assist veri klasorune ek YAZILMAZ
+# (kullanici istedi, 16.10.2026): ek Outlook'taki postadan alinir, Outlook'un klasorunde acilir.
+function Outlook-Ek-Klasoru {
+  try {
+    $v = ([string](Outlook).Version).Split('.')[0] + ".0"
+    $k = (Get-ItemProperty -Path ("HKCU:\Software\Microsoft\Office\" + $v + "\Outlook\Security") -Name OutlookSecureTempFolder -ErrorAction Stop).OutlookSecureTempFolder
+    if ($k -and (Test-Path -LiteralPath $k)) { return $k }
+  } catch {}
+  if (-not (Test-Path -LiteralPath $acKok)) { New-Item -ItemType Directory -Path $acKok | Out-Null }
+  return $acKok
+}
 function Internet-Isareti([string]$yol) {
   try { Set-Content -LiteralPath $yol -Stream "Zone.Identifier" -Value "[ZoneTransfer]`r`nZoneId=3" -Encoding ASCII -ErrorAction Stop }
   catch { Write-Host ("  Internet isareti konamadi: " + $_.Exception.Message) -ForegroundColor Yellow }
@@ -242,6 +253,7 @@ function Icerik-Turu([string]$uz) {
     ".html" { "text/html; charset=utf-8" } ".js" { "text/javascript; charset=utf-8" }
     ".css" { "text/css; charset=utf-8" } ".json" { "application/json; charset=utf-8" }
     ".png" { "image/png" } ".svg" { "image/svg+xml" } ".ico" { "image/x-icon" }
+    ".wasm" { "application/wasm" }
     default { "application/octet-stream" }
   }
 }
@@ -335,7 +347,15 @@ function Ns { return (Outlook).GetNamespace("MAPI") }
 function Outlook-Uygun {
   $p = @(Get-Process -Name OUTLOOK -ErrorAction SilentlyContinue) | Select-Object -First 1
   if (-not $p) { return $false }
-  try { return (((Get-Date) - $p.StartTime).TotalSeconds -ge 90) } catch { return $false }
+  # 16.10.2026: 90 sn beklemek acilista yeni postalarin sayaca ~2 dk gec dusmesine yol aciyordu. Outlook
+  # "yuklendi" kaydini (Application gunlugu, olay 45) yazdiysa hazirdir: acilis ekrani da bunu bekler.
+  $yas = 0; try { $yas = ((Get-Date) - $p.StartTime).TotalSeconds } catch { return $false }
+  if ($yas -ge 90) { return $true }
+  if ($yas -lt 10) { return $false }
+  if ($script:olHazirPid -eq $p.Id) { return $true }   # bu Outlook sureci icin bir kez dogrulandi
+  $ev = Get-WinEvent -FilterHashtable @{ LogName = "Application"; ProviderName = "Outlook"; Id = 45; StartTime = $p.StartTime } -MaxEvents 1 -ErrorAction SilentlyContinue
+  if ($ev) { $script:olHazirPid = $p.Id; return $true }
+  return $false
 }
 # Gelen Kutusu ya da altindaki bir klasor ("Hukuk" veya "Hukuk/Talepler").
 function Klasor([string]$yol) {
@@ -347,6 +367,117 @@ function Klasor([string]$yol) {
     }
   }
   return $f
+}
+# --- Ceviri ve ses (16.10.2026): Microsoft Translator + Azure Konusma (sirketin Azure hesabi) ---
+# Kullanici karari: icerik yalniz sirketin kendi Azure aboneligindeki Microsoft hizmetine gider (ucretsiz genel
+# hizmetler KULLANILMAZ). Anahtarlar ceviri.dat'ta DPAPI ile sifreli; sayfaya GERI VERILMEZ (yalniz "tanimli mi").
+# Sesli okuma ve ozet tarayicida/cevrimdisi yapilir, buraya gelmez.
+$ceviriDos = Join-Path $veriKok "ceviri.dat"
+function Ceviri-Ayar {
+  if (Test-Path -LiteralPath $ceviriDos) { try { return (Sifreli-Oku $ceviriDos) | ConvertFrom-Json } catch {} }
+  return [pscustomobject]@{ anahtar = ""; bolge = ""; konusmaAnahtar = ""; konusmaBolge = "" }
+}
+function Tls12 { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 }
+# Metni hedef dile cevirir. Doner: @{ ceviri; dil (algilanan kaynak dil) }. Uzun metin paragraf sinirinda parcalanir.
+function Ceviri-Yap([string]$metin, [string]$hedef) {
+  $a = Ceviri-Ayar
+  if (-not [string]$a.anahtar) { throw "Ceviri anahtari tanimli degil (Ayarlar > Ceviri ve Ses)." }
+  if ($hedef -notmatch '^[A-Za-z]{2,3}(-[A-Za-z]{2,4})?$') { throw "Gecersiz hedef dil." }
+  Tls12
+  $h = @{ "Ocp-Apim-Subscription-Key" = [string]$a.anahtar }; if ([string]$a.bolge) { $h["Ocp-Apim-Subscription-Region"] = [string]$a.bolge }
+  $parcalar = New-Object System.Collections.ArrayList; $sb = New-Object System.Text.StringBuilder
+  foreach ($satir in ($metin -split "`n")) {
+    if ($sb.Length + $satir.Length -gt 9000 -and $sb.Length) { [void]$parcalar.Add($sb.ToString()); [void]$sb.Clear() }
+    [void]$sb.Append($satir).Append("`n")
+  }
+  if ($sb.Length) { [void]$parcalar.Add($sb.ToString()) }
+  $govde = ConvertTo-Json -InputObject @($parcalar | ForEach-Object { @{ Text = $_ } }) -Compress   # -InputObject: tek parcada da dizi
+  $r = Invoke-RestMethod -Uri ("https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&to=" + $hedef) -Method Post -Headers $h `
+    -ContentType "application/json; charset=utf-8" -Body $UTF8.GetBytes($govde) -TimeoutSec 40
+  $cikti = New-Object System.Text.StringBuilder; $dil = ""
+  foreach ($x in @($r)) { [void]$cikti.Append([string]$x.translations[0].text); if (-not $dil -and $x.detectedLanguage) { $dil = [string]$x.detectedLanguage.language } }
+  return @{ ceviri = $cikti.ToString().TrimEnd(); dil = $dil }
+}
+# Kisa ses kaydini (WAV, 16 kHz mono PCM, en cok ~60 sn) yaziya cevirir (Azure Konusma, REST).
+function Konusma-Yaz([byte[]]$wav, [string]$dil) {
+  $a = Ceviri-Ayar
+  $an = $(if ([string]$a.konusmaAnahtar) { [string]$a.konusmaAnahtar } else { [string]$a.anahtar })
+  $bl = $(if ([string]$a.konusmaBolge) { [string]$a.konusmaBolge } else { [string]$a.bolge })
+  if (-not $an -or -not $bl) { throw "Konusma anahtari ya da bolgesi tanimli degil (Ayarlar > Ceviri ve Ses)." }
+  if ($bl -notmatch '^[a-z0-9]+$') { throw "Gecersiz bolge." }
+  if ($dil -notmatch '^[a-z]{2}-[A-Z]{2}$') { $dil = "tr-TR" }
+  Tls12
+  $h = @{ "Ocp-Apim-Subscription-Key" = $an; "Accept" = "application/json" }
+  $r = Invoke-RestMethod -Uri ("https://" + $bl + ".stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=" + $dil + "&format=simple") `
+    -Method Post -Headers $h -ContentType "audio/wav; codecs=audio/pcm; samplerate=16000" -Body $wav -TimeoutSec 60
+  if ([string]$r.RecognitionStatus -ne "Success") { throw ("Ses anlasilamadi (" + [string]$r.RecognitionStatus + ").") }
+  return [string]$r.DisplayText
+}
+# Metni sese cevirir (Azure Konusma, noral ses). Bilgisayarda o dilin Windows sesi yoksa sayfa bunu kullanir. Doner: mp3 baytlari.
+$SES_ADI = @{ tr = "tr-TR-EmelNeural"; en = "en-US-JennyNeural"; de = "de-DE-KatjaNeural"; fr = "fr-FR-DeniseNeural"; ar = "ar-SA-ZariyahNeural"; ru = "ru-RU-SvetlanaNeural"; es = "es-ES-ElviraNeural"; it = "it-IT-ElsaNeural" }
+function Ses-Sentez([string]$metin, [string]$dil) {
+  $a = Ceviri-Ayar
+  $an = $(if ([string]$a.konusmaAnahtar) { [string]$a.konusmaAnahtar } else { [string]$a.anahtar })
+  $bl = $(if ([string]$a.konusmaBolge) { [string]$a.konusmaBolge } else { [string]$a.bolge })
+  if (-not $an -or -not $bl) { throw "Konusma anahtari ya da bolgesi tanimli degil (Ayarlar > Ceviri ve Ses)." }
+  if ($bl -notmatch '^[a-z0-9]+$') { throw "Gecersiz bolge." }
+  $k = ([string]$dil).ToLowerInvariant(); if ($k.Length -gt 2) { $k = $k.Substring(0, 2) }
+  $ses = $(if ($SES_ADI.ContainsKey($k)) { $SES_ADI[$k] } else { $SES_ADI["en"] }); $yerel = $ses.Substring(0, 5)
+  $ssml = "<speak version='1.0' xml:lang='" + $yerel + "'><voice name='" + $ses + "'>" + [System.Security.SecurityElement]::Escape($metin) + "</voice></speak>"
+  Tls12
+  $h = @{ "Ocp-Apim-Subscription-Key" = $an; "X-Microsoft-OutputFormat" = "audio-24khz-48kbitrate-mono-mp3"; "User-Agent" = "Assist" }
+  $gec = Join-Path $env:TEMP ("assist_ses_" + [guid]::NewGuid().ToString("N") + ".mp3")
+  try {
+    Invoke-WebRequest -Uri ("https://" + $bl + ".tts.speech.microsoft.com/cognitiveservices/v1") -Method Post -Headers $h -ContentType "application/ssml+xml; charset=utf-8" `
+      -Body $UTF8.GetBytes($ssml) -OutFile $gec -UseBasicParsing -TimeoutSec 60 | Out-Null
+    $b = [System.IO.File]::ReadAllBytes($gec)
+  } finally { Remove-Item -LiteralPath $gec -Force -ErrorAction SilentlyContinue }
+  return ,$b
+}
+# --- Posta Kutusu klasor agaci (16.10.2026): Outlook'un klasor bolmesinin aynasi ---
+# Her depo (kendi posta kutusu, ek/paylasilan posta kutulari, PST "Kisisel Klasorler") kok olur; altinda
+# yalniz posta klasorleri (DefaultItemType 0), gizli olanlar (PR_ATTR_HIDDEN) ve Esitleme Sorunlari haric.
+# Varsayilan klasorler Outlook sirasiyla once, digerleri ada gore. Ortak klasor deposu (public) alinmaz.
+$PR_GIZLI = "http://schemas.microsoft.com/mapi/proptag/0x10F4000B"
+function Posta-Agac {
+  $tr = [Globalization.CultureInfo]::GetCultureInfo("tr-TR")
+  $sayac = @{ n = 0 }
+  $depolar = New-Object System.Collections.ArrayList
+  foreach ($s in (Ns).Stores) {
+    try { if ([int]$s.ExchangeStoreType -eq 2) { continue } } catch {}
+    $ozel = @{}
+    foreach ($p in @(@(6, "gelen"), @(16, "taslak"), @(5, "gonderilmis"), @(3, "silinmis"), @(23, "onemsiz"), @(4, "giden"), @(20, "esitleme"))) {
+      try { $ozel[[string]$s.GetDefaultFolder($p[0]).EntryID] = $p[1] } catch {}
+    }
+    $sira = @{ gelen = 0; taslak = 1; gonderilmis = 2; silinmis = 3; arsiv = 4; onemsiz = 5; giden = 6 }
+    $dal = $null
+    $dal = {
+      param($kf, [int]$derin)
+      $L = New-Object System.Collections.ArrayList
+      if ($derin -gt 6) { return ,$L }
+      foreach ($f in $kf.Folders) {
+        if ($sayac.n -ge 500) { break }
+        try {
+          if ([int]$f.DefaultItemType -ne 0) { continue }
+          $id = [string]$f.EntryID; $tur = [string]$ozel[$id]
+          if ($tur -eq "esitleme") { continue }
+          $gizli = $false; try { $gizli = [bool]$f.PropertyAccessor.GetProperty($PR_GIZLI) } catch {}
+          if ($gizli) { continue }
+          $ad = [string]$f.Name
+          if (-not $tur -and $derin -eq 0 -and ($ad -eq "Archive" -or $ad -eq "Ar$([char]0x015F)iv")) { $tur = "arsiv" }
+          $sayac.n++
+          [void]$L.Add([ordered]@{ id = $id; ad = $ad; ok = [int]$f.UnReadItemCount; tur = $tur; alt = (& $dal $f ($derin + 1)) })
+        } catch {}
+      }
+      $S = @($L | Sort-Object @{ e = { if ($sira.ContainsKey($_.tur)) { $sira[$_.tur] } else { 99 } } }, @{ e = { $_.ad.ToLower($tr) } })
+      return ,$S
+    }
+    try {
+      $kok = $s.GetRootFolder()
+      [void]$depolar.Add([ordered]@{ ad = [string]$s.DisplayName; store = [string]$s.StoreID; birincil = ($s.StoreID -eq (Ns).DefaultStore.StoreID); klasorler = (& $dal $kok 0) })
+    } catch {}
+  }
+  return ,@($depolar | Sort-Object @{ e = { if ($_.birincil) { 0 } else { 1 } } })
 }
 # --- Assist'ten Assist'e talep (Exchange uzerinden, 13.10.2026) -------------
 # Gonderen Assist, alicinin adresine ozel siniftaki (IPM.Note.Assist) bir ileti yollar:
@@ -842,8 +973,11 @@ function Gelen-Talep-Kontrol {
       $it.UnRead = $false; $it.Save()
       if ($it.Parent.EntryID -eq $hedef.EntryID) { $tasinan = $it } else { $tasinan = $it.Move($hedef) }
       if ($msgId -and @($L | Where-Object { $_.posta -and [string]$_.posta.msgId -eq $msgId }).Count) { continue }   # ayni ileti zaten kuyrukta
+      # Gonderen talebe bilerek posta ekladiyse (posta penceresi > + > Talep, 16.10.2026) tasiyici iletide ekli
+      # posta (olEmbeddeditem) olur: adi "ek" alanina yazilir, sayfa yalniz o zaman talebe posta olarak baglar.
+      $ekAd = ""; try { foreach ($e in $tasinan.Attachments) { if ([int]$e.Type -eq 5) { $ekAd = [string]$e.DisplayName; break } } } catch {}
       [void]$L.Add([ordered]@{ id = [guid]::NewGuid().ToString("N"); gonderen = $gonderen; gonderenEposta = $ep; alinma = $alinma; talep = $t; dogrulanmis = $dogrulandi;
-        posta = @{ id = [string]$tasinan.EntryID; store = [string]$hedef.StoreID; msgId = $msgId; konu = [string]$tasinan.Subject; kimden = $gonderen; tarih = $alinma } })
+        posta = @{ id = [string]$tasinan.EntryID; store = [string]$hedef.StoreID; msgId = $msgId; konu = [string]$tasinan.Subject; kimden = $gonderen; tarih = $alinma; ek = $ekAd } })
       $yeni++
     } catch { Write-Host ("  Gelen talep okunamadi: " + $_.Exception.Message) -ForegroundColor Yellow }
   }
@@ -886,11 +1020,45 @@ function Posta-Ayrinti($it) {
   $govde = [string]$it.Body
   if ($govde.Length -gt 40000) { $govde = $govde.Substring(0, 40000) }
   $msgId = ""; try { $msgId = [string]$it.PropertyAccessor.GetProperty($PR_MSGID) } catch {}
-  $ekler = @(); try { foreach ($e in $it.Attachments) { $ekler += [string]$e.FileName } } catch {}
+  # HTML govde (16.10.2026): Outlook'taki gibi baglantilar, tablolar ve resimler gorunsun.
+  # Govdedeki "cid:" resimler (ekli satir ici resimler) data: adresine cevrilir; satir ici
+  # ekler ek listesinde gosterilmez (Outlook da gostermez). Sayfa bu HTML'i betiksiz, ayri
+  # kokenli bir iframe'de (sandbox) gosterir; uzak resimler varsayilan olarak engelli.
+  $html = Posta-Html $it
+  $ekler = @(); $ekListe = @(); try { foreach ($e in $it.Attachments) { if ($html.satirIci -notcontains [string]$e.Index) { $ekler += [string]$e.FileName; $ekListe += @{ ad = [string]$e.FileName; i = [int]$e.Index } } } } catch {}
   return @{ ok = $true; id = [string]$it.EntryID; store = [string]$it.Parent.StoreID; msgId = $msgId
     konu = [string]$it.Subject; kimden = [string]$it.SenderName; eposta = (Gonderen-Eposta $it)
     kime = [string]$it.To; bilgi = [string]$it.CC; tarih = (Tarih-Iso $it.ReceivedTime)
-    bayrakTermin = (Bayrak-Termin $it); govde = $govde; ekler = @($ekler) }
+    bayrakTermin = (Bayrak-Termin $it); govde = $govde; html = $html.metin; ekler = @($ekler); ekListe = @($ekListe) }
+}
+$PR_CID = "http://schemas.microsoft.com/mapi/proptag/0x3712001F"
+$RESIM_TUR = @{ png = "image/png"; jpg = "image/jpeg"; jpeg = "image/jpeg"; gif = "image/gif"; bmp = "image/bmp"; webp = "image/webp" }
+function Posta-Html($it) {
+  $sonuc = @{ metin = ""; satirIci = @() }
+  try { if ([int]$it.BodyFormat -eq 1) { return $sonuc } } catch {}   # 1 = duz metin
+  $h = ""; try { $h = [string]$it.HTMLBody } catch { return $sonuc }
+  if (-not $h -or $h.Length -gt 2000000) { return $sonuc }
+  $toplam = 0
+  try {
+    foreach ($e in $it.Attachments) {
+      $cid = ""; try { $cid = [string]$e.PropertyAccessor.GetProperty($PR_CID) } catch {}
+      if (-not $cid) { continue }
+      $cid = $cid.Trim('<', '>')
+      if ($h.IndexOf("cid:" + $cid, [StringComparison]::OrdinalIgnoreCase) -lt 0) { continue }
+      $uz = ([IO.Path]::GetExtension([string]$e.FileName)).TrimStart('.').ToLowerInvariant()
+      $mime = $RESIM_TUR[$uz]; if (-not $mime) { continue }
+      if ([int]$e.Size -gt 1500000 -or ($toplam + [int]$e.Size) -gt 6000000) { continue }
+      $gecici = Join-Path ([IO.Path]::GetTempPath()) ("assist_" + [guid]::NewGuid().ToString("N") + "." + $uz)
+      try {
+        $e.SaveAsFile($gecici)
+        $b = [IO.File]::ReadAllBytes($gecici); $toplam += $b.Length
+        $h = [regex]::Replace($h, ("cid:" + [regex]::Escape($cid)), ("data:" + $mime + ";base64," + [Convert]::ToBase64String($b)), "IgnoreCase")
+        $sonuc.satirIci += [string]$e.Index
+      } catch {} finally { Remove-Item -LiteralPath $gecici -Force -ErrorAction SilentlyContinue }
+    }
+  } catch {}
+  $sonuc.metin = $h
+  return $sonuc
 }
 function Posta-Bul([string]$id, [string]$store, [string]$msgId) {
   $ns = Ns
@@ -912,6 +1080,116 @@ function Posta-Bul([string]$id, [string]$store, [string]$msgId) {
     }
   }
   return $null
+}
+# Posta listesi isaretleri (16.10.2026). Ek-Say: gercek ek sayisi; gizli ekler ve govdedeki satir ici
+# resimler (imza logosu gibi, content-id'li resim) sayilmaz. Yazisma-Sira: ayni yazismada bu iletiden
+# onceki ileti sayisi; Outlook ConversationIndex'i 22 bayt baslik + her yanit icin 5 bayt (hex: 44 + 10n).
+$PR_EK_GIZLI = "http://schemas.microsoft.com/mapi/proptag/0x7FFE000B"
+function Ek-Adlari($it) {
+  $L = @()
+  try {
+    if ([int]$it.Attachments.Count -eq 0) { return @() }
+    # Hiz: ozellik yalniz resim eklerinde okunur (satir ici / gizli ekler pratikte hep resim); digerleri dogrudan sayilir
+    foreach ($e in $it.Attachments) {
+      $ad = [string]$e.FileName
+      if ($ad -notmatch '\.(png|jpe?g|gif|bmp|webp)$') { $L += $ad; continue }
+      $pa = $e.PropertyAccessor; $gizli = $false; $cid = ""
+      try { $gizli = [bool]$pa.GetProperty($PR_EK_GIZLI) } catch {}
+      if (-not $gizli) { try { $cid = [string]$pa.GetProperty($PR_CID) } catch {} }
+      if (-not $gizli -and -not $cid) { $L += $ad }
+    }
+  } catch {}
+  return ,$L
+}
+function Ek-Say($it) { return @(Ek-Adlari $it).Count }
+# Hiz icin: klasor tablosundan (tek toplu okuma) EntryID -> "gercek eki var" (PR_HASATTACH). Tablodaki deger
+# Exchange'in hesapladigi degerdir ve satir ici resimleri saymaz (16.10.2026: 134 postada Ek-Say ile birebir);
+# iletinin kendisinden okunan PR_HASATTACH ise satir ici resim varken de true doner, o yuzden kullanilmaz.
+$PR_HASATTACH = "http://schemas.microsoft.com/mapi/proptag/0x0E1B000B"
+function Ek-Haritasi($f, [int]$enCok) {
+  $h = @{}
+  try {
+    $tb = $f.GetTable(); $tb.Sort("[ReceivedTime]", $true); [void]$tb.Columns.Add($PR_HASATTACH)
+    $n = 0
+    while (-not $tb.EndOfTable -and $n -lt $enCok) { $r = $tb.GetNextRow(); $n++; try { $h[[string]$r.Item("EntryID")] = [bool]$r.Item($PR_HASATTACH) } catch {} }
+  } catch {}
+  return $h
+}
+function Yazisma-Sira($it) {
+  try { $ci = [string]$it.ConversationIndex; if ($ci.Length -gt 44) { return [int][math]::Floor(($ci.Length - 44) / 10) } } catch {}
+  return 0
+}
+# Dosya turu simgesi: SHGetFileInfo (USEFILEATTRIBUTES: dosya gerekmez, yalniz "x.<uzanti>") -> 32 px PNG.
+# Uzanti basina bellekte saklanir. Tanimsiz turde Windows'un genel dosya simgesi doner.
+$script:simgeOnbellek = @{}
+function Dosya-Simge([string]$uz) {
+  if ($uz -ne "__genel" -and $script:simgeOnbellek.ContainsKey($uz)) { return ,$script:simgeOnbellek[$uz] }
+  if (-not ('AssistDosyaSimge' -as [type])) {
+    Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @'
+using System; using System.Runtime.InteropServices; using System.Drawing;
+public static class AssistDosyaSimge {
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  struct SHFILEINFO { public IntPtr hIcon; public int iIcon; public uint dwAttributes;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string szDisplayName;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)] public string szTypeName; }
+  [DllImport("shell32.dll", CharSet = CharSet.Unicode)] static extern IntPtr SHGetFileInfo(string p, uint a, ref SHFILEINFO s, uint cb, uint f);
+  [DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr h);
+  public static byte[] Png(string uzanti) {
+    SHFILEINFO s = new SHFILEINFO();
+    SHGetFileInfo("x." + uzanti, 0x80, ref s, (uint)Marshal.SizeOf(s), 0x100 | 0x10);   // SHGFI_ICON | SHGFI_USEFILEATTRIBUTES (buyuk simge)
+    if (s.hIcon == IntPtr.Zero) return null;
+    try { using (Icon ic = Icon.FromHandle(s.hIcon)) using (Bitmap bm = ic.ToBitmap()) using (System.IO.MemoryStream ms = new System.IO.MemoryStream()) {
+      bm.Save(ms, System.Drawing.Imaging.ImageFormat.Png); return ms.ToArray(); } }
+    finally { DestroyIcon(s.hIcon); }
+  }
+}
+'@
+  }
+  # Windows'ta tanimsiz turler genel bos sayfa simgesi alir: o zaman simge verilmez (sayfa kendi isaretini koyar)
+  if (-not $script:simgeOnbellek.ContainsKey("__genel")) { $g = $null; try { $g = [AssistDosyaSimge]::Png("assistbilinmeyentur") } catch {}; $script:simgeOnbellek["__genel"] = $g }
+  $b = $null; try { $b = [AssistDosyaSimge]::Png($uz) } catch {}
+  $g = $script:simgeOnbellek["__genel"]
+  if ($b -and $g -and [Convert]::ToBase64String($b) -eq [Convert]::ToBase64String($g)) { $b = $null }
+  $script:simgeOnbellek[$uz] = $b
+  return ,$b
+}
+# Ayni yazismadaki (Outlook "konusma") iletiler, eskiden yeniye; en cok 30. Konusma kapaliysa
+# Gelen + Gonderilmis'te ayni konu basligi (ConversationTopic). Govdeden yalniz ilk 1500 karakter
+# (sayfa alintilanan eski metni keser). Assist'in tasiyici iletileri alinmaz. (16.10.2026)
+function Posta-Yazisma($it) {
+  $L = New-Object System.Collections.ArrayList; $gor = @{}
+  $ekle = { param($x)
+    try {
+      if ([int]$x.Class -ne 43) { return }
+      if (([string]$x.MessageClass) -like "IPM.Note.Assist*" -or ([string]$x.Subject).StartsWith("[Assist] ")) { return }
+      $eid = [string]$x.EntryID; if ($gor.ContainsKey($eid)) { return }; $gor[$eid] = 1
+      $t = [datetime]$x.ReceivedTime; if ($t.Year -gt 4000) { $t = [datetime]$x.SentOn }
+      $g = [string]$x.Body; if ($g.Length -gt 1500) { $g = $g.Substring(0, 1500) }
+      [void]$L.Add([ordered]@{ id = $eid; store = [string]$x.Parent.StoreID; kimden = ([string]$x.SenderName).Trim().Trim("'", '"').Trim()
+        tarih = (Tarih-Iso $t); govde = $g; ekler = @(Ek-Adlari $x); t = $t })   # gercek ekler (imza resimleri haric)
+    } catch {}
+  }
+  $ns = Ns; $konusma = $null
+  try { $konusma = $it.GetConversation() } catch {}
+  if ($konusma) {
+    try {
+      $tb = $konusma.GetTable(); $say = 0
+      while (-not $tb.EndOfTable -and $say -lt 60) {
+        $r = $tb.GetNextRow(); $say++
+        try { & $ekle ($ns.GetItemFromID([string]$r.Item("EntryID"))) } catch {}
+      }
+    } catch {}
+  }
+  if ($L.Count -le 1) {
+    $konu = ""; try { $konu = [string]$it.ConversationTopic } catch {}
+    if ($konu) {
+      $filtre = "[ConversationTopic] = '" + $konu.Replace("'", "''") + "'"
+      foreach ($no in 6, 5) { try { foreach ($x in $ns.GetDefaultFolder($no).Items.Restrict($filtre)) { & $ekle $x; if ($L.Count -ge 60) { break } } } catch {} }
+    }
+  }
+  $S = @($L | Sort-Object { $_.t } | Select-Object -Last 30)
+  foreach ($o in $S) { $o.Remove("t") }
+  return $S
 }
 
 # --- Masaustu bildirimi (Windows) -------------------------------------
@@ -1366,8 +1644,9 @@ while ($listener.IsListening) {
           $ak = 0; try { $ak = [int]$gk.Folders.Item("Assist").UnReadItemCount } catch {}
           if ($ak -gt 0 -and -not $env:ISTAKIP_PORT) { try { Ortak-Kontrol } catch {}; try { Gelen-Talep-Kontrol } catch {} }   # kuralla Assist klasorune ileti geldi
           if ($u -ne $script:gelenOkunmamis -or $c -ne $script:gelenToplam) {
+            # Ilk okumada da rev artar (16.10.2026): acilista sayfa ve tepsi okunmamis sayiyi hemen alsin
+            $script:gelenRev++
             if ($script:gelenToplam -ge 0) {
-              $script:gelenRev++
               if (-not $env:ISTAKIP_PORT) { try { Ortak-Kontrol } catch {}; try { Gelen-Talep-Kontrol } catch {} }   # ortak is / talep iletisi geldiyse hemen islensin
             }
             $script:gelenOkunmamis = $u; $script:gelenToplam = $c
@@ -1411,6 +1690,16 @@ while ($listener.IsListening) {
       $nonce = Sorgu $ctx "nonce"
       if ($nonce -match '^[0-9a-f]{32}$') { $sg.kanit = Assist-Hmac $ANAHTAR (Assist-Kanit-Metni ([pscustomobject]$sg) $nonce) }
       Yaz-Json $ctx $sg
+      $ctx.Response.OutputStream.Close(); continue
+    }
+
+    # Dosya turu simgesi (16.10.2026): posta ek listesinde Windows'un o tur icin gosterdigi ozgun simge
+    # (Excel, Word, PDF... kurulu programin simgesi; Gezgin'deki gibi). Yalniz uzanti alir, dosya okumaz,
+    # disari istek yapmaz; <img> baslik gonderemedigi icin anahtarsiz, ama yalniz yerel istege cevap verir.
+    if ($yol -match '^/simge/([a-z0-9]{1,8})\.png$') {
+      $b = $null; if ($ctx.Request.IsLocal) { $b = Dosya-Simge $Matches[1] }
+      if ($b) { $ctx.Response.StatusCode = 200; $ctx.Response.ContentType = "image/png"; $ctx.Response.Headers.Add("Cache-Control", "max-age=86400"); $ctx.Response.ContentLength64 = $b.Length; $ctx.Response.OutputStream.Write($b, 0, $b.Length) }
+      else { $ctx.Response.StatusCode = 404 }
       $ctx.Response.OutputStream.Close(); continue
     }
 
@@ -2142,44 +2431,244 @@ while ($listener.IsListening) {
         Yaz-Json $ctx @{ ok = $script:bildirimHazir }
       }
       # ---------- posta listesi ----------
+      # ---------- klasor agaci: Outlook'taki gibi (tum posta kutulari + veri dosyalari / Kisisel Klasorler) ----------
+      elseif ($yol -eq "/api/posta/klasorler") {
+        $agac = Posta-Agac   # ",@(...)" ile doner: tek depoda da dizi kalir
+        Yaz-Cevap $ctx ('{"ok":true,"depolar":' + $(if ($agac.Count) { ConvertTo-Json -InputObject $agac -Depth 30 -Compress } else { '[]' }) + '}') "application/json; charset=utf-8" 200
+      }
+      # ---------- ceviri ve ses (Azure; anahtar sayfaya geri verilmez) ----------
+      elseif ($yol -eq "/api/ceviri/ayar") {
+        $gecersiz = $false
+        if ($metod -eq "POST") {
+          $g = (Govde-Oku $ctx) | ConvertFrom-Json; $a = Ceviri-Ayar
+          # Bos alan = degistirme; "-" = sil. Bolge yalniz kucuk harf/rakam (ornek: westeurope)
+          foreach ($al in "bolge", "konusmaBolge") { $v = ([string]$g.$al).Trim(); if ($v -and $v.ToLowerInvariant() -notmatch '^[a-z0-9]+$') { $gecersiz = $true } }
+          if (-not $gecersiz) {
+            foreach ($al in "anahtar", "konusmaAnahtar") { $v = [string]$g.$al; if ($v -eq "-") { $a.$al = "" } elseif ($v.Trim()) { $a.$al = $v.Trim() } }
+            foreach ($al in "bolge", "konusmaBolge") { if ($null -ne $g.$al) { $a.$al = ([string]$g.$al).Trim().ToLowerInvariant() } }
+            Sifreli-Yaz $ceviriDos ($a | ConvertTo-Json -Compress)
+          }
+        }
+        $a = Ceviri-Ayar
+        if ($gecersiz) { Yaz-Hata $ctx "Gecersiz bolge adi (ornek: westeurope)." 400 }
+        else { Yaz-Json $ctx @{ ok = $true; ceviri = [bool][string]$a.anahtar; konusma = [bool](([string]$a.konusmaAnahtar -or [string]$a.anahtar) -and ([string]$a.konusmaBolge -or [string]$a.bolge)); bolge = [string]$a.bolge; konusmaBolge = [string]$a.konusmaBolge } }
+      }
+      elseif ($yol -eq "/api/ceviri" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json; $m = [string]$g.metin
+        if (-not $m.Trim()) { Yaz-Hata $ctx "Cevrilecek metin yok." 400 }
+        elseif ($m.Length -gt 60000) { Yaz-Hata $ctx "Metin cok uzun (en cok 60.000 karakter)." 400 }
+        else { try { $c = Ceviri-Yap $m ([string]$g.hedef); Yaz-Json $ctx @{ ok = $true; ceviri = $c.ceviri; dil = $c.dil } } catch { Yaz-Hata $ctx ("Ceviri yapilamadi: " + $_.Exception.Message) 502 } }
+      }
+      # Cevrimdisi ceviri motoru (Bergamot) durumu. ?kontrol=1: Mozilla katalogundan YALNIZ surum listesi okunur
+      # (posta/kisisel veri gitmez), kurulu surumle karsilastirilir; sonuc 7 gun saklanir. Indirme/guncelleme YAPILMAZ:
+      # bakim sorumlusu Sunucu\bergamot_indir.ps1 + imzala.ps1 ile yapar (kullanici karari 16.10.2026).
+      elseif ($yol -eq "/api/bergamot/durum") {
+        $sj = Join-Path $webKok "lib\bergamot\surum.json"; $kur = $null
+        if (Test-Path -LiteralPath $sj) { try { $kur = Get-Content -LiteralPath $sj -Raw | ConvertFrom-Json } catch {} }
+        $kd = Join-Path $veriKok "bergamot_kontrol.json"; $son = $null
+        if (Test-Path -LiteralPath $kd) { try { $son = Get-Content -LiteralPath $kd -Raw | ConvertFrom-Json } catch {} }
+        $eski = -not $son -or ((Get-Date) - [datetime]::ParseExact([string]$son.tarih, "yyyy-MM-ddTHH:mm", [Globalization.CultureInfo]::InvariantCulture)).TotalDays -ge 7
+        if ($kur -and (Sorgu $ctx "kontrol") -eq "1" -and $eski) {
+          try {
+            Tls12; $K = "https://firefox.settings.services.mozilla.com/v1/buckets/main/collections/"
+            $sv = { param($v) try { [version]([string]$v -replace '[^\d.]', '') } catch { [version]"0.0" } }
+            $wm = @((Invoke-RestMethod ($K + "translations-wasm/records") -TimeoutSec 30).data) | Where-Object { $_.name -eq "bergamot-translator" -and -not $_.filter_expression } | Sort-Object { & $sv $_.version } -Descending | Select-Object -First 1
+            $mm = @((Invoke-RestMethod ($K + "translations-models/records") -TimeoutSec 30).data) | Where-Object { -not $_.filter_expression }
+            $yeni = @()
+            if ((& $sv $wm.version) -gt (& $sv $kur.motor.surum)) { $yeni += ("motor " + $kur.motor.surum + " > " + $wm.version) }
+            foreach ($c in $kur.ciftler.PSObject.Properties.Name) {
+              $kv = (@($mm | Where-Object { $_.fromLang -eq $c.Substring(0, 2) -and $_.toLang -eq $c.Substring(2, 2) }) | Sort-Object { & $sv $_.version } -Descending | Select-Object -First 1).version
+              if ($kv -and (& $sv $kv) -gt (& $sv $kur.ciftler.$c.surum)) { $yeni += ($c + " " + $kur.ciftler.$c.surum + " > " + $kv) }
+            }
+            $son = [pscustomobject]@{ tarih = (Get-Date).ToString("yyyy-MM-ddTHH:mm"); yeni = @($yeni) }
+            [System.IO.File]::WriteAllText($kd, ($son | ConvertTo-Json -Compress), $UTF8)
+          } catch { Write-Host ("  Bergamot surum kontrolu yapilamadi: " + $_.Exception.Message) -ForegroundColor Yellow }
+        }
+        Yaz-Json $ctx @{ ok = $true; kurulu = [bool]$kur; motor = $(if ($kur) { [string]$kur.motor.surum } else { "" }); ciftler = $(if ($kur) { @{ entr = [string]$kur.ciftler.entr.surum; tren = [string]$kur.ciftler.tren.surum } } else { @{} })
+          dosyalar = $(if ($kur) { $kur.ciftler } else { $null }); kontrolTarih = $(if ($son) { [string]$son.tarih } else { "" }); yeni = $(if ($son) { @($son.yeni) } else { @() }) }
+      }
+      # Outlook'un kendi cevirisi (Microsoft Translator, sirketin M365 lisansi) ile gelen postayi Outlook'un ceviri
+      # diline (Turkce) cevirir ve metni Assist'e getirir (16.10.2026, kullanici istegi). COM'da ceviri komutu yok:
+      # posta KUCULTULMUS pencerede acilir, "TranslateMessage" komutu calistirilir, cevrilen govde UI Automation ile
+      # okunur, pencere KAYDEDILMEDEN kapatilir (Close olDiscard). Outlook ceviriyi hatirlarsa posta zaten cevrili
+      # acilir: o zaman komut hata verir, okunan metin dogrudan kullanilir.
+      elseif ($yol -eq "/api/posta/outlook-cevir" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json
+        $it = Posta-Bul ([string]$g.id) ([string]$g.store) ([string]$g.msgId)
+        if (-not $it) { Yaz-Hata $ctx "Posta bulunamadi." 404 }
+        else {
+          Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+          $AE = [System.Windows.Automation.AutomationElement]; $SC = [System.Windows.Automation.TreeScope]
+          $govdeOku = { param($p) foreach ($e in $p.FindAll($SC::Descendants, (New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Document)))) { try { return $e.GetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern).DocumentRange.GetText(-1) } catch {} }; return "" }
+          $ins = $null; $sonuc = $null; $hata = ""; $kaynak = ""
+          try {
+            $ins = $it.GetInspector; $ins.Display($false); $ins.WindowState = 1   # olMinimized
+            $kap = [string]$ins.Caption; $pen = $null
+            for ($d = 0; $d -lt 20 -and -not $pen; $d++) {
+              Start-Sleep -Milliseconds 250
+              foreach ($w in $AE::RootElement.FindAll($SC::Children, [System.Windows.Automation.Condition]::TrueCondition)) { if ($kap -and $w.Current.Name.StartsWith($kap.Substring(0, [Math]::Min(20, $kap.Length)))) { $pen = $w; break } }
+            }
+            if (-not $pen) { throw "Outlook penceresi bulunamadi." }
+            $once = ""; for ($d = 0; $d -lt 12 -and -not $once; $d++) { Start-Sleep -Milliseconds 250; $once = & $govdeOku $pen }
+            $calisti = $true; try { $ins.CommandBars.ExecuteMso("TranslateMessage") } catch { $calisti = $false }
+            $sonra = $once
+            if ($calisti) { for ($d = 0; $d -lt 24; $d++) { Start-Sleep -Milliseconds 600; $sonra = & $govdeOku $pen; if ($sonra -and $sonra -ne $once) { break } } }
+            # "Translated from: X" yazisindan kaynak dil
+            foreach ($e in $pen.FindAll($SC::Descendants, (New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text)))) { $m = [regex]::Match([string]$e.Current.Name, '(?i)(translated from|\u015Furadan \u00E7evrildi|cevrildi)\s*:\s*(.+)$'); if ($m.Success) { $kaynak = $m.Groups[2].Value.Trim(); break } }
+            if ($sonra -and ($sonra -ne $once -or $kaynak)) { $sonuc = $sonra } else { $hata = "Outlook bu postayi cevirmedi (posta zaten Outlook'un ceviri dilinde olabilir)." }
+          } catch { $hata = $_.Exception.Message }
+          finally { if ($ins) { try { $ins.Close(1) } catch {} } }
+          if ($sonuc) { Yaz-Json $ctx @{ ok = $true; ceviri = $sonuc.Trim(); kaynak = $kaynak } } else { Yaz-Hata $ctx ("Outlook cevirisi alinamadi: " + $hata) 502 }
+        }
+      }
+      # Windows sesli yazma (Win+H): Outlook'taki dikte gibi; odakli metin kutusuna (Assist yanit kutusu) yazar.
+      # Sayfa once kutuya odaklanir, sonra bu uc Win+H'ye basar. Anahtar gerekmez; ses Windows'un Microsoft
+      # konusma hizmetine gider (Windows Ayarlar > Gizlilik > Konusma). 16.10.2026.
+      elseif ($yol -eq "/api/sesli-yazma" -and $metod -eq "POST") {
+        if (-not ("AssistTus" -as [type])) {
+          Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class AssistTus {
+            [DllImport("user32.dll")] static extern void keybd_event(byte k, byte s, uint f, UIntPtr e);
+            public static void WinH() { keybd_event(0x5B, 0, 0, UIntPtr.Zero); keybd_event(0x48, 0, 0, UIntPtr.Zero);
+              keybd_event(0x48, 0, 2, UIntPtr.Zero); keybd_event(0x5B, 0, 2, UIntPtr.Zero); } }'
+        }
+        Start-Sleep -Milliseconds 150   # sayfadaki odak kutuya yerlessin
+        [AssistTus]::WinH()
+        Yaz-Json $ctx @{ ok = $true }
+      }
+      elseif ($yol -eq "/api/ses-oku" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json; $m = [string]$g.metin
+        if (-not $m.Trim()) { Yaz-Hata $ctx "Okunacak metin yok." 400 }
+        elseif ($m.Length -gt 5000) { Yaz-Hata $ctx "Parca cok uzun (en cok 5.000 karakter)." 400 }
+        else { try { $b = Ses-Sentez $m ([string]$g.dil); Yaz-Json $ctx @{ ok = $true; ses = [Convert]::ToBase64String($b) } } catch { Yaz-Hata $ctx ("Ses olusturulamadi: " + $_.Exception.Message) 502 } }
+      }
+      elseif ($yol -eq "/api/konusma" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json; $b64 = [string]$g.ses
+        if (-not $b64 -or $b64.Length -gt 4000000) { Yaz-Hata $ctx "Ses kaydi yok ya da cok uzun (en cok ~60 sn)." 400 }
+        else { try { $t = Konusma-Yaz ([Convert]::FromBase64String($b64)) ([string]$g.dil); Yaz-Json $ctx @{ ok = $true; metin = $t } } catch { Yaz-Hata $ctx ("Ses yaziya cevrilemedi: " + $_.Exception.Message) 502 } }
+      }
+      # Outlook yanit imzasi (onizleme icin metin hali). Outlook Reply() imzayi (resimleriyle) kendisi ekler (16.10.2026 denendi).
+      elseif ($yol -eq "/api/imza") {
+        $ad = ""
+        try {
+          foreach ($p in Get-ChildItem "HKCU:\Software\Microsoft\Office\16.0\Outlook\Profiles" -ErrorAction Stop) {
+            $pk = Join-Path $p.PSPath "9375CFF0413111d3B88A00104B2A6676"
+            if (-not (Test-Path $pk)) { continue }
+            foreach ($h in Get-ChildItem $pk) {
+              $q = Get-ItemProperty $h.PSPath; $r = $q."Reply-Forward Signature"; if (-not $r) { $r = $q."New Signature" }
+              if ($r) { $ad = $(if ($r -is [byte[]]) { [Text.Encoding]::Unicode.GetString($r).TrimEnd([char]0) } else { [string]$r }); break }
+            }
+            if ($ad) { break }
+          }
+        } catch {}
+        $sd = Join-Path $env:APPDATA "Microsoft\Signatures"; $metin = ""; $html = ""
+        if ($ad -and -not ($ad.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0)) {
+          $tx = Join-Path $sd ($ad + ".txt"); if (Test-Path -LiteralPath $tx) { try { $metin = [IO.File]::ReadAllText($tx).Trim() } catch {} }
+          # Gorunum icin imzanin HTML hali (16.10.2026): meta charset'e gore cozulur, <body> ici alinir, imza klasorundeki
+          # resimler data: adresine gomulur (sayfa dis/yerel dosyaya erismez). Sayfa betiksiz temizleyip golge DOM'da gosterir.
+          $hm = Join-Path $sd ($ad + ".htm")
+          if ((Test-Path -LiteralPath $hm) -and (Get-Item -LiteralPath $hm).Length -lt 2MB) {
+            try {
+              $bayt = [IO.File]::ReadAllBytes($hm); $kod = [Text.Encoding]::UTF8
+              $cs = [regex]::Match([Text.Encoding]::ASCII.GetString($bayt, 0, [Math]::Min(4096, $bayt.Length)), 'charset\s*=\s*"?([\w-]+)', 'IgnoreCase').Groups[1].Value
+              if ($cs) { try { $kod = [Text.Encoding]::GetEncoding($cs) } catch {} }
+              $h = $kod.GetString($bayt)
+              $mb = [regex]::Match($h, '(?is)<body[^>]*>(.*)</body>'); if ($mb.Success) { $h = $mb.Groups[1].Value }
+              $klasor = Join-Path $sd ($ad + "_files")
+              $h = [regex]::Replace($h, '(?i)(\bsrc\s*=\s*")([^"]+)"', {
+                param($m)
+                $yol = [Uri]::UnescapeDataString($m.Groups[2].Value) -replace '/', '\'
+                $dosya = Join-Path $sd $yol
+                $tam = [IO.Path]::GetFullPath($dosya)
+                $uz = [IO.Path]::GetExtension($tam).TrimStart('.').ToLowerInvariant()
+                if ($tam.StartsWith($klasor, [StringComparison]::OrdinalIgnoreCase) -and $RESIM_TUR[$uz] -and (Test-Path -LiteralPath $tam)) {
+                  return $m.Groups[1].Value + "data:" + $RESIM_TUR[$uz] + ";base64," + [Convert]::ToBase64String([IO.File]::ReadAllBytes($tam)) + '"'
+                }
+                return $m.Groups[1].Value + '"'   # imza klasoru disi / bulunamayan kaynak bos birakilir
+              }.GetNewClosure())
+              if ($h.Length -lt 1500000) { $html = $h.Trim() }
+            } catch {}
+          }
+        }
+        Yaz-Json $ctx @{ ok = $true; ad = $ad; metin = $metin; html = $html }
+      }
+      # Yanit: gonder=true ise Outlook uzerinden GONDERILIR (sayfa once kullanicidan onay alir), yoksa TASLAK acilir.
+      # Metin imzanin ve alintinin ustune eklenir; imzayi Outlook kendisi koyar.
+      elseif ($yol -eq "/api/posta/yanitla" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json
+        $it = Posta-Bul ([string]$g.id) ([string]$g.store) ([string]$g.msgId)
+        if (-not $it) { Yaz-Hata $ctx "Posta bulunamadi." 404 }
+        else {
+          $y = $(if ($g.tumune) { $it.ReplyAll() } else { $it.Reply() })
+          $null = $y.GetInspector   # imza ve alinti govdeye yerlessin
+          $ek = "<div style=""font-family:Calibri,Arial,sans-serif;font-size:11pt"">" + ([System.Net.WebUtility]::HtmlEncode([string]$g.metin) -replace "\r?\n", "<br>") + "</div><br>"
+          $hb = [string]$y.HTMLBody; $m = [regex]::Match($hb, '<body[^>]*>', 'IgnoreCase')
+          $y.HTMLBody = $(if ($m.Success) { $hb.Insert($m.Index + $m.Length, $ek) } else { $ek + $hb })
+          if ($g.gonder -eq $true) {
+            $n = 0; try { $n = [int]$y.Recipients.Count } catch {}
+            $y.Send(); Write-Host ("  Yanit gonderildi (" + $n + " alici)")
+            Yaz-Json $ctx @{ ok = $true; gonderildi = $true }
+          } else { $y.Display($false); Yaz-Json $ctx @{ ok = $true; gonderildi = $false } }
+        }
+      }
+      # ---------- posta listesi ----------
+      # kaynak: gelen | bayrakli | kategori (Gelen Kutusu tabanli, "son N gun") ya da klasorId+store (agactan secilen
+      # herhangi bir klasor, tarih siniri yok, en yeni 300). kime=1: Gonderilmis/Taslak/Giden icin alicilar da okunur.
       elseif ($yol -eq "/api/posta/liste") {
         $kaynak = Sorgu $ctx "kaynak"; $kategori = Sorgu $ctx "kategori"; $klasorYol = Sorgu $ctx "klasor"
+        $klasorId = Sorgu $ctx "klasorId"; $kimeOku = (Sorgu $ctx "kime") -eq "1"
         $gun = [int](Sorgu $ctx "gun"); if ($gun -le 0) { $gun = 14 }
         $enCok = 300
-        try { $f = Klasor $klasorYol } catch { Yaz-Hata $ctx ("Klasor bulunamadi: " + $klasorYol) 404; $ctx.Response.OutputStream.Close(); continue }
+        try {
+          if ($klasorId) { $f = (Ns).GetFolderFromID($klasorId, (Sorgu $ctx "store")); $kaynak = "klasor" }
+          else { $f = Klasor $klasorYol }
+        } catch { Yaz-Hata $ctx ("Klasor bulunamadi: " + $(if ($klasorId) { "secilen klasor" } else { $klasorYol })) 404; $ctx.Response.OutputStream.Close(); continue }
         $items = $f.Items
         # "[FlagStatus] = 2" bu posta kutusunda HIC sonuc dondurmuyor (13.10.2026,
         # Exchange); "<> 0" calisiyor. Tamamlanmis bayraklar (1) asagida elenir.
         if ($kaynak -eq "bayrakli") { $items = $items.Restrict("[FlagStatus] <> 0") }
         elseif ($kaynak -eq "kategori" -and $kategori) { $items = $items.Restrict("[Categories] = '" + $kategori.Replace("'", "''") + "'") }
-        $items.Sort("[ReceivedTime]", $true)
+        # Taslak / Giden'de alinma zamani yok: son degisiklige gore siralanir
+        $taslakTur = $false; try { $taslakTur = $f.EntryID -eq $f.Store.GetDefaultFolder(16).EntryID -or $f.EntryID -eq $f.Store.GetDefaultFolder(4).EntryID } catch {}
+        $items.Sort($(if ($taslakTur) { "[LastModificationTime]" } else { "[ReceivedTime]" }), $true)
         $sinir = (Get-Date).Date.AddDays(-$gun)
+        $ekHarita = $(if ($taslakTur) { @{} } else { Ek-Haritasi $f 350 })   # gercek ek isareti (satir ici resimler haric); taslakta tabloda alinma zamani yok
         $liste = New-Object System.Collections.ArrayList
         $n = $items.Count
-        for ($i = 1; $i -le $n -and $liste.Count -lt $enCok; $i++) {
+        for ($i = 1; $i -le $n -and $i -le 2000 -and $liste.Count -lt $enCok; $i++) {
           $it = $items.Item($i)
           # Posta (43) ve toplanti iletileri (53-57: davet, iptal, kabul/ret/belki yaniti). Outlook'un okunmamis
           # sayisi toplanti iletilerini de sayar; listede olmayinca sayilar tutmuyordu (15.10.2026).
           $sinif = [int]$it.Class
           if ($sinif -ne 43 -and ($sinif -lt 53 -or $sinif -gt 57)) { continue }
           if ($kaynak -eq "bayrakli" -and $it.FlagStatus -ne 2) { continue }
+          # Assist'in tasiyici iletileri (talep / ortak is) listede gosterilmez (16.10.2026): Gonderilmis'i dolduruyordu
+          if (([string]$it.MessageClass) -like "IPM.Note.Assist*" -or ([string]$it.Subject).StartsWith("[Assist] Talep:") -or ([string]$it.Subject).StartsWith("[Assist] Ortak i")) { continue }
           $alindi = [datetime]$it.ReceivedTime
+          if ($taslakTur -or $alindi.Year -gt 4000) { try { $alindi = [datetime]$it.LastModificationTime } catch {} }
           # Bayrakli postalar da "son N gun" ile sinirli: posta kutusunda yillar once
           # bayrak konmus yuzlerce posta var, listeyi onlar doldurmasin (13.10.2026).
-          # Kategori kipinde sinir yok: kategori bilincli olarak islenmis bir isaret.
-          if ($kaynak -ne "kategori" -and $alindi -lt $sinir) { break }
+          # Kategori ve agactan secilen klasorde sinir yok (en yeni 300).
+          if ($kaynak -ne "kategori" -and $kaynak -ne "klasor" -and $alindi -lt $sinir) { break }
           $on = ""
           try { $on = ([string]$it.Body) -replace '\s+', ' '; if ($on.Length -gt 220) { $on = $on.Substring(0, 220) } } catch {}
-          [void]$liste.Add(@{
+          $o = @{
             id = [string]$it.EntryID; store = [string]$f.StoreID
             konu = [string]$it.Subject; kimden = [string]$it.SenderName
             tarih = (Tarih-Iso $alindi); on = $on.Trim()
             bayrak = ($it.FlagStatus -eq 2); bayrakTermin = (Bayrak-Termin $it)
-            okunmadi = [bool]$it.UnRead; ek = [int]$it.Attachments.Count
+            okunmadi = [bool]$it.UnRead; ek = $(if ([int]$it.Attachments.Count -eq 0) { 0 } elseif ($ekHarita.ContainsKey([string]$it.EntryID)) { [int]$ekHarita[[string]$it.EntryID] } else { Ek-Say $it }); yz = (Yazisma-Sira $it)
             kategori = [string]$it.Categories; toplanti = ($sinif -ne 43)
-          })
+          }
+          if ($kimeOku) {
+            # To bos olabilir (toplanti yaniti, yalniz BCC): alici listesinden doldurulur. Adlardaki tirnaklar temizlenir.
+            $kime = ""; try { $kime = [string]$it.To } catch {}
+            if (-not $kime.Trim()) { try { $kime = (@(foreach ($r in $it.Recipients) { [string]$r.Name }) -join "; ") } catch {} }
+            $o.kime = (@($kime.Split(';') | ForEach-Object { $_.Trim().Trim("'", '"').Trim() } | Where-Object { $_ }) -join "; ")
+          }
+          $o.kimden = $o.kimden.Trim().Trim("'", '"').Trim()
+          [void]$liste.Add($o)
         }
-        Yaz-Json $ctx @{ ok = $true; klasor = [string]$f.FolderPath; postalar = @($liste) }
+        Yaz-Json $ctx @{ ok = $true; klasor = [string]$f.FolderPath; okunmamis = [int]$f.UnReadItemCount; postalar = @($liste) }
       }
 
       # ---------- tek posta (tam metin) ----------
@@ -2187,6 +2676,12 @@ while ($listener.IsListening) {
         $it = Posta-Bul (Sorgu $ctx "id") (Sorgu $ctx "store") (Sorgu $ctx "msgId")
         if (-not $it) { Yaz-Hata $ctx "Posta bulunamadi." 404 }
         else { Yaz-Json $ctx (Posta-Ayrinti $it) }
+      }
+      # ---------- ayni yazismadaki diger iletiler (posta penceresinin sag bolmesi) ----------
+      elseif ($yol -eq "/api/posta/yazisma") {
+        $it = Posta-Bul (Sorgu $ctx "id") (Sorgu $ctx "store") ""
+        if (-not $it) { Yaz-Hata $ctx "Posta bulunamadi." 404 }
+        else { Yaz-Json $ctx @{ ok = $true; iletiler = @(Posta-Yazisma $it) } }
       }
 
       # ---------- Outlook'ta o an secili posta ----------
@@ -2245,7 +2740,10 @@ while ($listener.IsListening) {
         else { if ($it.UnRead) { $it.UnRead = $false; $it.Save() }; Yaz-Json $ctx @{ ok = $true; kalan = [int]((Ns).GetDefaultFolder(6).UnReadItemCount) } }
       }
       elseif ($yol -eq "/api/posta/okundu" -and $metod -eq "POST") {
+        # Govdede klasorId+store varsa o klasor (agactan secilen), yoksa Gelen Kutusu
+        $g = $null; try { $g = (Govde-Oku $ctx) | ConvertFrom-Json } catch {}
         $gk = (Ns).GetDefaultFolder(6); $n = 0
+        if ($g -and [string]$g.klasorId) { try { $gk = (Ns).GetFolderFromID([string]$g.klasorId, [string]$g.store) } catch { Yaz-Hata $ctx "Klasor bulunamadi." 404; $ctx.Response.OutputStream.Close(); continue } }
         $liste = @(); foreach ($it in $gk.Items.Restrict("[UnRead] = True")) { $liste += $it }
         foreach ($it in $liste) { try { $it.UnRead = $false; $n++ } catch {} }
         Write-Host ("  Posta: " + $n + " okunmamis posta okundu yapildi")
@@ -2260,6 +2758,24 @@ while ($listener.IsListening) {
           if ($g.ac) { $it.MarkAsTask(4) } else { $it.ClearTaskFlag() }
           $it.Save()
           Yaz-Json $ctx @{ ok = $true; bayrak = ($it.FlagStatus -eq 2); bayrakTermin = (Bayrak-Termin $it) }
+        }
+      }
+      # ---------- postayi sil (16.10.2026, kullanici istedi) ----------
+      # Delete() postayi Outlook'ta "Silinmis Ogeler"e TASIR (geri alinabilir).
+      # Posta zaten Silinmis Ogeler'deyse Delete() KALICI siler: o durumda reddedilir.
+      elseif ($yol -eq "/api/posta/sil" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json
+        $it = Posta-Bul ([string]$g.id) ([string]$g.store) ([string]$g.msgId)
+        if (-not $it) { Yaz-Hata $ctx "Posta bulunamadi." 404 }
+        else {
+          $copte = $false
+          try { $copte = ($it.Parent.EntryID -eq $it.Parent.Store.GetDefaultFolder(3).EntryID) } catch {}
+          if ($copte) { Yaz-Hata $ctx "Posta zaten Silinmis Ogeler'de; kalici silme Assist'ten yapilmaz." 400 }
+          else {
+            $it.Delete()
+            Write-Host "  Posta: Silinmis Ogeler'e tasindi"
+            Yaz-Json $ctx @{ ok = $true }
+          }
         }
       }
       # ---------- talebi bir kisiye ilet ----------
@@ -2322,6 +2838,40 @@ while ($listener.IsListening) {
         Yaz-Json $ctx @{ ok = $true }
       }
 
+      # ---------- postanin ekini ac (16.10.2026) ----------
+      # Ek Outlook'taki postadan alinir; Outlook'un kendi gecici ek klasorune yazilip varsayilan
+      # programla acilir (Outlook'ta eke cift tiklamakla ayni). Assist'te ek saklanmaz.
+      # Belge turu disindaki ekler (exe, betik vb.) acilmaz: posta Outlook'ta acilir, Outlook'un
+      # kendi guvenlik denetimi gecerli olur.
+      elseif ($yol -eq "/api/posta/ek-ac" -and $metod -eq "POST") {
+        $g = (Govde-Oku $ctx) | ConvertFrom-Json
+        $it = $null; try { $it = Posta-Bul ([string]$g.id) ([string]$g.store) ([string]$g.msgId) } catch {}
+        $e = $null; if ($it) { try { $e = $it.Attachments.Item([int]$g.i) } catch {} }
+        if (-not $e) { Yaz-Hata $ctx "Ek Outlook'ta bulunamadi (posta tasinmis ya da silinmis olabilir)." 404 }
+        else {
+          $ad = ([IO.Path]::GetFileName([string]$e.FileName)) -replace '[\\/:*?"<>|]', '_'
+          $uz = ([IO.Path]::GetExtension($ad)).ToLowerInvariant()
+          if (@(1, 5) -notcontains [int]$e.Type -or $BELGE_UZ -notcontains $uz) {
+            $it.Display($false); try { $it.GetInspector.Activate() } catch {}
+            Yaz-Json $ctx @{ ok = $true; kaynak = "outlook" }
+          } else {
+            $kok = Outlook-Ek-Klasoru
+            # Outlook, kendi gecici klasorunde daha once kullandigi adi (dosya silinmis olsa bile) ayirmis tutabiliyor:
+            # SaveAsFile "This file name is in use by Outlook for a temporary file" hatasi verir (16.10.2026). O zaman ad
+            # sonuna (1), (2)... eklenip yeniden denenir.
+            $tem = [IO.Path]::GetFileNameWithoutExtension($ad); $hedef = $null
+            for ($n = 0; $n -lt 30 -and -not $hedef; $n++) {
+              $aday = Join-Path $kok ($(if ($n) { $tem + " (" + $n + ")" } else { $tem }) + $uz)
+              if (Test-Path -LiteralPath $aday) { continue }
+              try { $e.SaveAsFile($aday); $hedef = $aday } catch { if ($n -ge 29) { throw } }
+            }
+            if (-not $hedef) { throw "Ek kaydedilemedi." }
+            Internet-Isareti $hedef
+            Start-Process -FilePath $hedef
+            Yaz-Json $ctx @{ ok = $true; kaynak = "ek" }
+          }
+        }
+      }
       # ---------- postayi Outlook'ta ac ----------
       elseif ($yol -eq "/api/posta/ac" -and $metod -eq "POST") {
         $g = (Govde-Oku $ctx) | ConvertFrom-Json
@@ -2368,6 +2918,9 @@ while ($listener.IsListening) {
       $b = [System.IO.File]::ReadAllBytes($tam)
       $ctx.Response.ContentType = Icerik-Turu ([System.IO.Path]::GetExtension($tam))
       $ctx.Response.Headers.Add("Cache-Control", "no-store")
+      # Cevrimdisi ceviri iscisi (Bergamot): AG IZNI YOK. connect-src tanimsiz -> default-src 'none': isci hicbir adrese
+      # (Assist dahil) istek atamaz; yalniz kendi kokunden betik yukler ve WebAssembly derler (16.10.2026).
+      if ($yol -eq "/ceviri-isci.js") { $ctx.Response.Headers.Add("Content-Security-Policy", "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'") }
       $ctx.Response.ContentLength64 = $b.Length
       $ctx.Response.OutputStream.Write($b, 0, $b.Length)
     }
@@ -2380,12 +2933,11 @@ while ($listener.IsListening) {
   }
 }
 
-
 # SIG # Begin signature block
 # MIIdkQYJKoZIhvcNAQcCoIIdgjCCHX4CAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCCsjuavnISb4ND
-# lrl2d6KZZP3j2mBNa7MjL+KKIX+rcKCCF1QwggQWMIICfqADAgECAhA2m8l6HI/0
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDvvvZk4EnPD9UP
+# 7fUrbktAUFatNAQtqJqYao4FdHhgAaCCF1QwggQWMIICfqADAgECAhA2m8l6HI/0
 # gkepWCR7MrEPMA0GCSqGSIb3DQEBCwUAMCMxITAfBgNVBAMMGFNURkEgQXNzaXN0
 # IEtvZCBJbXphbGFtYTAeFw0yNjEwMTUwOTIwMzRaFw0zMTEwMTUwOTMwMzNaMCMx
 # ITAfBgNVBAMMGFNURkEgQXNzaXN0IEtvZCBJbXphbGFtYTCCAaIwDQYJKoZIhvcN
@@ -2513,31 +3065,31 @@ while ($listener.IsListening) {
 # BZMwggWPAgEBMDcwIzEhMB8GA1UEAwwYU1RGQSBBc3Npc3QgS29kIEltemFsYW1h
 # AhA2m8l6HI/0gkepWCR7MrEPMA0GCWCGSAFlAwQCAQUAoIGEMBgGCisGAQQBgjcC
 # AQwxCjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYB
-# BAGCNwIBCzEOMAwGCisGAQQBgjcCARUwLwYJKoZIhvcNAQkEMSIEIIH2SJ+zX2CZ
-# rK/bAVGbqsj/i4xUbqydFQtFfuwcPQ3cMA0GCSqGSIb3DQEBAQUABIIBgGE48TJD
-# HspY/feenBon5H3EllSVnqqMCqCcxNEwAYJAcr+rElQVDEQMCHceX/B7YxqTNucI
-# hSuVUM+rtSo7ZiLHkyhNzoFm77Hok7se+/vY9lsg8Nqf0Gc230WuLnah0zVYJ1XD
-# w8+4BsPGoPlP5nMogTeuHAeJ+hu3pU4BJXEFnYb9/2bfS4whk7dCNKnCVBp08iit
-# 3/+9XDZLBbtBhyGCKn/zVv1ljv0OGvbTEmxY+Bk1Ck9kr+dxMnNPIS95kyabjadr
-# PrDhYneQU+RXska7bPVh/uWPtP0daUe9zPCVscy7qMVKHnbluE8CK3rTOPVuw550
-# aiBoWO20UNgKZ6RkXh6TiFJ72MdpHItt1cSQ2Z8CxLzzEdNZs2L8WAcepVYb9TyC
-# F5IBBKsP78ERi6B0/FSOmSiK7II305CjxaKJfyaTmi02+IZEQWT61etvsThDKUwV
-# onjcVsvzFMhNNxJspXvflWDyILWQfeYpGkSBrKwR0ZVyDWvoRdEfGMXog6GCAyYw
+# BAGCNwIBCzEOMAwGCisGAQQBgjcCARUwLwYJKoZIhvcNAQkEMSIEICparbn77gUL
+# s3jjMJLIf6tOXeOmM8VdvYbHSHnoLKTeMA0GCSqGSIb3DQEBAQUABIIBgE+lyujd
+# Nt3djzqRvXAmSwV0lqu2YgDHS0jF+iMkMWz7msFyxB3mRQ/1mN1US4AS5AsZkfVw
+# OrPS/9cN9ugBOe3R/5UC9/tQpNF+mAHXHm89w1TUJJm57TR3Y51WvoimRjE+Px0+
+# kTy3Yxhs53MVQ4ELdvfS7cgtIwZ05rlLCwy14WWtTEjz7SLxPHGgF5kQw3qc+2R/
+# pE0ybl15wChqxUMARIyIARuZK1A3/3d1WUjMPSfE9cgncYl9YmPyoooJ3iIfwzGo
+# 4DNuVFNTYY3DReRrOBp04UdgYf22fw3VMgpvVsH8GHxlQxRl1gpfeTQB3cJhQ/qf
+# EW0twMO330tGmSTZIDM1LMpVoDsKOLjOyIogTxX2yum64zZY3Uco8pfZnwfjt0J6
+# 0FrpbnRYd5JuNpwgGjGEPeBh4V6/14WfdVSPNgApKEYVAaRHTIzy2e1PlyJV2Vc0
+# qnboOZuwcpRgW5JtfDMKwN4b4bnpve6x0xhMoqA8lR8sxAsRlK8bFvCIYKGCAyYw
 # ggMiBgkqhkiG9w0BCQYxggMTMIIDDwIBATB9MGkxCzAJBgNVBAYTAlVTMRcwFQYD
 # VQQKEw5EaWdpQ2VydCwgSW5jLjFBMD8GA1UEAxM4RGlnaUNlcnQgVHJ1c3RlZCBH
 # NCBUaW1lU3RhbXBpbmcgUlNBNDA5NiBTSEEyNTYgMjAyNSBDQTECEAhP3DNPfkVO
 # 28MPj/mSGDUwDQYJYIZIAWUDBAIBBQCgaTAYBgkqhkiG9w0BCQMxCwYJKoZIhvcN
-# AQcBMBwGCSqGSIb3DQEJBTEPFw0yNjEwMTUxMjI1MDlaMC8GCSqGSIb3DQEJBDEi
-# BCC2QcZ2Fyzg4gRR/ptOooXHVlDvXm9ZZHfvPPk5mqhdUzANBgkqhkiG9w0BAQEF
-# AASCAgCz/o9lErXfUBCqi0qv6+XPTT0dN6Z0VkcYixmvwbifH1Ci/3/RZeitp+KT
-# gvnfTkoWdGejVkr0LTQg0QXcxWqdttJx7ECIQuZTXMGpYxPwGlG82S9By6VLu7Cg
-# 8zYAw53t4Ji3I6+xv6oHAZRqzKm/DQy67XcgZwAgGLIpNA1nyoUiBipCcXhLStDu
-# yPY3XaIGLZkRAj7H+aAVkSiUILM1I98Naoer4cRyMOd32SYTpCIYFf37VBbeif1t
-# Da9s+fiqtqQ/IeWcJiHHyVIo4hBnTAN4vQ97vXqA8vVGNbk1hHLmu2x5zhNaeeLn
-# qkuKAnyx59yr/+mzvOQ8zGk1nf1Q95E5oboqbSLezs1IPobRwreYXTXhUdvL7wXE
-# LK/v8P7uAaK5r/J02w4kUblh9Q7CW9dExbNnBcKakaSOQz2PZ9k9OVEKSA5mLDZH
-# mNp3U3hUpm3BTyP7m+QhBld22KgYjZrMzVeGKIKLX09JMwwOL5+dTdz4o44OPlv4
-# /aRxNGwWNdueB19AWTTgc551hYngEd0zMYPo6v/KuT4FtWB/h6LOMAph/KZi3MbE
-# NTF8hQpOU3cN9AzpjnoMqYu0a2ebMzzWXkiujugcbfBQwcFeHRwA+qqaA1fVlLsG
-# PoOZObOQ9MytkISNg0Tq8zLMk7EqSteSSehfNYXkVPN4RFkINQ==
+# AQcBMBwGCSqGSIb3DQEJBTEPFw0yNjEwMTYxMTI4NDZaMC8GCSqGSIb3DQEJBDEi
+# BCCZ8gBhHMg/VEZeYCQrwkgTtcpwzDsNy+6uMHkBA0brlDANBgkqhkiG9w0BAQEF
+# AASCAgBJoGBSBrA8ba9NIsF5d/4GK5l8RB/dGaGeGZKUXm+hRYu6bwaU8n/n18FI
+# PdpqLHyPn/WAoQDndsZmzLwPaB+tQAUyIl9MzDzJ3/tcirTdJWtWbuy8HtU9bOCF
+# QP1Tr3/Sc/dqrFyepAEkl8vqzTUwhx8ZLgtMQT7IBT9UxUDD+/y8GU9M6nU/q3uW
+# HQHiGWca5hGOYZThbVt0Z7j8DNzZ/bpStT9eon9FKuk39w2rlevvict1lwpMt6Ea
+# OF7X/A47JarTlqbK5JP2pA270k2jfKcip0yP4Aaycoz6cL92c8IH/8Uee74mqTzJ
+# XTZ9b3D8GR6Dz862jKHGL3wpkP9m5pi8pyfJHmQ7gF8vgbiO6bIs6tr79xEN27pk
+# r/fDG9aSs4GvL/trayNienResW/08eJy+fBKcLQ2f5PvDd4vkgXOc5PcH54QfBua
+# 0E2rvhT/ughgqsQ2z4f8o2ul92eZCPofG/0JwykWvFoxT4Icsznv0fIfXE1L5HQK
+# 9ZIfJrBvWOFqulPXurFeyunBtqOw43HsNVgy3U/zaMfEkdKqYVkee/GD1JBTzI8c
+# QXlh/Naw9JFjIFAhrBwXmaaMDQsC+1KuDTbFvNXNN0tk1XxYLxUBrt/dCkpETKRQ
+# h/WBYrYaW9gJGaLPrS0cT2+PWt2eeA37T8QcTGMfMXEg9BTXOA==
 # SIG # End signature block

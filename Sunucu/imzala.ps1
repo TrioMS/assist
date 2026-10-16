@@ -79,6 +79,14 @@ if (-not $ZamanDamgasiz) {
   }
 }
 function Imzala([string]$yol) {
+  # Satir sonlari CRLF'ye esitlenir (16.10.2026): Set-AuthenticodeSignature eski imza blogunu silerken onunde CRLF
+  # varsayip 2 karakter atiyor; blogun onunde yalniz LF varsa dosyanin son "}"si siliniyor, sunucu yeniden yuklemede
+  # "Missing closing '}'" ile cokuyordu. Icerik degismez, yalniz satir sonlari.
+  if ($yol -like "*.ps1") {
+    $ham = [System.IO.File]::ReadAllText($yol)
+    $crlf = [regex]::Replace($ham, "\r?\n", "`r`n")
+    if ($crlf -ne $ham) { [System.IO.File]::WriteAllText($yol, $crlf, (New-Object System.Text.UTF8Encoding $false)) }
+  }
   $p = @{ FilePath = $yol; Certificate = $cert; HashAlgorithm = "SHA256" }
   if (-not $ZamanDamgasiz) { $p.TimestampServer = $ZD }
   $s = Set-AuthenticodeSignature @p
@@ -112,8 +120,8 @@ Write-Host ("Parmak izi (yeni kullanicilar 'Assist Guvenlik Kur.bat'ta bunu goru
 # SIG # Begin signature block
 # MIIdkQYJKoZIhvcNAQcCoIIdgjCCHX4CAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCChsxVp3aVtfLG+
-# VkRa+2NgPKNTSe2irewFvZN3BmITH6CCF1QwggQWMIICfqADAgECAhA2m8l6HI/0
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDiHYk2uPbv3tX5
+# zzrjvRCKqLKZllnXBbBuUgz8lYCWuaCCF1QwggQWMIICfqADAgECAhA2m8l6HI/0
 # gkepWCR7MrEPMA0GCSqGSIb3DQEBCwUAMCMxITAfBgNVBAMMGFNURkEgQXNzaXN0
 # IEtvZCBJbXphbGFtYTAeFw0yNjEwMTUwOTIwMzRaFw0zMTEwMTUwOTMwMzNaMCMx
 # ITAfBgNVBAMMGFNURkEgQXNzaXN0IEtvZCBJbXphbGFtYTCCAaIwDQYJKoZIhvcN
@@ -241,31 +249,31 @@ Write-Host ("Parmak izi (yeni kullanicilar 'Assist Guvenlik Kur.bat'ta bunu goru
 # BZMwggWPAgEBMDcwIzEhMB8GA1UEAwwYU1RGQSBBc3Npc3QgS29kIEltemFsYW1h
 # AhA2m8l6HI/0gkepWCR7MrEPMA0GCWCGSAFlAwQCAQUAoIGEMBgGCisGAQQBgjcC
 # AQwxCjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYB
-# BAGCNwIBCzEOMAwGCisGAQQBgjcCARUwLwYJKoZIhvcNAQkEMSIEIFGxhO+WCB/T
-# k+CXa9RYa4OIkqBlNhQpX1WzCSAld+eCMA0GCSqGSIb3DQEBAQUABIIBgBpZ3DxT
-# DFkhTVd2boP8c0HKMSPB6GxtNATaB/R5jQsx/daKtcdwl52qFjsgbRoEMBWlzTfc
-# uPvsniyysaBChxBCBStAZFLp+qSsAhjGpt+b9w8AgmngDV8aa3ZePBLdd7cMcCnf
-# h0cq/Ef6Ix4K2QFP78GBwEQsBfrAPoLzUO0kiVXnK147xot2rp8Dos7xOu7LQYMd
-# TsT6ZQzPIGM/aKAM8CWgKvFv5hlbn9eWWgDliZVeN1UcqzGVrfcIXJ51gvXLU7XC
-# 3AIzl4Pt+niQ+wtDIRjvo/9yorIrjn94aNP0MWTh75M2SMnubjXLkehUvbBTFQg1
-# oEjKs+iS8SAM7b0tzrODjG2Yt1GH+bTYT39oO3FKhd9yCkuCk9FGMTNg1UeNHwms
-# 2kO3QTg52VcfeS9+o8r9vrGCMA6t7MjCQW0eaJCdfprhzxRW6ll1+truducx52yu
-# rmesGHkF4g8cIPkQkHH950rogizvgzFC1MCQFMXZZWK0xJts9p0P1e+VsqGCAyYw
+# BAGCNwIBCzEOMAwGCisGAQQBgjcCARUwLwYJKoZIhvcNAQkEMSIEILPgau1aP2D7
+# 9A/rALq3Lt/lFeSAo6hcgggB3lFR+xVUMA0GCSqGSIb3DQEBAQUABIIBgFAEJQVX
+# 3hD5271K9VmIolZb0NITEr0V+xka4hKt/etoPXK5qbgX1LW4WVLuhXif7eysac6R
+# WjENRpVdOz9csOAMZ7EL8ii7RApho+ckbEAfewU1VOTqqVwOGtxIbH/ssAXIaPhc
+# SCRKSGorf9amDRTQddWQ6//BAiigD7ANPecRzhWcb90PHDtRHAiweE1NlDrZYZNq
+# +784qug741T93podiGKi+1s0V4tuTicD1et9BtTsodFKdcT7xTeuKt3Bb2C2BO/l
+# kkFXnJrQRfIo+9+YyeP6oKljRGEgesuSF3oooPfVoJVeEOv6BCciTtPinaXuDP3A
+# jSD893CmRj+9w61qyPFQUjASrBjkg1rsDX5BD4njyWCN4KzAHapQp8Kbo7/DMflj
+# YpxCseiYix03tIBv9e9GooOmOHv1aGXiLQ58X7XPOQcUX0Yx5f4CoPhEIAK2TOqN
+# jee93bovTNMUdgq4u1eKwVXHTJL/nFGJ6ENW2Lel/fjlF3zQstr/pzUvaKGCAyYw
 # ggMiBgkqhkiG9w0BCQYxggMTMIIDDwIBATB9MGkxCzAJBgNVBAYTAlVTMRcwFQYD
 # VQQKEw5EaWdpQ2VydCwgSW5jLjFBMD8GA1UEAxM4RGlnaUNlcnQgVHJ1c3RlZCBH
 # NCBUaW1lU3RhbXBpbmcgUlNBNDA5NiBTSEEyNTYgMjAyNSBDQTECEAhP3DNPfkVO
 # 28MPj/mSGDUwDQYJYIZIAWUDBAIBBQCgaTAYBgkqhkiG9w0BCQMxCwYJKoZIhvcN
-# AQcBMBwGCSqGSIb3DQEJBTEPFw0yNjEwMTUxMjI1MDZaMC8GCSqGSIb3DQEJBDEi
-# BCBJ6M9tDoD7MZy/Cwf5PdjcCWdFXw5tuXkagsTPmVX+szANBgkqhkiG9w0BAQEF
-# AASCAgBddElFk+RiSj1u6RR8pfcN4gyvT0ZR9sPBfhDL/NaawvpoGLsJtz1CtZ59
-# nFBgpW18O1cFJTS9Fe+YfEJ0ql3lUNnoKiwiAFfUJPFulufvwksXxe6qVXsBhSRY
-# kWBifKyY//hXAdmJ9CNEEuqSkzCukIrqmwmBTaC+WOsa3Af37ySm7N971vTWHjCG
-# TnCOdpItZsLQiesUlb6tcSl+iTr+NerQ93LffGRSfHIp11tTy8/IRjeSWrtd/Ffc
-# qszN86ydqR/blR7Gkz5duzXJbcKEtdRpRsW50fhUb0skTUa6/g+w9DljmWNkfbt9
-# FjLeVo7MdpCaFaAvDKBw+kfs9CwRSeiBdPdCoYaaCDozrp7pB9baZvp/2np3Rffw
-# L/hjaT9gcKLRrA/n6xP48bC5EQ+0Wnm5vz1fz1wX7PAVsPMGJqrstEFSg1D7iLN8
-# XQBy+zoxVA8E+R3w6DRM87/ubH98bG2lvxtBXSxxhAGc6jWv2lcX/XhI4K7MUlau
-# 7LSBHo/Xp7CSpFl/vmFNEQgfIqHe7isWpmy2ndCMsmdzbSkoWQApLfovriFUVJkO
-# EvPOcDtvTWvuHsn3dMBDCSDHWl9DeyyKSjb2DlrgpLMgW8tIqdufVmgPoqAud5n8
-# oBOmtCGIifQigNZOdlRk+VMlfr+5gLqvFaRLF/pCu311N7ktmg==
+# AQcBMBwGCSqGSIb3DQEJBTEPFw0yNjEwMTYxMTI4NDJaMC8GCSqGSIb3DQEJBDEi
+# BCBguChf8Y51WLXqVmPaABe8pkZa8Ii1AaB0v6I8OfO0bDANBgkqhkiG9w0BAQEF
+# AASCAgArNixAsbTw1CBYgA4I2SyTGIaStKPT/+z1dhXjFeV5rN+djcfi/S7yIL6h
+# qwOmGQXFz70ggsXskfG/P9ATZyf1fFY/MA9NT4UVwAeNCmgI5IOw9Fnr0ENUYpjm
+# lbybfJllaXcsS3UNFrAstBZUrc9NNkgI9hHn1kYznLiarc2D98Af/Pn0IH632qd+
+# tJSg9wcrKFsVRvXWSBStDg6npWOUpZuYT86a3fJZGOOMMbXEYyWplvq9IaQXMqaN
+# UE9nMuNDon1duZDXXVkazn8arp3moLKOPOqmVV83P2VBzalHk5UKYvbTST1GOqnt
+# 8pYriX9HZ3GmrrBZMJzsrLng7HyGo+c+tfl0wiLkmVo5hzBim+DcANkMW68qO5YV
+# elgMowOzQOJekvfOlRAcxU7NjKFloXn4ggK4cakP6QwRZ2Ehh0wPOS5rp1ElUkmN
+# 09jJblbDg3tFAWHMJdvpa4SqeyZvh92kapjbNWEPZx3z+4pNymkzAn5Z+iNiAOZA
+# YCCv0M/RKRYWZVmzGuRlWIoOcW190SSVC+hHV6g89ZnNOkXWyaLIlzUABpw6Zkbq
+# 3DytX1iY89EklQpChcsSPoT3H5mnS0/++wKuTH6S3ipZSUykKOPXbdlzUDZ6OqDo
+# eg0AcWH5FJ+Ty6qpotolbIUBOg5aVt+s9/x2OnJGtg/wqIQCkw==
 # SIG # End signature block
